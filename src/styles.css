@@ -72,6 +72,9 @@
   --color-gred: var(--gred);
   --color-gyellow: var(--gyellow);
   --color-ggreen: var(--ggreen);
+  --color-sky: var(--sky);
+  --color-indigo: var(--indigo);
+  --color-cyan: var(--cyan);
   --color-topbar: var(--topbar);
   --color-topbar-foreground: var(--topbar-foreground);
   --color-topbar-muted: var(--topbar-muted);

@@ -589,13 +589,13 @@ function Index() {
                 ))}
               </div>
 
-              <div className="mt-5 rounded-xl border border-ggreen/25 bg-ggreen/8 p-4">
+              <div className="mt-5 rounded-xl border border-teal/25 bg-teal/8 p-4">
                 <p className="flex items-center gap-2 text-sm font-bold">
-                  <MaterialIcon name="verified" size={18} className="text-ggreen" filled />
+                  <MaterialIcon name="verified" size={18} className="text-teal" filled />
                   اكتمال بيانات الموظفين
                 </p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-card">
-                  <div className="h-full w-[78%] rounded-full" style={{ background: "linear-gradient(90deg, var(--ggreen), oklch(0.72 0.15 165))" }} />
+                  <div className="h-full w-[78%] rounded-full" style={{ background: "linear-gradient(90deg, var(--teal), var(--cyan))" }} />
                 </div>
                 <p className="mt-2 text-xs font-semibold text-muted-foreground">٧٨٪ مكتملة · ٧١ ملفاً ناقصاً</p>
               </div>

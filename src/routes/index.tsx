@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { MegaMenu, type NavItem } from "@/components/MegaMenu";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,16 +21,152 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const nav = [
+const nav: NavItem[] = [
   { label: "إدارة المهام", icon: "dashboard_customize" },
   { label: "الصلاحيات", icon: "shield_person" },
   { label: "تقييم الأداء", icon: "trending_up" },
   { label: "طلبات الاعتماد", icon: "task_alt" },
-  { label: "التقارير", icon: "lab_profile" },
-  { label: "الطلبات", icon: "campaign" },
-  { label: "اللوائح", icon: "format_list_bulleted" },
-  { label: "عمليات شؤون الموظفين", icon: "manage_accounts" },
-  { label: "إعدادات النظام", icon: "settings" },
+  {
+    label: "التقارير",
+    icon: "lab_profile",
+    columns: [
+      {
+        title: "تقارير البصمة",
+        items: [
+          "تقرير البصمة",
+          "تقرير حضور وإنصراف البصمة",
+          "التقرير الاحصائي للحضور والإنصراف",
+          "تقرير الحضور والإنصراف التفصيلي",
+          "تقرير الحضور والإنصراف الشامل",
+          "التأخير اليومي",
+          "غياب الموظف",
+          "تفاصيل قيمة غياب الموظف",
+          "مقارنة الغياب والتأخير للفروع والأقسام",
+          "تقرير استثناءات الحضور والإنصراف",
+          "تقرير عدد أيام الغياب",
+          "تقرير الغياب بالأيام",
+          "تقرير التأخير بالأيام",
+          "تقرير حصر الغياب بالأشهر",
+        ],
+      },
+      {
+        title: "تقارير بيانات الموظفين",
+        items: [
+          "تقارير بيانات الموظفين",
+          "تقرير البيانات الاساسية",
+          "تقرير التعيينات وإنهاء الخدمة",
+          "تقرير ملفات الموظفين",
+          "تقرير التقييم",
+          "طباعة النماذج الإدارية",
+          "تقرير التأمين الطبي للموظفين",
+          "تقرير البيانات المالية",
+          "تقرير اجازات الموظفين",
+          "تقرير المرافقين",
+          "تقرير الشهادات",
+          "تقرير الدورات التدريبية",
+        ],
+      },
+      {
+        title: "تقارير ماليات الموظفين",
+        items: [
+          "مسير الرواتب",
+          "مقارنة بين شهرين للمسير",
+          "تقرير الاستحقاقات والاستقطاعات",
+          "تقرير كشف الحساب البنكي",
+          "تقرير تعديل المسير",
+          "تقرير بيانات السلف",
+          "تقرير رصيد السلف",
+          "تقرير العهد النقدية",
+          "كشف حساب الموظف للعام",
+        ],
+      },
+      {
+        title: "تقارير إحصائية",
+        items: [
+          "تقرير الموازنة التقديرية للقوى العاملة",
+          "تقرير اعداد الموظفين",
+          "تقرير عقود الموظفين",
+          "تقرير الطلبات المتنوعة",
+          "تقرير التعميمات والاستبيانات",
+        ],
+      },
+      { title: "تقارير تاريخية", items: ["تقرير الملف التاريخي لاجازات الموظفين", "الأرشيف"] },
+    ],
+  },
+  {
+    label: "الطلبات",
+    icon: "campaign",
+    columns: [
+      { title: "الموافقة على الطلبات", items: ["الطلبات", "ميزانية الشراء", "تهيئة الطلبات"] },
+    ],
+  },
+  {
+    label: "اللوائح",
+    icon: "format_list_bulleted",
+    columns: [
+      {
+        title: "التهيئة المالية",
+        items: ["لائحة الإستحقاقات", "لائحة الإستقطاعات", "تهيئة العمولات البنكية"],
+      },
+      {
+        title: "إعدادات متنوعة",
+        items: [
+          "تهيئة الاجازات",
+          "تهيئة مجموعات الدوام",
+          "تهيئة السلف",
+          "تهيئة سلاسل الموافقات",
+          "تهيئة لائحة الأذونات",
+        ],
+      },
+      { title: "لائحة خصومات البصمة", items: ["لائحة خصومات البصمة"] },
+      { title: "لوائح أخرى", items: ["لوائح أخرى", "لائحة نهاية الخدمة"] },
+    ],
+  },
+  {
+    label: "عمليات شؤون الموظفين",
+    icon: "manage_accounts",
+    columns: [
+      { title: "متابعة المستندات", items: ["اشعارات الطلبات"] },
+      { title: "بيانات الموظفين", items: ["شؤون الموظفين"] },
+      {
+        title: "عمليات الموظفين",
+        items: [
+          "الأجازات",
+          "الاستبيانات و التعميم",
+          "المسائلات",
+          "الاذونات",
+          "المراسلات",
+          "مخصص نهاية الخدمة",
+          "طلبات نهاية الخدمة",
+        ],
+      },
+      { title: "ماليات الموظفين", items: ["السلف"] },
+      { title: "رواتب الموظفين", items: ["تجهيز مسودة المسير", "ملف البنك"] },
+    ],
+  },
+  {
+    label: "إعدادات النظام",
+    icon: "settings",
+    columns: [
+      {
+        title: "تهيئة البيانات الأساسية",
+        items: ["التهيئة العامة للبرنامج", "تهيئة البيانات الاساسية", "تهيئة ربط الحسابات"],
+      },
+      {
+        title: "تهيئة بيانات الشركات والفروع",
+        items: ["تهيئة بيانات الشركة", "تهيئة بيانات الفروع", "مستندات الشركة والافرع"],
+      },
+      {
+        title: "إعدادات أخرى",
+        items: [
+          "تهيئة السنوات والشهور",
+          "تهيئة الكفلاء",
+          "تهيئة أسباب الايقاف",
+          "تحديد اعداد الموظفين في الفروع",
+        ],
+      },
+    ],
+  },
 ];
 
 const sidebar = [
@@ -111,29 +248,8 @@ function Index() {
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="bg-brand-muted/95 backdrop-blur">
-          <ul className="flex items-center gap-1 overflow-x-auto px-3 py-1.5 [scrollbar-width:none] md:px-5">
-            {nav.map((item, i) => (
-              <li key={item.label}>
-                <button
-                  className={`group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${
-                    i === 0
-                      ? "bg-brand-foreground/12 text-brand-foreground"
-                      : "text-brand-foreground/70 hover:bg-brand-foreground/10 hover:text-brand-foreground"
-                  }`}
-                >
-                  <MaterialIcon
-                    name={item.icon}
-                    size={18}
-                    className={i === 0 ? "text-teal" : "text-brand-foreground/60 group-hover:text-teal"}
-                  />
-                  {item.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {/* Nav with mega menus */}
+        <MegaMenu items={nav} />
       </header>
 
       <div className="flex">

@@ -83,8 +83,8 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
               {active.columns.map((col) => (
                 <div key={col.title} className="bg-card">
                   <p
-                    className="px-4 py-2.5 text-[12px] font-bold text-brand-foreground"
-                    style={{ background: "var(--gradient-brand)" }}
+                    className="px-4 py-2.5 text-[12px] font-bold text-primary"
+                    style={{ background: "color-mix(in oklab, var(--teal) 12%, var(--card))" }}
                   >
                     {col.title}
                   </p>

@@ -65,6 +65,8 @@
   --color-brand-muted: var(--brand-muted);
   --color-teal: var(--teal);
   --color-teal-foreground: var(--teal-foreground);
+  --color-violet: var(--violet);
+  --color-violet-foreground: var(--violet-foreground);
   --color-gold: var(--gold);
 }
 

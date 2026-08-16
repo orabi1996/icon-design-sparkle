@@ -622,7 +622,7 @@ function Index() {
                 ].map((a) => (
                   <button
                     key={a.label}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-4 text-xs font-bold transition-colors hover:border-teal/50 hover:bg-accent"
+                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-4 text-xs font-bold transition-colors hover:border-gblue/40 hover:bg-gblue/8"
                   >
                     <MaterialIcon name={a.icon} size={24} className="text-primary" />
                     {a.label}
@@ -630,9 +630,9 @@ function Index() {
                 ))}
               </div>
 
-              <div className="mt-5 rounded-xl border border-teal/30 bg-teal/10 p-4">
+              <div className="mt-5 rounded-xl border border-ggreen/25 bg-ggreen/8 p-4">
                 <p className="flex items-center gap-2 text-sm font-bold">
-                  <MaterialIcon name="verified" size={18} className="text-teal-foreground" filled />
+                  <MaterialIcon name="verified" size={18} className="text-ggreen" filled />
                   اكتمال بيانات الموظفين
                 </p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-card">

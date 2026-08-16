@@ -184,8 +184,15 @@ type Stat = {
   value: string;
   hint: string;
   icon: string;
-  tone: "teal" | "gold" | "brand" | "violet";
+  tone: "blue" | "red" | "yellow" | "green";
   trend: { dir: "up" | "down"; text: string };
+};
+
+const toneStyles: Record<Stat["tone"], { icon: string; bar: string; text: string }> = {
+  blue: { icon: "bg-gblue/12 text-gblue", bar: "bg-gblue", text: "text-gblue" },
+  red: { icon: "bg-gred/12 text-gred", bar: "bg-gred", text: "text-gred" },
+  yellow: { icon: "bg-gyellow/20 text-gold", bar: "bg-gyellow", text: "text-gold" },
+  green: { icon: "bg-ggreen/12 text-ggreen", bar: "bg-ggreen", text: "text-ggreen" },
 };
 
 const stats: Stat[] = [
@@ -194,7 +201,7 @@ const stats: Stat[] = [
     value: "٣٢٤",
     hint: "٢٨١ نشط · ٤٣ إجازة",
     icon: "groups",
-    tone: "teal",
+    tone: "blue",
     trend: { dir: "up", text: "٤٪ عن الشهر الماضي" },
   },
   {
@@ -202,7 +209,7 @@ const stats: Stat[] = [
     value: "٩٤٪",
     hint: "٣٠٥ حاضر · ١٩ غائب",
     icon: "how_to_reg",
-    tone: "brand",
+    tone: "green",
     trend: { dir: "up", text: "٢٪ عن الأمس" },
   },
   {
@@ -210,7 +217,7 @@ const stats: Stat[] = [
     value: "١٨",
     hint: "٤ عاجلة · ٧ للمراجعة",
     icon: "pending_actions",
-    tone: "gold",
+    tone: "yellow",
     trend: { dir: "down", text: "٦ طلبات أُغلقت اليوم" },
   },
   {
@@ -218,7 +225,7 @@ const stats: Stat[] = [
     value: "٤٢",
     hint: "٧ جارية · ٣٥ مقبولة",
     icon: "beach_access",
-    tone: "violet",
+    tone: "red",
     trend: { dir: "up", text: "٩ طلبات جديدة" },
   },
 ];
@@ -232,12 +239,12 @@ const attendanceWeek = [
 ];
 
 const departments = [
-  { name: "المبيعات", count: 72, color: "var(--teal)" },
-  { name: "الإدارة", count: 64, color: "var(--primary)" },
-  { name: "تقنية المعلومات", count: 52, color: "oklch(0.62 0.13 280)" },
-  { name: "الموارد البشرية", count: 50, color: "oklch(0.7 0.13 300)" },
-  { name: "التسويق", count: 48, color: "oklch(0.78 0.13 70)" },
-  { name: "المالية", count: 38, color: "oklch(0.72 0.12 150)" },
+  { name: "المبيعات", count: 72, color: "var(--gblue)" },
+  { name: "الإدارة", count: 64, color: "var(--gred)" },
+  { name: "تقنية المعلومات", count: 52, color: "var(--gyellow)" },
+  { name: "الموارد البشرية", count: 50, color: "var(--ggreen)" },
+  { name: "التسويق", count: 48, color: "oklch(0.55 0.19 300)" },
+  { name: "المالية", count: 38, color: "oklch(0.65 0.14 200)" },
 ];
 
 const requests = [
@@ -249,9 +256,9 @@ const requests = [
 ];
 
 const stateStyle: Record<string, string> = {
-  "بانتظار الاعتماد": "bg-gold/15 text-gold border-gold/40",
-  مكتمل: "bg-teal/15 text-teal-foreground border-teal/40",
-  "قيد المراجعة": "bg-secondary text-muted-foreground border-border",
+  "بانتظار الاعتماد": "bg-gyellow/18 text-gold border-gyellow/40",
+  مكتمل: "bg-ggreen/12 text-ggreen border-ggreen/35",
+  "قيد المراجعة": "bg-gblue/10 text-gblue border-gblue/30",
 };
 
 const announcements = [
@@ -267,7 +274,16 @@ const birthdays = [
 ];
 
 function Index() {
-  const maxDept = Math.max(...departments.map((d) => d.count));
+  const totalDept = departments.reduce((sum, d) => sum + d.count, 0);
+  let acc = 0;
+  const donutStops = departments
+    .map((d) => {
+      const start = (acc / totalDept) * 360;
+      acc += d.count;
+      const end = (acc / totalDept) * 360;
+      return `${d.color} ${start}deg ${end}deg`;
+    })
+    .join(", ");
 
   return (
     <div dir="rtl" className="min-h-screen bg-background text-foreground">
@@ -276,8 +292,8 @@ function Index() {
         <div className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-6">
           <div className="flex items-center gap-3">
             <div
-              className="grid size-10 place-items-center rounded-xl text-teal-foreground"
-              style={{ background: "var(--gradient-teal)" }}
+              className="grid size-10 place-items-center rounded-xl text-white"
+              style={{ background: "var(--gradient-google)" }}
             >
               <MaterialIcon name="diversity_3" size={22} filled />
             </div>
@@ -287,7 +303,7 @@ function Index() {
             </div>
           </div>
 
-          <div className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-xl bg-secondary px-3 py-2 ring-1 ring-border focus-within:ring-teal/60 lg:flex">
+          <div className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-xl bg-secondary px-3 py-2 ring-1 ring-border focus-within:ring-gblue/50 lg:flex">
             <MaterialIcon name="search" size={20} className="text-muted-foreground" />
             <input
               placeholder="ابحث بالاسم، الهوية، أو الرقم الوظيفي"
@@ -355,8 +371,8 @@ function Index() {
 
           <div className="mt-auto p-3">
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-teal-foreground"
-              style={{ background: "var(--gradient-teal)", boxShadow: "var(--shadow-raised)" }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white"
+              style={{ background: "var(--gradient-google)", boxShadow: "var(--shadow-raised)" }}
             >
               <MaterialIcon name="design_services" size={20} filled />
               تعديل في المُصمم
@@ -381,40 +397,73 @@ function Index() {
                 <MaterialIcon name="download" size={18} />
                 تصدير
               </button>
-              <button className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+              <button className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
                 <MaterialIcon name="add" size={18} />
                 إضافة لوحة
               </button>
             </div>
           </div>
 
+          {/* Hero banner */}
+          <section
+            className="relative mt-6 overflow-hidden rounded-3xl p-6 text-white md:p-8"
+            style={{ background: "var(--gradient-brand)", boxShadow: "var(--shadow-raised)" }}
+          >
+            <span className="absolute inset-x-0 top-0 h-1.5" style={{ background: "var(--gradient-google)" }} />
+            <div className="absolute -left-16 -top-20 size-64 rounded-full bg-white/15 blur-2xl" />
+            <div className="absolute -bottom-24 right-10 size-56 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative flex flex-wrap items-center justify-between gap-6">
+              <div className="max-w-xl">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold backdrop-blur">
+                  <MaterialIcon name="auto_awesome" size={14} filled />
+                  ملخص اليوم
+                </span>
+                <h3 className="mt-3 text-2xl font-extrabold leading-snug md:text-3xl">
+                  صباح الخير، مدير النظام 👋
+                </h3>
+                <p className="mt-2 text-sm font-medium text-white/85">
+                  لديك ١٨ طلباً بانتظار الاعتماد و٤ طلبات عاجلة. نسبة الحضور اليوم ٩٤٪ — أعلى من متوسط الأسبوع.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { label: "طلبات عاجلة", value: "٤", icon: "priority_high" },
+                  { label: "بانتظار توقيعك", value: "٩", icon: "draw" },
+                  { label: "مهام اليوم", value: "١٢", icon: "checklist" },
+                ].map((h) => (
+                  <div
+                    key={h.label}
+                    className="min-w-[7.5rem] rounded-2xl bg-white/15 p-4 backdrop-blur ring-1 ring-white/25"
+                  >
+                    <MaterialIcon name={h.icon} size={20} filled />
+                    <p className="mt-2 text-2xl font-extrabold">{h.value}</p>
+                    <p className="text-[11px] font-bold text-white/85">{h.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* Stats */}
           <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((s) => (
               <article
                 key={s.label}
-                className="rounded-2xl border border-border bg-card p-5"
+                className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-lg"
                 style={{ boxShadow: "var(--shadow-card)" }}
               >
+                <span className={`absolute inset-x-0 top-0 h-1 ${toneStyles[s.tone].bar}`} />
                 <div className="flex items-start justify-between">
                   <span
-                    className={`grid size-11 place-items-center rounded-xl ${
-                      s.tone === "teal"
-                        ? "bg-teal/15 text-teal-foreground"
-                        : s.tone === "gold"
-                          ? "bg-gold/20 text-gold"
-                          : s.tone === "violet"
-                            ? "bg-violet/15 text-violet-foreground"
-                            : "bg-primary/10 text-primary"
-                    }`}
+                    className={`grid size-11 place-items-center rounded-2xl ${toneStyles[s.tone].icon}`}
                   >
                     <MaterialIcon name={s.icon} size={22} filled />
                   </span>
                   <span
                     className={`flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-bold ${
                       s.trend.dir === "up"
-                        ? "bg-teal/12 text-teal-foreground"
-                        : "bg-gold/15 text-gold"
+                        ? "bg-ggreen/12 text-ggreen"
+                        : "bg-gred/10 text-gred"
                     }`}
                   >
                     <MaterialIcon name={s.trend.dir === "up" ? "trending_up" : "trending_down"} size={14} filled />
@@ -425,7 +474,7 @@ function Index() {
                 <p className="mt-1 text-xs font-semibold text-muted-foreground">{s.hint}</p>
                 <p
                   className={`mt-3 flex items-center gap-1 text-[11px] font-bold ${
-                    s.trend.dir === "up" ? "text-teal-foreground" : "text-gold"
+                    s.trend.dir === "up" ? "text-ggreen" : "text-gred"
                   }`}
                 >
                   <MaterialIcon name={s.trend.dir === "up" ? "arrow_upward" : "arrow_downward"} size={13} />
@@ -443,28 +492,38 @@ function Index() {
             >
               <div className="flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-base font-bold">
-                  <MaterialIcon name="monitoring" size={20} className="text-primary" filled />
+                  <MaterialIcon name="monitoring" size={20} className="text-gblue" filled />
                   اتجاه الحضور الأسبوعي
                 </h3>
-                <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-muted-foreground">
+                <span className="rounded-full bg-gblue/10 px-3 py-1 text-[11px] font-bold text-gblue">
                   متوسط ٩٥٪
                 </span>
               </div>
-              <div className="mt-6 flex h-56 items-stretch justify-between gap-3">
-                {attendanceWeek.map((d) => (
-                  <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
-                    <div
-                      className="w-full rounded-t-lg transition-all"
-                      style={{
-                        height: `${d.value}%`,
-                        background: "var(--gradient-teal)",
-                      }}
-                      title={`${d.value}٪`}
-                    />
-                    <span className="text-[11px] font-bold text-muted-foreground">{d.day}</span>
-                    <span className="text-xs font-extrabold">{d.value}٪</span>
-                  </div>
-                ))}
+              <div className="relative mt-6 h-60">
+                <div className="absolute inset-0 bottom-12 flex flex-col justify-between">
+                  {[100, 75, 50, 25, 0].map((g) => (
+                    <div key={g} className="flex items-center gap-2">
+                      <span className="w-8 shrink-0 text-[10px] font-bold text-muted-foreground">{g}٪</span>
+                      <span className="h-px flex-1 bg-border" />
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 flex items-stretch gap-3 ps-10">
+                  {attendanceWeek.map((d, i) => (
+                    <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end">
+                      <span className="mb-1.5 text-xs font-extrabold text-foreground">{d.value}٪</span>
+                      <div
+                        className="w-full max-w-14 rounded-t-xl transition-all hover:opacity-85"
+                        style={{
+                          height: `calc(${d.value}% - 3.5rem)`,
+                          background: `linear-gradient(180deg, var(--chart-${(i % 5) + 1}) 0%, color-mix(in oklab, var(--chart-${(i % 5) + 1}) 70%, white) 100%)`,
+                        }}
+                        title={`${d.value}٪`}
+                      />
+                      <span className="mt-2 h-10 pt-1 text-[11px] font-bold text-muted-foreground">{d.day}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
 
@@ -473,22 +532,29 @@ function Index() {
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <h3 className="flex items-center gap-2 text-base font-bold">
-                <MaterialIcon name="account_tree" size={20} className="text-primary" filled />
+                <MaterialIcon name="donut_large" size={20} className="text-gblue" filled />
                 توزيع الأقسام
               </h3>
-              <ul className="mt-5 space-y-4">
+              <div className="mt-4 grid place-items-center">
+                <div
+                  className="relative grid size-40 place-items-center rounded-full"
+                  style={{ background: `conic-gradient(${donutStops})` }}
+                >
+                  <div className="grid size-24 place-items-center rounded-full bg-card">
+                    <span className="text-xl font-extrabold">{totalDept}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground">موظف</span>
+                  </div>
+                </div>
+              </div>
+              <ul className="mt-5 space-y-3">
                 {departments.map((d) => (
-                  <li key={d.name}>
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-foreground">{d.name}</span>
-                      <span className="text-muted-foreground">{d.count} موظف</span>
-                    </div>
-                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${(d.count / maxDept) * 100}%`, background: d.color }}
-                      />
-                    </div>
+                  <li key={d.name} className="flex items-center gap-2 text-xs font-semibold">
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ background: d.color }} />
+                    <span className="flex-1 text-foreground">{d.name}</span>
+                    <span className="text-muted-foreground">{d.count}</span>
+                    <span className="w-10 text-end font-bold text-foreground">
+                      {Math.round((d.count / totalDept) * 100)}٪
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -557,7 +623,7 @@ function Index() {
                 ].map((a) => (
                   <button
                     key={a.label}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-4 text-xs font-bold transition-colors hover:border-teal/50 hover:bg-accent"
+                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-4 text-xs font-bold transition-colors hover:border-gblue/40 hover:bg-gblue/8"
                   >
                     <MaterialIcon name={a.icon} size={24} className="text-primary" />
                     {a.label}
@@ -565,13 +631,13 @@ function Index() {
                 ))}
               </div>
 
-              <div className="mt-5 rounded-xl border border-teal/30 bg-teal/10 p-4">
+              <div className="mt-5 rounded-xl border border-ggreen/25 bg-ggreen/8 p-4">
                 <p className="flex items-center gap-2 text-sm font-bold">
-                  <MaterialIcon name="verified" size={18} className="text-teal-foreground" filled />
+                  <MaterialIcon name="verified" size={18} className="text-ggreen" filled />
                   اكتمال بيانات الموظفين
                 </p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-card">
-                  <div className="h-full w-[78%] rounded-full" style={{ background: "var(--gradient-teal)" }} />
+                  <div className="h-full w-[78%] rounded-full" style={{ background: "linear-gradient(90deg, var(--ggreen), oklch(0.72 0.15 165))" }} />
                 </div>
                 <p className="mt-2 text-xs font-semibold text-muted-foreground">٧٨٪ مكتملة · ٧١ ملفاً ناقصاً</p>
               </div>

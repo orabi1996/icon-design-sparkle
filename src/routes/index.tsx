@@ -400,28 +400,21 @@ function Index() {
             {stats.map((s) => (
               <article
                 key={s.label}
-                className="rounded-2xl border border-border bg-card p-5"
+                className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-lg"
                 style={{ boxShadow: "var(--shadow-card)" }}
               >
+                <span className={`absolute inset-x-0 top-0 h-1 ${toneStyles[s.tone].bar}`} />
                 <div className="flex items-start justify-between">
                   <span
-                    className={`grid size-11 place-items-center rounded-xl ${
-                      s.tone === "teal"
-                        ? "bg-teal/15 text-teal-foreground"
-                        : s.tone === "gold"
-                          ? "bg-gold/20 text-gold"
-                          : s.tone === "violet"
-                            ? "bg-violet/15 text-violet-foreground"
-                            : "bg-primary/10 text-primary"
-                    }`}
+                    className={`grid size-11 place-items-center rounded-2xl ${toneStyles[s.tone].icon}`}
                   >
                     <MaterialIcon name={s.icon} size={22} filled />
                   </span>
                   <span
                     className={`flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-bold ${
                       s.trend.dir === "up"
-                        ? "bg-teal/12 text-teal-foreground"
-                        : "bg-gold/15 text-gold"
+                        ? "bg-ggreen/12 text-ggreen"
+                        : "bg-gred/10 text-gred"
                     }`}
                   >
                     <MaterialIcon name={s.trend.dir === "up" ? "trending_up" : "trending_down"} size={14} filled />
@@ -432,7 +425,7 @@ function Index() {
                 <p className="mt-1 text-xs font-semibold text-muted-foreground">{s.hint}</p>
                 <p
                   className={`mt-3 flex items-center gap-1 text-[11px] font-bold ${
-                    s.trend.dir === "up" ? "text-teal-foreground" : "text-gold"
+                    s.trend.dir === "up" ? "text-ggreen" : "text-gred"
                   }`}
                 >
                   <MaterialIcon name={s.trend.dir === "up" ? "arrow_upward" : "arrow_downward"} size={13} />

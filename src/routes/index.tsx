@@ -683,7 +683,7 @@ function Index() {
 
 function TopAction({ icon, count }: { icon: string; count?: string }) {
   return (
-    <button className="relative grid size-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+    <button className="relative grid size-10 place-items-center rounded-xl text-topbar-muted transition-colors hover:bg-topbar-hover hover:text-topbar-foreground">
       <MaterialIcon name={icon} size={22} />
       {count && (
         <span className="absolute -top-0.5 left-0.5 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">

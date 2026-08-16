@@ -189,10 +189,10 @@ type Stat = {
 };
 
 const toneStyles: Record<Stat["tone"], { icon: string; bar: string; text: string }> = {
-  blue: { icon: "bg-gblue/12 text-gblue", bar: "bg-gblue", text: "text-gblue" },
-  red: { icon: "bg-gred/12 text-gred", bar: "bg-gred", text: "text-gred" },
-  yellow: { icon: "bg-gyellow/20 text-gold", bar: "bg-gyellow", text: "text-gold" },
-  green: { icon: "bg-ggreen/12 text-ggreen", bar: "bg-ggreen", text: "text-ggreen" },
+  blue: { icon: "bg-sky/12 text-sky", bar: "bg-sky", text: "text-sky" },
+  red: { icon: "bg-indigo/12 text-indigo", bar: "bg-indigo", text: "text-indigo" },
+  yellow: { icon: "bg-cyan/12 text-cyan", bar: "bg-cyan", text: "text-cyan" },
+  green: { icon: "bg-teal/12 text-teal", bar: "bg-teal", text: "text-teal" },
 };
 
 const stats: Stat[] = [
@@ -239,12 +239,12 @@ const attendanceWeek = [
 ];
 
 const departments = [
-  { name: "المبيعات", count: 72, color: "var(--gblue)" },
-  { name: "الإدارة", count: 64, color: "var(--gred)" },
-  { name: "تقنية المعلومات", count: 52, color: "var(--gyellow)" },
-  { name: "الموارد البشرية", count: 50, color: "var(--ggreen)" },
-  { name: "التسويق", count: 48, color: "oklch(0.55 0.19 300)" },
-  { name: "المالية", count: 38, color: "oklch(0.65 0.14 200)" },
+  { name: "المبيعات", count: 72, color: "var(--sky)" },
+  { name: "الإدارة", count: 64, color: "var(--indigo)" },
+  { name: "تقنية المعلومات", count: 52, color: "var(--cyan)" },
+  { name: "الموارد البشرية", count: 50, color: "var(--teal)" },
+  { name: "التسويق", count: 48, color: "var(--gblue)" },
+  { name: "المالية", count: 38, color: "var(--violet)" },
 ];
 
 const requests = [
@@ -589,13 +589,13 @@ function Index() {
                 ))}
               </div>
 
-              <div className="mt-5 rounded-xl border border-ggreen/25 bg-ggreen/8 p-4">
+              <div className="mt-5 rounded-xl border border-teal/25 bg-teal/8 p-4">
                 <p className="flex items-center gap-2 text-sm font-bold">
-                  <MaterialIcon name="verified" size={18} className="text-ggreen" filled />
+                  <MaterialIcon name="verified" size={18} className="text-teal" filled />
                   اكتمال بيانات الموظفين
                 </p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-card">
-                  <div className="h-full w-[78%] rounded-full" style={{ background: "linear-gradient(90deg, var(--ggreen), oklch(0.72 0.15 165))" }} />
+                  <div className="h-full w-[78%] rounded-full" style={{ background: "linear-gradient(90deg, var(--teal), var(--cyan))" }} />
                 </div>
                 <p className="mt-2 text-xs font-semibold text-muted-foreground">٧٨٪ مكتملة · ٧١ ملفاً ناقصاً</p>
               </div>

@@ -1,7 +1,7 @@
 type Props = {
   name: string;
   className?: string;
-  filled?: boolean;
+  filled?: boolean | undefined;
   size?: number;
   weight?: number;
 };

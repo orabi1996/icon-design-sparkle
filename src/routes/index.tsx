@@ -482,28 +482,38 @@ function Index() {
             >
               <div className="flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-base font-bold">
-                  <MaterialIcon name="monitoring" size={20} className="text-primary" filled />
+                  <MaterialIcon name="monitoring" size={20} className="text-gblue" filled />
                   اتجاه الحضور الأسبوعي
                 </h3>
-                <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-muted-foreground">
+                <span className="rounded-full bg-gblue/10 px-3 py-1 text-[11px] font-bold text-gblue">
                   متوسط ٩٥٪
                 </span>
               </div>
-              <div className="mt-6 flex h-56 items-stretch justify-between gap-3">
-                {attendanceWeek.map((d) => (
-                  <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
-                    <div
-                      className="w-full rounded-t-lg transition-all"
-                      style={{
-                        height: `${d.value}%`,
-                        background: "var(--gradient-teal)",
-                      }}
-                      title={`${d.value}٪`}
-                    />
-                    <span className="text-[11px] font-bold text-muted-foreground">{d.day}</span>
-                    <span className="text-xs font-extrabold">{d.value}٪</span>
-                  </div>
-                ))}
+              <div className="relative mt-6 h-60">
+                <div className="absolute inset-0 bottom-12 flex flex-col justify-between">
+                  {[100, 75, 50, 25, 0].map((g) => (
+                    <div key={g} className="flex items-center gap-2">
+                      <span className="w-8 shrink-0 text-[10px] font-bold text-muted-foreground">{g}٪</span>
+                      <span className="h-px flex-1 bg-border" />
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 flex items-stretch gap-3 ps-10">
+                  {attendanceWeek.map((d, i) => (
+                    <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end">
+                      <span className="mb-1.5 text-xs font-extrabold text-foreground">{d.value}٪</span>
+                      <div
+                        className="w-full max-w-14 rounded-t-xl transition-all hover:opacity-85"
+                        style={{
+                          height: `calc(${d.value}% - 3.5rem)`,
+                          background: `linear-gradient(180deg, var(--chart-${(i % 5) + 1}) 0%, color-mix(in oklab, var(--chart-${(i % 5) + 1}) 70%, white) 100%)`,
+                        }}
+                        title={`${d.value}٪`}
+                      />
+                      <span className="mt-2 h-10 pt-1 text-[11px] font-bold text-muted-foreground">{d.day}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
 
@@ -512,22 +522,29 @@ function Index() {
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <h3 className="flex items-center gap-2 text-base font-bold">
-                <MaterialIcon name="account_tree" size={20} className="text-primary" filled />
+                <MaterialIcon name="donut_large" size={20} className="text-gblue" filled />
                 توزيع الأقسام
               </h3>
-              <ul className="mt-5 space-y-4">
+              <div className="mt-4 grid place-items-center">
+                <div
+                  className="relative grid size-40 place-items-center rounded-full"
+                  style={{ background: `conic-gradient(${donutStops})` }}
+                >
+                  <div className="grid size-24 place-items-center rounded-full bg-card">
+                    <span className="text-xl font-extrabold">{totalDept}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground">موظف</span>
+                  </div>
+                </div>
+              </div>
+              <ul className="mt-5 space-y-3">
                 {departments.map((d) => (
-                  <li key={d.name}>
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-foreground">{d.name}</span>
-                      <span className="text-muted-foreground">{d.count} موظف</span>
-                    </div>
-                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${(d.count / maxDept) * 100}%`, background: d.color }}
-                      />
-                    </div>
+                  <li key={d.name} className="flex items-center gap-2 text-xs font-semibold">
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ background: d.color }} />
+                    <span className="flex-1 text-foreground">{d.name}</span>
+                    <span className="text-muted-foreground">{d.count}</span>
+                    <span className="w-10 text-end font-bold text-foreground">
+                      {Math.round((d.count / totalDept) * 100)}٪
+                    </span>
                   </li>
                 ))}
               </ul>

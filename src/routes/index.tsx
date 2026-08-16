@@ -450,19 +450,17 @@ function Index() {
                   متوسط ٩٥٪
                 </span>
               </div>
-              <div className="mt-6 flex h-48 items-end justify-between gap-3">
+              <div className="mt-6 flex h-56 items-stretch justify-between gap-3">
                 {attendanceWeek.map((d) => (
-                  <div key={d.day} className="flex flex-1 flex-col items-center gap-2">
-                    <div className="flex w-full flex-1 items-end">
-                      <div
-                        className="w-full rounded-t-lg transition-all"
-                        style={{
-                          height: `${d.value}%`,
-                          background: "var(--gradient-teal)",
-                        }}
-                        title={`${d.value}٪`}
-                      />
-                    </div>
+                  <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+                    <div
+                      className="w-full rounded-t-lg transition-all"
+                      style={{
+                        height: `${d.value}%`,
+                        background: "var(--gradient-teal)",
+                      }}
+                      title={`${d.value}٪`}
+                    />
                     <span className="text-[11px] font-bold text-muted-foreground">{d.day}</span>
                     <span className="text-xs font-extrabold">{d.value}٪</span>
                   </div>

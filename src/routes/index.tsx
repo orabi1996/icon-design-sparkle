@@ -274,7 +274,16 @@ const birthdays = [
 ];
 
 function Index() {
-  const maxDept = Math.max(...departments.map((d) => d.count));
+  const totalDept = departments.reduce((sum, d) => sum + d.count, 0);
+  let acc = 0;
+  const donutStops = departments
+    .map((d) => {
+      const start = (acc / totalDept) * 360;
+      acc += d.count;
+      const end = (acc / totalDept) * 360;
+      return `${d.color} ${start}deg ${end}deg`;
+    })
+    .join(", ");
 
   return (
     <div dir="rtl" className="min-h-screen bg-background text-foreground">

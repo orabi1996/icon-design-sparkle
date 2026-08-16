@@ -25,7 +25,7 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
 
   return (
     <div ref={ref} className="relative" onMouseLeave={() => setOpen(null)}>
-      <nav className="border-b border-border bg-card">
+      <nav className="border-b border-topbar-border bg-topbar">
         <ul className="flex items-center gap-1 overflow-x-auto px-3 py-1.5 [scrollbar-width:none] md:px-5">
           {items.map((item) => {
             const isOpen = open === item.label;
@@ -37,22 +37,22 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
                   aria-expanded={isOpen}
                   className={`group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${
                     isOpen
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-white/12 text-topbar-foreground"
+                      : "text-topbar-muted hover:bg-topbar-hover hover:text-topbar-foreground"
                   }`}
                 >
                   <MaterialIcon
                     name={item.icon}
                     size={18}
                     filled={isOpen}
-                    className={isOpen ? "text-teal-foreground" : "text-muted-foreground/70 group-hover:text-teal-foreground"}
+                    className={isOpen ? "text-topbar-accent" : "text-topbar-muted/80 group-hover:text-topbar-accent"}
                   />
                   {item.label}
                   {item.columns && (
                     <MaterialIcon
                       name="expand_more"
                       size={16}
-                      className={`text-muted-foreground/60 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                      className={`text-topbar-muted/70 transition-transform ${isOpen ? "rotate-180" : ""}`}
                     />
                   )}
                 </button>
@@ -82,10 +82,7 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
             >
               {active.columns.map((col) => (
                 <div key={col.title} className="bg-card">
-                  <p
-                    className="px-4 py-2.5 text-[12px] font-bold text-primary"
-                    style={{ background: "color-mix(in oklab, var(--teal) 12%, var(--card))" }}
-                  >
+                  <p className="bg-secondary px-4 py-2.5 text-[12px] font-bold text-primary">
                     {col.title}
                   </p>
                   <ul className="max-h-[52vh] overflow-y-auto p-2">
@@ -95,7 +92,7 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
                           <MaterialIcon
                             name="chevron_left"
                             size={16}
-                            className="shrink-0 text-teal-foreground/50"
+                            className="shrink-0 text-primary/50"
                           />
                           <span className="flex-1 text-right">{it}</span>
                         </button>

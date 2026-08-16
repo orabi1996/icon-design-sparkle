@@ -72,6 +72,12 @@
   --color-gred: var(--gred);
   --color-gyellow: var(--gyellow);
   --color-ggreen: var(--ggreen);
+  --color-topbar: var(--topbar);
+  --color-topbar-foreground: var(--topbar-foreground);
+  --color-topbar-muted: var(--topbar-muted);
+  --color-topbar-border: var(--topbar-border);
+  --color-topbar-accent: var(--topbar-accent);
+  --color-topbar-hover: var(--topbar-hover);
 }
 
 :root {
@@ -101,6 +107,14 @@
   --gred: oklch(0.62 0.21 29);
   --gyellow: oklch(0.82 0.16 82);
   --ggreen: oklch(0.62 0.16 148);
+
+  /* Deep navy top bar */
+  --topbar: oklch(0.24 0.06 262);
+  --topbar-foreground: oklch(0.97 0.008 250);
+  --topbar-muted: oklch(0.78 0.03 250);
+  --topbar-border: oklch(1 0 0 / 12%);
+  --topbar-accent: oklch(0.7 0.11 235);
+  --topbar-hover: oklch(1 0 0 / 10%);
 
   --brand: oklch(0.55 0.19 259);
   --brand-foreground: oklch(0.99 0.005 255);

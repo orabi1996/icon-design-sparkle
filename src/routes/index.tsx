@@ -184,8 +184,15 @@ type Stat = {
   value: string;
   hint: string;
   icon: string;
-  tone: "teal" | "gold" | "brand" | "violet";
+  tone: "blue" | "red" | "yellow" | "green";
   trend: { dir: "up" | "down"; text: string };
+};
+
+const toneStyles: Record<Stat["tone"], { icon: string; bar: string; text: string }> = {
+  blue: { icon: "bg-gblue/12 text-gblue", bar: "bg-gblue", text: "text-gblue" },
+  red: { icon: "bg-gred/12 text-gred", bar: "bg-gred", text: "text-gred" },
+  yellow: { icon: "bg-gyellow/20 text-gold", bar: "bg-gyellow", text: "text-gold" },
+  green: { icon: "bg-ggreen/12 text-ggreen", bar: "bg-ggreen", text: "text-ggreen" },
 };
 
 const stats: Stat[] = [
@@ -194,7 +201,7 @@ const stats: Stat[] = [
     value: "٣٢٤",
     hint: "٢٨١ نشط · ٤٣ إجازة",
     icon: "groups",
-    tone: "teal",
+    tone: "blue",
     trend: { dir: "up", text: "٤٪ عن الشهر الماضي" },
   },
   {
@@ -202,7 +209,7 @@ const stats: Stat[] = [
     value: "٩٤٪",
     hint: "٣٠٥ حاضر · ١٩ غائب",
     icon: "how_to_reg",
-    tone: "brand",
+    tone: "green",
     trend: { dir: "up", text: "٢٪ عن الأمس" },
   },
   {
@@ -210,7 +217,7 @@ const stats: Stat[] = [
     value: "١٨",
     hint: "٤ عاجلة · ٧ للمراجعة",
     icon: "pending_actions",
-    tone: "gold",
+    tone: "yellow",
     trend: { dir: "down", text: "٦ طلبات أُغلقت اليوم" },
   },
   {
@@ -218,7 +225,7 @@ const stats: Stat[] = [
     value: "٤٢",
     hint: "٧ جارية · ٣٥ مقبولة",
     icon: "beach_access",
-    tone: "violet",
+    tone: "red",
     trend: { dir: "up", text: "٩ طلبات جديدة" },
   },
 ];
@@ -232,12 +239,12 @@ const attendanceWeek = [
 ];
 
 const departments = [
-  { name: "المبيعات", count: 72, color: "var(--teal)" },
-  { name: "الإدارة", count: 64, color: "var(--primary)" },
-  { name: "تقنية المعلومات", count: 52, color: "oklch(0.62 0.13 280)" },
-  { name: "الموارد البشرية", count: 50, color: "oklch(0.7 0.13 300)" },
-  { name: "التسويق", count: 48, color: "oklch(0.78 0.13 70)" },
-  { name: "المالية", count: 38, color: "oklch(0.72 0.12 150)" },
+  { name: "المبيعات", count: 72, color: "var(--gblue)" },
+  { name: "الإدارة", count: 64, color: "var(--gred)" },
+  { name: "تقنية المعلومات", count: 52, color: "var(--gyellow)" },
+  { name: "الموارد البشرية", count: 50, color: "var(--ggreen)" },
+  { name: "التسويق", count: 48, color: "oklch(0.55 0.19 300)" },
+  { name: "المالية", count: 38, color: "oklch(0.65 0.14 200)" },
 ];
 
 const requests = [
@@ -249,9 +256,9 @@ const requests = [
 ];
 
 const stateStyle: Record<string, string> = {
-  "بانتظار الاعتماد": "bg-gold/15 text-gold border-gold/40",
-  مكتمل: "bg-teal/15 text-teal-foreground border-teal/40",
-  "قيد المراجعة": "bg-secondary text-muted-foreground border-border",
+  "بانتظار الاعتماد": "bg-gyellow/18 text-gold border-gyellow/40",
+  مكتمل: "bg-ggreen/12 text-ggreen border-ggreen/35",
+  "قيد المراجعة": "bg-gblue/10 text-gblue border-gblue/30",
 };
 
 const announcements = [

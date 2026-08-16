@@ -292,8 +292,8 @@ function Index() {
         <div className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-6">
           <div className="flex items-center gap-3">
             <div
-              className="grid size-10 place-items-center rounded-xl text-teal-foreground"
-              style={{ background: "var(--gradient-teal)" }}
+              className="grid size-10 place-items-center rounded-xl text-white"
+              style={{ background: "var(--gradient-google)" }}
             >
               <MaterialIcon name="diversity_3" size={22} filled />
             </div>
@@ -303,7 +303,7 @@ function Index() {
             </div>
           </div>
 
-          <div className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-xl bg-secondary px-3 py-2 ring-1 ring-border focus-within:ring-teal/60 lg:flex">
+          <div className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-xl bg-secondary px-3 py-2 ring-1 ring-border focus-within:ring-gblue/50 lg:flex">
             <MaterialIcon name="search" size={20} className="text-muted-foreground" />
             <input
               placeholder="ابحث بالاسم، الهوية، أو الرقم الوظيفي"
@@ -371,8 +371,8 @@ function Index() {
 
           <div className="mt-auto p-3">
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-teal-foreground"
-              style={{ background: "var(--gradient-teal)", boxShadow: "var(--shadow-raised)" }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white"
+              style={{ background: "var(--gradient-google)", boxShadow: "var(--shadow-raised)" }}
             >
               <MaterialIcon name="design_services" size={20} filled />
               تعديل في المُصمم
@@ -636,7 +636,7 @@ function Index() {
                   اكتمال بيانات الموظفين
                 </p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-card">
-                  <div className="h-full w-[78%] rounded-full" style={{ background: "var(--gradient-teal)" }} />
+                  <div className="h-full w-[78%] rounded-full" style={{ background: "linear-gradient(90deg, var(--ggreen), oklch(0.72 0.15 165))" }} />
                 </div>
                 <p className="mt-2 text-xs font-semibold text-muted-foreground">٧٨٪ مكتملة · ٧١ ملفاً ناقصاً</p>
               </div>

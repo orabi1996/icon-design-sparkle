@@ -111,17 +111,11 @@
   --violet-foreground: oklch(0.44 0.17 300);
   --gold: oklch(0.74 0.15 78);
 
-  --gradient-brand: linear-gradient(135deg, oklch(0.55 0.19 259), oklch(0.5 0.2 280));
+  --gradient-brand: linear-gradient(135deg, oklch(0.5 0.17 258), oklch(0.58 0.13 232));
   --gradient-teal: linear-gradient(135deg, oklch(0.62 0.16 148), oklch(0.72 0.15 165));
-  --gradient-google: linear-gradient(
-    100deg,
-    oklch(0.55 0.19 259) 0%,
-    oklch(0.62 0.21 29) 40%,
-    oklch(0.82 0.16 82) 70%,
-    oklch(0.62 0.16 148) 100%
-  );
+  --gradient-google: linear-gradient(135deg, oklch(0.5 0.17 258), oklch(0.58 0.13 232));
   --shadow-card: 0 1px 2px oklch(0.4 0.03 259 / 0.08), 0 8px 24px -16px oklch(0.4 0.03 259 / 0.3);
-  --shadow-raised: 0 16px 40px -18px oklch(0.55 0.19 259 / 0.45);
+  --shadow-raised: 0 14px 34px -18px oklch(0.5 0.17 258 / 0.4);
 
   --chart-1: oklch(0.55 0.19 259);
   --chart-2: oklch(0.62 0.21 29);

@@ -239,12 +239,12 @@ const attendanceWeek = [
 ];
 
 const departments = [
-  { name: "المبيعات", count: 72, color: "var(--gblue)" },
-  { name: "الإدارة", count: 64, color: "var(--gred)" },
-  { name: "تقنية المعلومات", count: 52, color: "var(--gyellow)" },
-  { name: "الموارد البشرية", count: 50, color: "var(--ggreen)" },
-  { name: "التسويق", count: 48, color: "oklch(0.55 0.19 300)" },
-  { name: "المالية", count: 38, color: "oklch(0.65 0.14 200)" },
+  { name: "المبيعات", count: 72, color: "var(--sky)" },
+  { name: "الإدارة", count: 64, color: "var(--indigo)" },
+  { name: "تقنية المعلومات", count: 52, color: "var(--cyan)" },
+  { name: "الموارد البشرية", count: 50, color: "var(--teal)" },
+  { name: "التسويق", count: 48, color: "var(--gblue)" },
+  { name: "المالية", count: 38, color: "var(--violet)" },
 ];
 
 const requests = [

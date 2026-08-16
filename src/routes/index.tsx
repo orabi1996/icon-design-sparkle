@@ -404,45 +404,6 @@ function Index() {
             </div>
           </div>
 
-          {/* Hero banner */}
-          <section
-            className="relative mt-6 overflow-hidden rounded-3xl p-6 text-white md:p-8"
-            style={{ background: "var(--gradient-brand)", boxShadow: "var(--shadow-raised)" }}
-          >
-            <div className="absolute -left-16 -top-20 size-64 rounded-full bg-white/15 blur-2xl" />
-            <div className="absolute -bottom-24 right-10 size-56 rounded-full bg-white/10 blur-2xl" />
-            <div className="relative flex flex-wrap items-center justify-between gap-6">
-              <div className="max-w-xl">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold backdrop-blur">
-                  <MaterialIcon name="auto_awesome" size={14} filled />
-                  ملخص اليوم
-                </span>
-                <h3 className="mt-3 text-2xl font-extrabold leading-snug md:text-3xl">
-                  صباح الخير، مدير النظام 👋
-                </h3>
-                <p className="mt-2 text-sm font-medium text-white/85">
-                  لديك ١٨ طلباً بانتظار الاعتماد و٤ طلبات عاجلة. نسبة الحضور اليوم ٩٤٪ — أعلى من متوسط الأسبوع.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {[
-                  { label: "طلبات عاجلة", value: "٤", icon: "priority_high" },
-                  { label: "بانتظار توقيعك", value: "٩", icon: "draw" },
-                  { label: "مهام اليوم", value: "١٢", icon: "checklist" },
-                ].map((h) => (
-                  <div
-                    key={h.label}
-                    className="min-w-[7.5rem] rounded-2xl bg-white/15 p-4 backdrop-blur ring-1 ring-white/25"
-                  >
-                    <MaterialIcon name={h.icon} size={20} filled />
-                    <p className="mt-2 text-2xl font-extrabold">{h.value}</p>
-                    <p className="text-[11px] font-bold text-white/85">{h.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
           {/* Stats */}
           <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((s) => (

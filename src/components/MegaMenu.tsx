@@ -25,7 +25,7 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
 
   return (
     <div ref={ref} className="relative" onMouseLeave={() => setOpen(null)}>
-      <nav className="bg-brand-muted/95 backdrop-blur">
+      <nav className="border-b border-border bg-card">
         <ul className="flex items-center gap-1 overflow-x-auto px-3 py-1.5 [scrollbar-width:none] md:px-5">
           {items.map((item) => {
             const isOpen = open === item.label;
@@ -37,22 +37,22 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
                   aria-expanded={isOpen}
                   className={`group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${
                     isOpen
-                      ? "bg-brand-foreground/15 text-brand-foreground"
-                      : "text-brand-foreground/70 hover:bg-brand-foreground/10 hover:text-brand-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
                   <MaterialIcon
                     name={item.icon}
                     size={18}
                     filled={isOpen}
-                    className={isOpen ? "text-teal" : "text-brand-foreground/60 group-hover:text-teal"}
+                    className={isOpen ? "text-teal-foreground" : "text-muted-foreground/70 group-hover:text-teal-foreground"}
                   />
                   {item.label}
                   {item.columns && (
                     <MaterialIcon
                       name="expand_more"
                       size={16}
-                      className={`text-brand-foreground/50 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                      className={`text-muted-foreground/60 transition-transform ${isOpen ? "rotate-180" : ""}`}
                     />
                   )}
                 </button>

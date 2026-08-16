@@ -407,8 +407,9 @@ function Index() {
           {/* Hero banner */}
           <section
             className="relative mt-6 overflow-hidden rounded-3xl p-6 text-white md:p-8"
-            style={{ background: "var(--gradient-google)", boxShadow: "var(--shadow-raised)" }}
+            style={{ background: "var(--gradient-brand)", boxShadow: "var(--shadow-raised)" }}
           >
+            <span className="absolute inset-x-0 top-0 h-1.5" style={{ background: "var(--gradient-google)" }} />
             <div className="absolute -left-16 -top-20 size-64 rounded-full bg-white/15 blur-2xl" />
             <div className="absolute -bottom-24 right-10 size-56 rounded-full bg-white/10 blur-2xl" />
             <div className="relative flex flex-wrap items-center justify-between gap-6">

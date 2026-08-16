@@ -189,10 +189,10 @@ type Stat = {
 };
 
 const toneStyles: Record<Stat["tone"], { icon: string; bar: string; text: string }> = {
-  blue: { icon: "bg-gblue/12 text-gblue", bar: "bg-gblue", text: "text-gblue" },
-  red: { icon: "bg-gred/12 text-gred", bar: "bg-gred", text: "text-gred" },
-  yellow: { icon: "bg-gyellow/20 text-gold", bar: "bg-gyellow", text: "text-gold" },
-  green: { icon: "bg-ggreen/12 text-ggreen", bar: "bg-ggreen", text: "text-ggreen" },
+  blue: { icon: "bg-sky/12 text-sky", bar: "bg-sky", text: "text-sky" },
+  red: { icon: "bg-indigo/12 text-indigo", bar: "bg-indigo", text: "text-indigo" },
+  yellow: { icon: "bg-cyan/12 text-cyan", bar: "bg-cyan", text: "text-cyan" },
+  green: { icon: "bg-teal/12 text-teal", bar: "bg-teal", text: "text-teal" },
 };
 
 const stats: Stat[] = [

@@ -10,33 +10,109 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
+import { Route as StaffRouteImport } from './routes/staff'
+import { Route as StaffIndexRouteImport } from './routes/staff.index'
+import { Route as StaffAddRouteImport } from './routes/staff.add'
+import { Route as StaffContractsRouteImport } from './routes/staff.contracts'
+import { Route as StaffTransferRouteImport } from './routes/staff.transfer'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RequestNotificationsRoute = RequestNotificationsRouteImport.update({
+  id: '/request-notifications',
+  path: '/request-notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffIndexRoute = StaffIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffAddRoute = StaffAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffContractsRoute = StaffContractsRouteImport.update({
+  id: '/contracts',
+  path: '/contracts',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffTransferRoute = StaffTransferRouteImport.update({
+  id: '/transfer',
+  path: '/transfer',
+  getParentRoute: () => StaffRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/request-notifications': typeof RequestNotificationsRoute
+  '/staff': typeof StaffRouteWithChildren
+  '/staff/add': typeof StaffAddRoute
+  '/staff/contracts': typeof StaffContractsRoute
+  '/staff/transfer': typeof StaffTransferRoute
+  '/staff/': typeof StaffIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/request-notifications': typeof RequestNotificationsRoute
+  '/staff/add': typeof StaffAddRoute
+  '/staff/contracts': typeof StaffContractsRoute
+  '/staff/transfer': typeof StaffTransferRoute
+  '/staff': typeof StaffIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/request-notifications': typeof RequestNotificationsRoute
+  '/staff': typeof StaffRouteWithChildren
+  '/staff/add': typeof StaffAddRoute
+  '/staff/contracts': typeof StaffContractsRoute
+  '/staff/transfer': typeof StaffTransferRoute
+  '/staff/': typeof StaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/request-notifications'
+    | '/staff'
+    | '/staff/add'
+    | '/staff/contracts'
+    | '/staff/transfer'
+    | '/staff/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/request-notifications'
+    | '/staff/add'
+    | '/staff/contracts'
+    | '/staff/transfer'
+    | '/staff'
+  id:
+    | '__root__'
+    | '/'
+    | '/request-notifications'
+    | '/staff'
+    | '/staff/add'
+    | '/staff/contracts'
+    | '/staff/transfer'
+    | '/staff/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RequestNotificationsRoute: typeof RequestNotificationsRoute
+  StaffRoute: typeof StaffRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +124,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/request-notifications': {
+      id: '/request-notifications'
+      path: '/request-notifications'
+      fullPath: '/request-notifications'
+      preLoaderRoute: typeof RequestNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/': {
+      id: '/staff/'
+      path: '/'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof StaffIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/add': {
+      id: '/staff/add'
+      path: '/add'
+      fullPath: '/staff/add'
+      preLoaderRoute: typeof StaffAddRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/contracts': {
+      id: '/staff/contracts'
+      path: '/contracts'
+      fullPath: '/staff/contracts'
+      preLoaderRoute: typeof StaffContractsRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/transfer': {
+      id: '/staff/transfer'
+      path: '/transfer'
+      fullPath: '/staff/transfer'
+      preLoaderRoute: typeof StaffTransferRouteImport
+      parentRoute: typeof StaffRoute
+    }
   }
 }
 
+interface StaffRouteChildren {
+  StaffAddRoute: typeof StaffAddRoute
+  StaffContractsRoute: typeof StaffContractsRoute
+  StaffTransferRoute: typeof StaffTransferRoute
+  StaffIndexRoute: typeof StaffIndexRoute
+}
+
+const StaffRouteChildren: StaffRouteChildren = {
+  StaffAddRoute: StaffAddRoute,
+  StaffContractsRoute: StaffContractsRoute,
+  StaffTransferRoute: StaffTransferRoute,
+  StaffIndexRoute: StaffIndexRoute,
+}
+
+const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RequestNotificationsRoute: RequestNotificationsRoute,
+  StaffRoute: StaffRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

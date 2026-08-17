@@ -64,7 +64,7 @@ function Contracts() {
     "بداية العقد": d.start,
     "نهاية العقد": d.end,
     المتبقي: <span className="font-extrabold">{d.left}</span>,
-    الحالة: <Chip label={d.state} tone={tones[d.state]} />,
+    الحالة: <Chip label={d.state} tone={tones[d.state] ?? "muted"} />,
     تجديد: (
       <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-bold text-primary-foreground transition-opacity hover:opacity-90">
         <MaterialIcon name="autorenew" size={16} />

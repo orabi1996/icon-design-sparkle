@@ -47,7 +47,7 @@ function AddEmployee() {
       <PageBanner
         icon="person_add"
         title="إضافة موظف جديد"
-        subtitle={`الخطوة ${step + 1} من ${steps.length} · ${steps[step].label}`}
+        subtitle={`الخطوة ${step + 1} من ${steps.length} · ${steps[step]?.label ?? ""}`}
         actions={
           <Btn icon="save" variant="onDark">
             حفظ كمسودة

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
@@ -19,6 +20,11 @@ import { Route as StaffTransferRouteImport } from './routes/staff.transfer'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestNotificationsRoute = RequestNotificationsRouteImport.update({
+  id: '/request-notifications',
+  path: '/request-notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffRoute = StaffRouteImport.update({
@@ -49,6 +55,7 @@ const StaffTransferRoute = StaffTransferRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
   '/staff/add': typeof StaffAddRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/request-notifications': typeof RequestNotificationsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/contracts': typeof StaffContractsRoute
   '/staff/transfer': typeof StaffTransferRoute
@@ -65,6 +73,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
   '/staff/add': typeof StaffAddRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -75,16 +84,24 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/request-notifications'
     | '/staff'
     | '/staff/add'
     | '/staff/contracts'
     | '/staff/transfer'
     | '/staff/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/staff/add' | '/staff/contracts' | '/staff/transfer' | '/staff'
+  to:
+    | '/'
+    | '/request-notifications'
+    | '/staff/add'
+    | '/staff/contracts'
+    | '/staff/transfer'
+    | '/staff'
   id:
     | '__root__'
     | '/'
+    | '/request-notifications'
     | '/staff'
     | '/staff/add'
     | '/staff/contracts'
@@ -94,6 +111,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RequestNotificationsRoute: typeof RequestNotificationsRoute
   StaffRoute: typeof StaffRouteWithChildren
 }
 
@@ -104,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/request-notifications': {
+      id: '/request-notifications'
+      path: '/request-notifications'
+      fullPath: '/request-notifications'
+      preLoaderRoute: typeof RequestNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff': {
@@ -162,6 +187,7 @@ const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RequestNotificationsRoute: RequestNotificationsRoute,
   StaffRoute: StaffRouteWithChildren,
 }
 export const routeTree = rootRouteImport

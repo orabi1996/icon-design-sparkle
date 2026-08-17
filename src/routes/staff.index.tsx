@@ -58,7 +58,7 @@ function StaffList() {
     القسم: e.dept,
     الفرع: e.branch,
     "تاريخ التعيين": e.hire,
-    الحالة: <Chip label={e.state} tone={tone[e.state]} />,
+    الحالة: <Chip label={e.state} tone={tone[e.state] ?? "muted"} />,
     إجراءات: (
       <span className="flex items-center gap-1">
         {["visibility", "edit", "print"].map((ic) => (

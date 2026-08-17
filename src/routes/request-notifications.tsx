@@ -67,7 +67,7 @@ function RequestNotifications() {
     "تاريخ الطلب": d.date,
     "من تاريخ": d.from,
     "إلى تاريخ": d.to,
-    الحالة: <Chip label={d.state} tone={tones[d.state]} />,
+    الحالة: <Chip label={d.state} tone={tones[d.state] ?? "muted"} />,
     إجراءات: (
       <span className="flex items-center gap-1">
         <button className="grid size-8 place-items-center rounded-lg bg-teal/12 text-teal transition-colors hover:bg-teal/20" title="اعتماد">

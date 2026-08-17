@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
 
-export type MegaColumn = { title: string; items: string[] };
+export type MegaLink = { label: string; to: string };
+export type MegaColumn = { title: string; items: (string | MegaLink)[] };
 export type NavItem = { label: string; icon: string; columns?: MegaColumn[] };
 
 export function MegaMenu({ items }: { items: NavItem[] }) {
@@ -86,18 +88,32 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
                     {col.title}
                   </p>
                   <ul className="max-h-[52vh] overflow-y-auto p-2">
-                    {col.items.map((it) => (
-                      <li key={it}>
-                        <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-[13px] font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-accent-foreground">
+                    {col.items.map((it) => {
+                      const label = typeof it === "string" ? it : it.label;
+                      const cls =
+                        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-[13px] font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-accent-foreground";
+                      const inner = (
+                        <>
                           <MaterialIcon
                             name="chevron_left"
                             size={16}
                             className="shrink-0 text-primary/50"
                           />
-                          <span className="flex-1 text-right">{it}</span>
-                        </button>
-                      </li>
-                    ))}
+                          <span className="flex-1 text-right">{label}</span>
+                        </>
+                      );
+                      return (
+                        <li key={label}>
+                          {typeof it === "string" ? (
+                            <button className={cls}>{inner}</button>
+                          ) : (
+                            <Link to={it.to} className={cls} onClick={() => setOpen(null)}>
+                              {inner}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}

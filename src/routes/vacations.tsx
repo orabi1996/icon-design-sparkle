@@ -99,14 +99,12 @@ function StateChip({ label }: { label: string }) {
   return <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-extrabold ${tone}`}>{label}</span>;
 }
 
-function FilterCard({ children, onSearch }: { children: React.ReactNode; onSearch?: () => void }) {
+function FilterCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
       <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">{children}</div>
       <div className="mt-4 flex justify-center">
-        <Btn icon="search" onClick={onSearch}>
-          بحث
-        </Btn>
+        <Btn icon="search">بحث</Btn>
       </div>
     </div>
   );

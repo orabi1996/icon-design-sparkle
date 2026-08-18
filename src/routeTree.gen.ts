@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
 import { Route as StaffRouteImport } from './routes/staff'
+import { Route as VacationsRouteImport } from './routes/vacations'
 import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
 import { Route as RegulationsApprovalsRouteImport } from './routes/regulations.approvals'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
@@ -50,6 +51,11 @@ const RequestNotificationsRoute = RequestNotificationsRouteImport.update({
 const StaffRoute = StaffRouteImport.update({
   id: '/staff',
   path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VacationsRoute = VacationsRouteImport.update({
+  id: '/vacations',
+  path: '/vacations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegulationsIndexRoute = RegulationsIndexRouteImport.update({
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/vacations': typeof VacationsRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/request-notifications': typeof RequestNotificationsRoute
+  '/vacations': typeof VacationsRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/vacations': typeof VacationsRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/vacations'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/request-notifications'
+    | '/vacations'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/vacations'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
@@ -292,6 +304,7 @@ export interface RootRouteChildren {
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
   StaffRoute: typeof StaffRouteWithChildren
+  VacationsRoute: typeof VacationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -322,6 +335,13 @@ declare module '@tanstack/react-router' {
       path: '/staff'
       fullPath: '/staff'
       preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vacations': {
+      id: '/vacations'
+      path: '/vacations'
+      fullPath: '/vacations'
+      preLoaderRoute: typeof VacationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/regulations/': {
@@ -512,6 +532,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
   StaffRoute: StaffRouteWithChildren,
+  VacationsRoute: VacationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -16,6 +16,7 @@ import { Route as StaffRouteImport } from './routes/staff'
 import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
 import { Route as RegulationsDeductionsRouteImport } from './routes/regulations.deductions'
+import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
 import { Route as StaffBankBlockRouteImport } from './routes/staff.bank-block'
@@ -57,6 +58,11 @@ const RegulationsBankFeesRoute = RegulationsBankFeesRouteImport.update({
 const RegulationsDeductionsRoute = RegulationsDeductionsRouteImport.update({
   id: '/deductions',
   path: '/deductions',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsVacationsRoute = RegulationsVacationsRouteImport.update({
+  id: '/vacations',
+  path: '/vacations',
   getParentRoute: () => RegulationsRoute,
 } as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRouteWithChildren
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/request-notifications': typeof RequestNotificationsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/staff': typeof StaffRouteWithChildren
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/vacations'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/request-notifications'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/vacations'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/vacations'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegulationsDeductionsRouteImport
       parentRoute: typeof RegulationsRoute
     }
+    '/regulations/vacations': {
+      id: '/regulations/vacations'
+      path: '/vacations'
+      fullPath: '/regulations/vacations'
+      preLoaderRoute: typeof RegulationsVacationsRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
     '/staff/': {
       id: '/staff/'
       path: '/'
@@ -304,12 +323,14 @@ declare module '@tanstack/react-router' {
 interface RegulationsRouteChildren {
   RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
   RegulationsDeductionsRoute: typeof RegulationsDeductionsRoute
+  RegulationsVacationsRoute: typeof RegulationsVacationsRoute
   RegulationsIndexRoute: typeof RegulationsIndexRoute
 }
 
 const RegulationsRouteChildren: RegulationsRouteChildren = {
   RegulationsBankFeesRoute: RegulationsBankFeesRoute,
   RegulationsDeductionsRoute: RegulationsDeductionsRoute,
+  RegulationsVacationsRoute: RegulationsVacationsRoute,
   RegulationsIndexRoute: RegulationsIndexRoute,
 }
 

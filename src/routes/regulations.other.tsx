@@ -344,8 +344,9 @@ function OtherRegulations() {
       )}
 
       {tab === "govExpenses" && (
+        <div className="mt-4 space-y-4">
         <div
-          className="mt-4 overflow-hidden rounded-2xl border border-border bg-card"
+          className="overflow-hidden rounded-2xl border border-border bg-card"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <TableToolbar title="لائحة المصاريف الحكومية" />
@@ -359,7 +360,15 @@ function OtherRegulations() {
               "تفعيل - ايقاف",
             ]}
             rows={govExpenses.map((r) => ({
-              "اسم المصروف الحكومى": <span className="font-extrabold text-primary">{r.name}</span>,
+              "اسم المصروف الحكومى": (
+                <button
+                  onClick={() => setExpandedGov(expandedGov === r.name ? null : r.name)}
+                  className="flex items-center gap-1.5 text-right font-extrabold text-primary"
+                >
+                  <MaterialIcon name={expandedGov === r.name ? "expand_more" : "chevron_left"} size={16} />
+                  {r.name}
+                </button>
+              ),
               "نوع القيمه": r.kind,
               "قيمة المصروف": r.val,
               "يحسب طبقا لتاريخ المباشرة": r.byDate,
@@ -368,6 +377,30 @@ function OtherRegulations() {
             }))}
           />
           <Pager page={1} pages={1} total={govExpenses.length} />
+        </div>
+
+          {expandedGov && (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {govScopes.map((s) => (
+                <div
+                  key={s.title}
+                  className="overflow-hidden rounded-2xl border border-border bg-card"
+                  style={{ boxShadow: "var(--shadow-card)" }}
+                >
+                  <div className="bg-primary px-4 py-2.5 text-center text-[12.5px] font-extrabold text-primary-foreground">
+                    {s.title}
+                  </div>
+                  <ul className="divide-y divide-border">
+                    {s.items.map((it) => (
+                      <li key={it} className="px-4 py-2.5 text-center text-[12.5px] font-bold text-foreground">
+                        {it}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

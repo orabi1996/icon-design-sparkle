@@ -105,7 +105,10 @@ export const nav: NavItem[] = [
         title: "لائحة خصومات البصمة",
         items: [{ label: "لائحة خصومات البصمة", to: "/regulations/fingerprint" }],
       },
-      { title: "لوائح أخرى", items: ["لوائح أخرى", "لائحة نهاية الخدمة"] },
+      {
+        title: "لوائح أخرى",
+        items: [{ label: "لوائح أخرى", to: "/regulations/other" }, "لائحة نهاية الخدمة"],
+      },
     ],
   },
   {

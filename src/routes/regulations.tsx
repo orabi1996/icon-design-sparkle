@@ -14,7 +14,9 @@ const tabs: {
     | "/regulations/vacations"
     | "/regulations/shifts"
     | "/regulations/loans"
-    | "/regulations/approvals";
+    | "/regulations/approvals"
+    | "/regulations/permits"
+    | "/regulations/fingerprint";
   label: string;
   icon: string;
   exact?: boolean;
@@ -26,6 +28,8 @@ const tabs: {
   { to: "/regulations/shifts", label: "تهيئة مجموعات الدوام", icon: "schedule" },
   { to: "/regulations/loans", label: "تهيئة السلف", icon: "request_quote" },
   { to: "/regulations/approvals", label: "تهيئة سلاسل الموافقات", icon: "account_tree" },
+  { to: "/regulations/permits", label: "تهيئة لائحة الأذونات", icon: "event_available" },
+  { to: "/regulations/fingerprint", label: "لائحة خصومات البصمة", icon: "fingerprint" },
 ];
 
 function RegulationsLayout() {

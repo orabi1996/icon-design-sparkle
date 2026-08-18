@@ -75,6 +75,32 @@ const annualRows = [
   { emp: "رضوى مصطفى عبدالعزيز القاضي", branch: "شركة الحلول الخبيرة", dept: "التطوير", nat: "سعودي", no: "٢", level: "سعودي تأمينات", type: "أجازة سنوية ٣٥ يوم", from: "٢٠٢٤/٠١/١٠", to: "٢٠٢٤/٠٣/٠٧", work: "٥٨", dur: "٥", val: "١٦٦٧" },
 ];
 
+const unpaidRows = [
+  { emp: "جوليا حسين سيد القزاز", type: "اجازة بدون راتب", bal: "١٠", entry: "٢٠٢٤/٠٦/٠٣", from: "٢٠٢٤/٠٧/٠٩", to: "٢٠٢٤/٠٩/١١", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "تست ايه رجب محمد", type: "اجازة بدون راتب", bal: "٦", entry: "٢٠٢٤/٠٦/٠٣", from: "٢٠٢٤/٠٤/٠٣", to: "٢٠٢٤/٠٥/١٠", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "اشرف رجب السيد نصر", type: "اجازة بدون راتب", bal: "٥", entry: "٢٠٢٤/٠٦/٢٥", from: "", to: "", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "ايمن عبدالوهاب محمد علي", type: "اجازة بدون راتب", bal: "٦٠", entry: "٢٠٢٥/٠٣/١٧", from: "٢٠٢٥/٠٣/١٧", to: "٢٠٢٥/٠٥/١٧", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "محمد شعبان عبدالحميد فرج", type: "اجازة بدون راتب", bal: "٢٠", entry: "٢٠٢٥/٠٣/٢٥", from: "٢٠٢٥/٠٣/٠١", to: "٢٠٢٥/٠٣/٣١", user: "System Admin", calc: "لم يتم الاحتساب" },
+  { emp: "عبدالله بيومي رمضان بيومي", type: "اجازة بدون راتب", bal: "٢٠", entry: "٢٠٢٥/٠٣/٢٥", from: "٢٠٢٥/٠٣/٠١", to: "٢٠٢٥/٠٣/٣١", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "الشريف احمد", type: "اجازة بدون راتب", bal: "١٠", entry: "٢٠٢٥/٠٤/١٥", from: "٢٠٢٥/٠٤/٠١", to: "٢٠٢٥/٠٦/٣٠", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "عاصم خالد فتحي قرني", type: "اجازة بدون راتب", bal: "٤", entry: "٢٠٢٥/٠٥/٠٨", from: "٢٠٢٥/٠٥/٠١", to: "٢٠٢٥/٠٥/٠٤", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "مدثر محمد احمد محمد", type: "اجازة بدون راتب", bal: "١٠", entry: "٢٠٢٥/٠٥/٠٨", from: "٢٠٢٥/٠٥/٠٨", to: "٢٠٢٥/٠٥/١٨", user: "System Admin", calc: "لم يتم الاحتساب" },
+  { emp: "رضوى مصطفى عبدالعزيز القاضي", type: "اجازة بدون راتب", bal: "٥", entry: "٢٠٢٥/٠٥/١٢", from: "٢٠٢٥/٠٥/١٢", to: "٢٠٢٥/٠٥/١٦", user: "System Admin", calc: "تم الاحتساب" },
+];
+
+const carryRows = [
+  { emp: "مراد احمد متولي يونس", contract: "C1-20230101", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "٧", carryDate: "٢٠٢٢/٠١/٠١", entry: "٢٠٢٤/٠٢/٠٨", from: "٢٠٢٢/١٢/٣١", to: "٢٠٢٢/٠١/٠١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "مراد احمد متولي يونس", contract: "C2-20230101", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣١", carryDate: "٢٠٢٣/١٢/٣١", entry: "٢٠٢٤/٠٢/٠٨", from: "٢٠٢٣/٠١/٠١", to: "٢٠٢٣/١٢/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "مراد احمد متولي يونس", contract: "C3-20230101", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٥٦", carryDate: "٢٠٢٤/١٢/٣١", entry: "٢٠٢٤/٠٢/٠٨", from: "٢٠٢٤/٠١/٠١", to: "٢٠٢٤/١٢/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "رضوى مصطفى عبدالعزيز القاضي", contract: "C3-20240101", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "١٠", carryDate: "٢٠٢٤/٠٢/٢٩", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢٣/٠١/٠١", to: "٢٠٢٤/٠٢/٢٩", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "اصلاح طلعت صالح محمود", contract: "C3-20230101", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣٠", carryDate: "٢٠٢٤/٠٣/٠٣", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢٣/٠١/٠١", to: "٢٠٢٤/٠٣/٠٣", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "عاصم خالد عاصم", contract: "C3-20231231", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣٠", carryDate: "٢٠٢٥/١٢/٣١", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢٤/١٢/٣١", to: "٢٠٢٥/١٢/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "ليلى احمد احمد محمد", contract: "C2-20211231", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣٠", carryDate: "٢٠٢٢/١٢/٣٠", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢١/١٢/٣١", to: "٢٠٢٢/١٢/٣٠", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "احمد رجب عبدالعظيم", contract: "C2-20240516", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "١٠", carryDate: "٢٠٢٤/٠١/٣١", entry: "٢٠٢٤/٠٥/٢١", from: "٢٠٢٤/٠٥/١٣", to: "٢٠٢٤/٠١/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "علي احمد محمد احمد", contract: "C2-20230213", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٢٥", carryDate: "٢٠٢٣/١٢/١٣", entry: "٢٠٢٤/٠٥/٢٢", from: "٢٠٢٣/٠٢/١٣", to: "٢٠٢٣/١٢/١٣", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "تست ايه رجب محمد", contract: "C2-20240131", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "١٠", carryDate: "٢٠٢٤/٠٥/٢٣", entry: "٢٠٢٤/٠٥/٢٣", from: "٢٠٢٤/٠٥/٢٣", to: "٢٠٢٤/٠٥/٢٣", user: "System Admin", yearType: "سنة عقدية" },
+];
+
 function IconBtn({ icon, tone = "primary" }: { icon: string; tone?: "primary" | "danger" }) {
   return (
     <button

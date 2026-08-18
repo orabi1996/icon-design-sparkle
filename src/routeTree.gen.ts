@@ -17,6 +17,7 @@ import { Route as RegulationsIndexRouteImport } from './routes/regulations.index
 import { Route as RegulationsApprovalsRouteImport } from './routes/regulations.approvals'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
 import { Route as RegulationsDeductionsRouteImport } from './routes/regulations.deductions'
+import { Route as RegulationsEosRouteImport } from './routes/regulations.eos'
 import { Route as RegulationsFingerprintRouteImport } from './routes/regulations.fingerprint'
 import { Route as RegulationsLoansRouteImport } from './routes/regulations.loans'
 import { Route as RegulationsOtherRouteImport } from './routes/regulations.other'
@@ -69,6 +70,11 @@ const RegulationsBankFeesRoute = RegulationsBankFeesRouteImport.update({
 const RegulationsDeductionsRoute = RegulationsDeductionsRouteImport.update({
   id: '/deductions',
   path: '/deductions',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsEosRoute = RegulationsEosRouteImport.update({
+  id: '/eos',
+  path: '/eos',
   getParentRoute: () => RegulationsRoute,
 } as any)
 const RegulationsFingerprintRoute = RegulationsFingerprintRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/eos': typeof RegulationsEosRoute
   '/regulations/fingerprint': typeof RegulationsFingerprintRoute
   '/regulations/loans': typeof RegulationsLoansRoute
   '/regulations/other': typeof RegulationsOtherRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/eos': typeof RegulationsEosRoute
   '/regulations/fingerprint': typeof RegulationsFingerprintRoute
   '/regulations/loans': typeof RegulationsLoansRoute
   '/regulations/other': typeof RegulationsOtherRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/eos': typeof RegulationsEosRoute
   '/regulations/fingerprint': typeof RegulationsFingerprintRoute
   '/regulations/loans': typeof RegulationsLoansRoute
   '/regulations/other': typeof RegulationsOtherRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/eos'
     | '/regulations/fingerprint'
     | '/regulations/loans'
     | '/regulations/other'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/eos'
     | '/regulations/fingerprint'
     | '/regulations/loans'
     | '/regulations/other'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/eos'
     | '/regulations/fingerprint'
     | '/regulations/loans'
     | '/regulations/other'
@@ -338,6 +350,13 @@ declare module '@tanstack/react-router' {
       path: '/deductions'
       fullPath: '/regulations/deductions'
       preLoaderRoute: typeof RegulationsDeductionsRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
+    '/regulations/eos': {
+      id: '/regulations/eos'
+      path: '/eos'
+      fullPath: '/regulations/eos'
+      preLoaderRoute: typeof RegulationsEosRouteImport
       parentRoute: typeof RegulationsRoute
     }
     '/regulations/fingerprint': {
@@ -438,6 +457,7 @@ interface RegulationsRouteChildren {
   RegulationsApprovalsRoute: typeof RegulationsApprovalsRoute
   RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
   RegulationsDeductionsRoute: typeof RegulationsDeductionsRoute
+  RegulationsEosRoute: typeof RegulationsEosRoute
   RegulationsFingerprintRoute: typeof RegulationsFingerprintRoute
   RegulationsLoansRoute: typeof RegulationsLoansRoute
   RegulationsOtherRoute: typeof RegulationsOtherRoute
@@ -451,6 +471,7 @@ const RegulationsRouteChildren: RegulationsRouteChildren = {
   RegulationsApprovalsRoute: RegulationsApprovalsRoute,
   RegulationsBankFeesRoute: RegulationsBankFeesRoute,
   RegulationsDeductionsRoute: RegulationsDeductionsRoute,
+  RegulationsEosRoute: RegulationsEosRoute,
   RegulationsFingerprintRoute: RegulationsFingerprintRoute,
   RegulationsLoansRoute: RegulationsLoansRoute,
   RegulationsOtherRoute: RegulationsOtherRoute,

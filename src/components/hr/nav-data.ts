@@ -107,7 +107,10 @@ export const nav: NavItem[] = [
       },
       {
         title: "لوائح أخرى",
-        items: [{ label: "لوائح أخرى", to: "/regulations/other" }, "لائحة نهاية الخدمة"],
+        items: [
+          { label: "لوائح أخرى", to: "/regulations/other" },
+          { label: "لائحة نهاية الخدمة", to: "/regulations/eos" },
+        ],
       },
     ],
   },

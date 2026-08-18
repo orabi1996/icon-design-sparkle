@@ -81,6 +81,22 @@ const govExpenses = [
 ];
 
 const jobs = ["اختر ....", "كل الوظائف", "أجير", "مقيم تأمينات", "مقيم خارج التأمينات"];
+
+const govScopes: { title: string; items: string[] }[] = [
+  { title: "الاستحقاقات", items: ["راتب اساسى", "بدل سكن"] },
+  {
+    title: "الكفالة",
+    items: [
+      "كفالة افتراضية تيست",
+      "شركة الحلول الخبيرة لتقنية المعلومات",
+      "الحلول الخبيره",
+      "شركة الحلول الخبيرة",
+    ],
+  },
+  { title: "الفرع", items: ["شركة الحلول الخبيرة"] },
+  { title: "الفئة الوظيفية", items: ["سعودي تأمينات", "مقيم تأمينات"] },
+  { title: "الجنسيه", items: ["مصري", "سعودي"] },
+];
 const valueTypes = ["اختر ....", "مقطوع", "نسبة", "يوم", "نسبة من اليوم", "نسبة من الراتب"];
 
 function IconBtn({ icon, tone = "primary" }: { icon: string; tone?: "primary" | "danger" }) {
@@ -177,6 +193,7 @@ function OtherRegulations() {
   const [open, setOpen] = useState<"penalty" | "stage" | "stageUsers" | "gov" | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [expandedStage, setExpandedStage] = useState<string | null>(null);
+  const [expandedGov, setExpandedGov] = useState<string | null>(null);
 
   const addBtn: Record<TabKey, { label: string; modal: "penalty" | "stage" | "gov" }> = {
     penalties: { label: "اضافة جزاء", modal: "penalty" },

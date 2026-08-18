@@ -10,8 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
 import { Route as StaffRouteImport } from './routes/staff'
+import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
+import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
+import { Route as RegulationsDeductionsRouteImport } from './routes/regulations.deductions'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
 import { Route as StaffBankBlockRouteImport } from './routes/staff.bank-block'
@@ -25,6 +29,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegulationsRoute = RegulationsRouteImport.update({
+  id: '/regulations',
+  path: '/regulations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestNotificationsRoute = RequestNotificationsRouteImport.update({
   id: '/request-notifications',
   path: '/request-notifications',
@@ -34,6 +43,21 @@ const StaffRoute = StaffRouteImport.update({
   id: '/staff',
   path: '/staff',
   getParentRoute: () => rootRouteImport,
+} as any)
+const RegulationsIndexRoute = RegulationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsBankFeesRoute = RegulationsBankFeesRouteImport.update({
+  id: '/bank-fees',
+  path: '/bank-fees',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsDeductionsRoute = RegulationsDeductionsRouteImport.update({
+  id: '/deductions',
+  path: '/deductions',
+  getParentRoute: () => RegulationsRoute,
 } as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
   id: '/',
@@ -73,80 +97,103 @@ const StaffUpdateRoute = StaffUpdateRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/regulations/bank-fees': typeof RegulationsBankFeesRoute
+  '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
   '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
+  '/regulations/': typeof RegulationsIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/request-notifications': typeof RequestNotificationsRoute
+  '/regulations/bank-fees': typeof RegulationsBankFeesRoute
+  '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
   '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
+  '/regulations': typeof RegulationsIndexRoute
   '/staff': typeof StaffIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/regulations/bank-fees': typeof RegulationsBankFeesRoute
+  '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
   '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
+  '/regulations/': typeof RegulationsIndexRoute
   '/staff/': typeof StaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/regulations/bank-fees'
+    | '/regulations/deductions'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
     | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
+    | '/regulations/'
     | '/staff/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/request-notifications'
+    | '/regulations/bank-fees'
+    | '/regulations/deductions'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
     | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
+    | '/regulations'
     | '/staff'
   id:
     | '__root__'
     | '/'
+    | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/regulations/bank-fees'
+    | '/regulations/deductions'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
     | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
+    | '/regulations/'
     | '/staff/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
   StaffRoute: typeof StaffRouteWithChildren
 }
@@ -158,6 +205,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regulations': {
+      id: '/regulations'
+      path: '/regulations'
+      fullPath: '/regulations'
+      preLoaderRoute: typeof RegulationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/request-notifications': {
@@ -173,6 +227,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/staff'
       preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/regulations/': {
+      id: '/regulations/'
+      path: '/'
+      fullPath: '/regulations/'
+      preLoaderRoute: typeof RegulationsIndexRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
+    '/regulations/bank-fees': {
+      id: '/regulations/bank-fees'
+      path: '/bank-fees'
+      fullPath: '/regulations/bank-fees'
+      preLoaderRoute: typeof RegulationsBankFeesRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
+    '/regulations/deductions': {
+      id: '/regulations/deductions'
+      path: '/deductions'
+      fullPath: '/regulations/deductions'
+      preLoaderRoute: typeof RegulationsDeductionsRouteImport
+      parentRoute: typeof RegulationsRoute
     }
     '/staff/': {
       id: '/staff/'
@@ -226,6 +301,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface RegulationsRouteChildren {
+  RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
+  RegulationsDeductionsRoute: typeof RegulationsDeductionsRoute
+  RegulationsIndexRoute: typeof RegulationsIndexRoute
+}
+
+const RegulationsRouteChildren: RegulationsRouteChildren = {
+  RegulationsBankFeesRoute: RegulationsBankFeesRoute,
+  RegulationsDeductionsRoute: RegulationsDeductionsRoute,
+  RegulationsIndexRoute: RegulationsIndexRoute,
+}
+
+const RegulationsRouteWithChildren = RegulationsRoute._addFileChildren(
+  RegulationsRouteChildren,
+)
+
 interface StaffRouteChildren {
   StaffAddRoute: typeof StaffAddRoute
   StaffBankBlockRoute: typeof StaffBankBlockRoute
@@ -250,6 +341,7 @@ const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
   StaffRoute: StaffRouteWithChildren,
 }

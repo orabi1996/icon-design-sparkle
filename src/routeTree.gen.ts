@@ -14,7 +14,9 @@ import { Route as RequestNotificationsRouteImport } from './routes/request-notif
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
+import { Route as StaffBankBlockRouteImport } from './routes/staff.bank-block'
 import { Route as StaffContractsRouteImport } from './routes/staff.contracts'
+import { Route as StaffManagerRouteImport } from './routes/staff.manager'
 import { Route as StaffTransferRouteImport } from './routes/staff.transfer'
 import { Route as StaffUpdateRouteImport } from './routes/staff.update'
 
@@ -43,9 +45,19 @@ const StaffAddRoute = StaffAddRouteImport.update({
   path: '/add',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffBankBlockRoute = StaffBankBlockRouteImport.update({
+  id: '/bank-block',
+  path: '/bank-block',
+  getParentRoute: () => StaffRoute,
+} as any)
 const StaffContractsRoute = StaffContractsRouteImport.update({
   id: '/contracts',
   path: '/contracts',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffManagerRoute = StaffManagerRouteImport.update({
+  id: '/manager',
+  path: '/manager',
   getParentRoute: () => StaffRoute,
 } as any)
 const StaffTransferRoute = StaffTransferRouteImport.update({
@@ -64,7 +76,9 @@ export interface FileRoutesByFullPath {
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
   '/staff/add': typeof StaffAddRoute
+  '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
+  '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
   '/staff/': typeof StaffIndexRoute
@@ -73,7 +87,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff/add': typeof StaffAddRoute
+  '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
+  '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
   '/staff': typeof StaffIndexRoute
@@ -84,7 +100,9 @@ export interface FileRoutesById {
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
   '/staff/add': typeof StaffAddRoute
+  '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
+  '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
   '/staff/': typeof StaffIndexRoute
@@ -96,7 +114,9 @@ export interface FileRouteTypes {
     | '/request-notifications'
     | '/staff'
     | '/staff/add'
+    | '/staff/bank-block'
     | '/staff/contracts'
+    | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
     | '/staff/'
@@ -105,7 +125,9 @@ export interface FileRouteTypes {
     | '/'
     | '/request-notifications'
     | '/staff/add'
+    | '/staff/bank-block'
     | '/staff/contracts'
+    | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
     | '/staff'
@@ -115,7 +137,9 @@ export interface FileRouteTypes {
     | '/request-notifications'
     | '/staff'
     | '/staff/add'
+    | '/staff/bank-block'
     | '/staff/contracts'
+    | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
     | '/staff/'
@@ -164,11 +188,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffAddRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/staff/bank-block': {
+      id: '/staff/bank-block'
+      path: '/bank-block'
+      fullPath: '/staff/bank-block'
+      preLoaderRoute: typeof StaffBankBlockRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/staff/contracts': {
       id: '/staff/contracts'
       path: '/contracts'
       fullPath: '/staff/contracts'
       preLoaderRoute: typeof StaffContractsRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/manager': {
+      id: '/staff/manager'
+      path: '/manager'
+      fullPath: '/staff/manager'
+      preLoaderRoute: typeof StaffManagerRouteImport
       parentRoute: typeof StaffRoute
     }
     '/staff/transfer': {
@@ -190,7 +228,9 @@ declare module '@tanstack/react-router' {
 
 interface StaffRouteChildren {
   StaffAddRoute: typeof StaffAddRoute
+  StaffBankBlockRoute: typeof StaffBankBlockRoute
   StaffContractsRoute: typeof StaffContractsRoute
+  StaffManagerRoute: typeof StaffManagerRoute
   StaffTransferRoute: typeof StaffTransferRoute
   StaffUpdateRoute: typeof StaffUpdateRoute
   StaffIndexRoute: typeof StaffIndexRoute
@@ -198,7 +238,9 @@ interface StaffRouteChildren {
 
 const StaffRouteChildren: StaffRouteChildren = {
   StaffAddRoute: StaffAddRoute,
+  StaffBankBlockRoute: StaffBankBlockRoute,
   StaffContractsRoute: StaffContractsRoute,
+  StaffManagerRoute: StaffManagerRoute,
   StaffTransferRoute: StaffTransferRoute,
   StaffUpdateRoute: StaffUpdateRoute,
   StaffIndexRoute: StaffIndexRoute,

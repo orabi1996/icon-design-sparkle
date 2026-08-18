@@ -7,7 +7,14 @@ export const Route = createFileRoute("/staff")({
 });
 
 const tabs: {
-  to: "/staff" | "/staff/add" | "/staff/transfer" | "/staff/contracts" | "/staff/update";
+  to:
+    | "/staff"
+    | "/staff/add"
+    | "/staff/transfer"
+    | "/staff/contracts"
+    | "/staff/update"
+    | "/staff/bank-block"
+    | "/staff/manager";
   label: string;
   icon: string;
   exact?: boolean;
@@ -17,6 +24,8 @@ const tabs: {
   { to: "/staff/transfer", label: "النقل والترقية", icon: "swap_horiz" },
   { to: "/staff/contracts", label: "تجديد العقود", icon: "description" },
   { to: "/staff/update", label: "تحديث البيانات", icon: "cloud_sync" },
+  { to: "/staff/bank-block", label: "حظر تعديل البيانات البنكية", icon: "account_balance" },
+  { to: "/staff/manager", label: "تغيير المدير المباشر", icon: "supervisor_account" },
 ];
 
 function StaffLayout() {

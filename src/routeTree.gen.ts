@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
 import { Route as StaffRouteImport } from './routes/staff'
@@ -37,6 +38,11 @@ import { Route as StaffUpdateRouteImport } from './routes/staff.update'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PayrollRoute = PayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegulationsRoute = RegulationsRouteImport.update({
@@ -157,6 +163,7 @@ const StaffUpdateRoute = StaffUpdateRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/payroll': typeof PayrollRoute
   '/request-notifications': typeof RequestNotificationsRoute
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
@@ -208,6 +216,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/payroll'
     | '/regulations'
     | '/request-notifications'
     | '/staff'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/payroll'
     | '/request-notifications'
     | '/surveys'
     | '/vacations'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/payroll'
     | '/regulations'
     | '/request-notifications'
     | '/staff'
@@ -313,6 +325,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PayrollRoute: typeof PayrollRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
   StaffRoute: typeof StaffRouteWithChildren
@@ -327,6 +340,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payroll': {
+      id: '/payroll'
+      path: '/payroll'
+      fullPath: '/payroll'
+      preLoaderRoute: typeof PayrollRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/regulations': {
@@ -549,6 +569,7 @@ const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PayrollRoute: PayrollRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
   StaffRoute: StaffRouteWithChildren,

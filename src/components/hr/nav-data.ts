@@ -85,12 +85,16 @@ export const nav: NavItem[] = [
     columns: [
       {
         title: "التهيئة المالية",
-        items: ["لائحة الإستحقاقات", "لائحة الإستقطاعات", "تهيئة العمولات البنكية"],
+        items: [
+          { label: "لائحة الإستحقاقات", to: "/regulations" },
+          { label: "لائحة الإستقطاعات", to: "/regulations/deductions" },
+          { label: "تهيئة العمولات البنكية", to: "/regulations/bank-fees" },
+        ],
       },
       {
         title: "إعدادات متنوعة",
         items: [
-          "تهيئة الاجازات",
+          { label: "تهيئة الاجازات", to: "/regulations/vacations" },
           "تهيئة مجموعات الدوام",
           "تهيئة السلف",
           "تهيئة سلاسل الموافقات",
@@ -157,7 +161,8 @@ export const sidebar: { label: string; icon: string; to?: string; badge?: string
   { label: "العقود", icon: "description", to: "/staff/contracts" },
   { label: "اشعارات الطلبات", icon: "notifications_active", to: "/request-notifications", badge: "٦" },
   { label: "الحضور والانصراف", icon: "schedule" },
-  { label: "الإجازات", icon: "beach_access", badge: "٧" },
+  { label: "الإجازات", icon: "beach_access", to: "/regulations/vacations", badge: "٧" },
+  { label: "اللوائح المالية", icon: "format_list_bulleted", to: "/regulations" },
   { label: "الرواتب", icon: "payments" },
   { label: "التدريب", icon: "school" },
 ];

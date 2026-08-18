@@ -17,7 +17,9 @@ import { Route as RegulationsIndexRouteImport } from './routes/regulations.index
 import { Route as RegulationsApprovalsRouteImport } from './routes/regulations.approvals'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
 import { Route as RegulationsDeductionsRouteImport } from './routes/regulations.deductions'
+import { Route as RegulationsFingerprintRouteImport } from './routes/regulations.fingerprint'
 import { Route as RegulationsLoansRouteImport } from './routes/regulations.loans'
+import { Route as RegulationsPermitsRouteImport } from './routes/regulations.permits'
 import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shifts'
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
@@ -68,9 +70,19 @@ const RegulationsDeductionsRoute = RegulationsDeductionsRouteImport.update({
   path: '/deductions',
   getParentRoute: () => RegulationsRoute,
 } as any)
+const RegulationsFingerprintRoute = RegulationsFingerprintRouteImport.update({
+  id: '/fingerprint',
+  path: '/fingerprint',
+  getParentRoute: () => RegulationsRoute,
+} as any)
 const RegulationsLoansRoute = RegulationsLoansRouteImport.update({
   id: '/loans',
   path: '/loans',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsPermitsRoute = RegulationsPermitsRouteImport.update({
+  id: '/permits',
+  path: '/permits',
   getParentRoute: () => RegulationsRoute,
 } as any)
 const RegulationsShiftsRoute = RegulationsShiftsRouteImport.update({
@@ -127,7 +139,9 @@ export interface FileRoutesByFullPath {
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/fingerprint': typeof RegulationsFingerprintRoute
   '/regulations/loans': typeof RegulationsLoansRoute
+  '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
@@ -145,7 +159,9 @@ export interface FileRoutesByTo {
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/fingerprint': typeof RegulationsFingerprintRoute
   '/regulations/loans': typeof RegulationsLoansRoute
+  '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
@@ -166,7 +182,9 @@ export interface FileRoutesById {
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/fingerprint': typeof RegulationsFingerprintRoute
   '/regulations/loans': typeof RegulationsLoansRoute
+  '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
@@ -188,7 +206,9 @@ export interface FileRouteTypes {
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/fingerprint'
     | '/regulations/loans'
+    | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
     | '/staff/add'
@@ -206,7 +226,9 @@ export interface FileRouteTypes {
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/fingerprint'
     | '/regulations/loans'
+    | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
     | '/staff/add'
@@ -226,7 +248,9 @@ export interface FileRouteTypes {
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/fingerprint'
     | '/regulations/loans'
+    | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
     | '/staff/add'
@@ -304,11 +328,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegulationsDeductionsRouteImport
       parentRoute: typeof RegulationsRoute
     }
+    '/regulations/fingerprint': {
+      id: '/regulations/fingerprint'
+      path: '/fingerprint'
+      fullPath: '/regulations/fingerprint'
+      preLoaderRoute: typeof RegulationsFingerprintRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
     '/regulations/loans': {
       id: '/regulations/loans'
       path: '/loans'
       fullPath: '/regulations/loans'
       preLoaderRoute: typeof RegulationsLoansRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
+    '/regulations/permits': {
+      id: '/regulations/permits'
+      path: '/permits'
+      fullPath: '/regulations/permits'
+      preLoaderRoute: typeof RegulationsPermitsRouteImport
       parentRoute: typeof RegulationsRoute
     }
     '/regulations/shifts': {
@@ -381,7 +419,9 @@ interface RegulationsRouteChildren {
   RegulationsApprovalsRoute: typeof RegulationsApprovalsRoute
   RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
   RegulationsDeductionsRoute: typeof RegulationsDeductionsRoute
+  RegulationsFingerprintRoute: typeof RegulationsFingerprintRoute
   RegulationsLoansRoute: typeof RegulationsLoansRoute
+  RegulationsPermitsRoute: typeof RegulationsPermitsRoute
   RegulationsShiftsRoute: typeof RegulationsShiftsRoute
   RegulationsVacationsRoute: typeof RegulationsVacationsRoute
   RegulationsIndexRoute: typeof RegulationsIndexRoute
@@ -391,7 +431,9 @@ const RegulationsRouteChildren: RegulationsRouteChildren = {
   RegulationsApprovalsRoute: RegulationsApprovalsRoute,
   RegulationsBankFeesRoute: RegulationsBankFeesRoute,
   RegulationsDeductionsRoute: RegulationsDeductionsRoute,
+  RegulationsFingerprintRoute: RegulationsFingerprintRoute,
   RegulationsLoansRoute: RegulationsLoansRoute,
+  RegulationsPermitsRoute: RegulationsPermitsRoute,
   RegulationsShiftsRoute: RegulationsShiftsRoute,
   RegulationsVacationsRoute: RegulationsVacationsRoute,
   RegulationsIndexRoute: RegulationsIndexRoute,

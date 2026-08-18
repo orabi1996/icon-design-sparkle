@@ -7,6 +7,7 @@ import {
   Btn,
   Card,
   Check,
+  Chip,
   DataTable,
   DateInput,
   Field,
@@ -65,9 +66,26 @@ const subMenus: Record<string, { title: string; items: string[] }> = {
   close: { title: "اغلاق المسير", items: ["اغلاق المسير", "فك اغلاق المسير"] },
   journal: { title: "ترحيل القيد", items: ["ترحيل قيد مسير الرواتب", "استعراض القيود المرحلة"] },
   settle: { title: "تصفية", items: ["تصفية", "تعديل التصفية"] },
-  bank: { title: "بنك", items: ["ملف البنك", "ارشيف ملفات البنك"] },
-  archive: { title: "الارشيف", items: ["ارشيف المسير", "ارشيف التسويات"] },
-  exceptions: { title: "الاستثناءات", items: ["استثناءات المسير"] },
+  bank: {
+    title: "بنك",
+    items: [
+      "بنك الراجحي",
+      "بنك البلاد",
+      "بنك الاهلى",
+      "بنك الانماء",
+      "بنك الرياض",
+      "بنك سعودى فرنسى",
+      "بنك الجزيرة",
+      "بنك السعودى البريطانى",
+      "السعودى للاستثمار",
+      "البنك العربى",
+    ],
+  },
+  archive: { title: "الارشيف", items: ["الارشيف"] },
+  exceptions: {
+    title: "الاستثناءات",
+    items: ["استثناء من خصومات البصمة", "استثناء الحضور والانصراف"],
+  },
   runs: { title: "ارشيف المسيرات", items: ["ارشيف المسيرات"] },
 };
 
@@ -476,6 +494,408 @@ function Simple({ title, icon, columns }: { title: string; icon: string; columns
   );
 }
 
+
+function IconBtn({ icon, tone = "primary" }: { icon: string; tone?: "primary" | "destructive" | "teal" }) {
+  const tones = {
+    primary: "bg-primary/10 text-primary hover:bg-primary/20",
+    destructive: "bg-destructive/10 text-destructive hover:bg-destructive/20",
+    teal: "bg-teal/12 text-teal hover:bg-teal/20",
+  } as const;
+  return (
+    <button className={`grid size-8 place-items-center rounded-lg transition-colors ${tones[tone]}`}>
+      <MaterialIcon name={icon} size={17} />
+    </button>
+  );
+}
+
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/35 p-4 backdrop-blur-sm">
+      <div
+        className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card"
+        style={{ boxShadow: "var(--shadow-raised)" }}
+      >
+        <div className="flex items-center gap-3 border-b border-border px-5 py-3.5">
+          <h2 className="text-sm font-extrabold text-primary">{title}</h2>
+          <button
+            onClick={onClose}
+            className="ms-auto grid size-8 place-items-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
+          >
+            <MaterialIcon name="close" size={18} />
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function BankFile({ bank }: { bank: string }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1fr_290px]">
+      <div
+        className="rounded-2xl border border-border bg-secondary/40 p-5"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
+          <span className="text-[12px] font-extrabold text-muted-foreground">نوع المسير:</span>
+          {["رواتب", "تصفية", "تسوية"].map((o, i) => (
+            <label key={o} className="flex cursor-pointer items-center gap-2 text-[13px] font-bold">
+              <input type="radio" name="banktype" defaultChecked={i === 0} className="size-4 accent-[var(--primary)]" />
+              {o}
+            </label>
+          ))}
+          <span className="ms-auto text-[12px] font-extrabold text-primary">{bank}</span>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <Field label="السنه">
+            <Select options={years} />
+          </Field>
+          <Field label="الشهر">
+            <Select options={months} />
+          </Field>
+          <Field label="رقم المسير">
+            <Select options={opt} />
+          </Field>
+          <Field label="الفرع">
+            <Select options={branches} />
+          </Field>
+          <Field label="اسم الكفيل">
+            <Select options={["اختر ....", "شركة الحلول الخبيرة لتقنية المعلومات", "كفالة افتراضية تيست"]} />
+          </Field>
+          <Field label="اسم الموظف">
+            <Select options={opt} />
+          </Field>
+        </div>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <Btn icon="settings_suggest">معالجة</Btn>
+          <Btn icon="verified" variant="ghost">تحقق نسبة الالتزام</Btn>
+        </div>
+      </div>
+      <Card title="تحقق نسبة الالتزام" icon="donut_large">
+        <div className="grid place-items-center rounded-xl border border-dashed border-border bg-secondary/50 px-4 py-10 text-center text-[12px] font-semibold text-muted-foreground">
+          اضغط "تحقق نسبة الالتزام" لعرض الإحصائيات
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+const archiveCols = ["اسم الحقل", "اسم الكفيل", "تاريخ التصدير", "اسم المستخدم", "حالة البنك", "نوع المسير", 'الاسم "الارشيف"', "تصدير", "حذف"];
+const archiveRows = [
+  { f: "20251016100221", k: "شركة الحلول الخبيرة لتقنية المعلومات", d: "2025/10/16", t: "رواتب" },
+  { f: "20251127125747", k: "شركة الحلول الخبيرة", d: "2025/11/27", t: "رواتب" },
+  { f: "190526214579857", k: "كفالة افتراضية تيست", d: "2026/05/19", t: "رواتب" },
+  { f: "050726553932185", k: "كفالة افتراضية تيست", d: "2026/07/05", t: "رواتب" },
+  { f: "0507261533756733", k: "شركة الحلول الخبيرة لتقنية المعلومات", d: "2026/07/05", t: "رواتب" },
+  { f: "0507262064903503", k: "كفالة افتراضية تيست", d: "2026/07/05", t: "رواتب" },
+  { f: "1307261379589170", k: "كفالة افتراضية تيست", d: "2026/07/13", t: "تسويه" },
+  { f: "140726260026269", k: "كفالة افتراضية تيست", d: "2026/07/14", t: "رواتب" },
+  { f: "140726451582318", k: "كفالة افتراضية تيست", d: "2026/07/14", t: "تسويه" },
+  { f: "1407261910733993", k: "كفالة افتراضية تيست", d: "2026/07/14", t: "تسويه" },
+];
+
+function BankArchive() {
+  return (
+    <div className="space-y-4">
+      <div
+        className="rounded-2xl border border-border bg-secondary/40 p-5"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Field label="اسم الكفيل">
+            <Select options={["اختر ....", "شركة الحلول الخبيرة", "كفالة افتراضية تيست"]} />
+          </Field>
+          <Field label="اسم الموظف">
+            <Select options={opt} />
+          </Field>
+          <Field label="رقم الهويه">
+            <Input />
+          </Field>
+          <Field label="الرقم الوظيفي">
+            <Input />
+          </Field>
+          <Field label="التاريخ من">
+            <DateInput />
+          </Field>
+          <Field label="التاريخ الى">
+            <DateInput />
+          </Field>
+          <div className="flex items-end">
+            <Btn icon="search">بحث</Btn>
+          </div>
+        </div>
+      </div>
+      <div
+        className="overflow-hidden rounded-2xl border border-border bg-card"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <TableToolbar title="ارشيف ملفات البنك" />
+        <DataTable
+          columns={archiveCols}
+          rows={archiveRows.map((r) => ({
+            "اسم الحقل": r.f,
+            "اسم الكفيل": r.k,
+            "تاريخ التصدير": r.d,
+            "اسم المستخدم": "System Admin",
+            "حالة البنك": <Chip label="لم يتم الرد" tone="muted" />,
+            "نوع المسير": <Chip label={r.t} tone={r.t === "رواتب" ? "blue" : "teal"} />,
+            'الاسم "الارشيف"': r.f,
+            تصدير: <IconBtn icon="table_view" tone="teal" />,
+            حذف: <IconBtn icon="delete" tone="destructive" />,
+          }))}
+        />
+        <Pager page={1} pages={2} total={12} />
+      </div>
+    </div>
+  );
+}
+
+const fpRows = [
+  { n: "نوريان كمال احمد حامد خميس", j: "5148", id: "505060604040", b: "management", sec: "قطاع السعودية تيست", tr: "مسار السعودية تيست", on: true },
+  { n: "حسين نور جمال محمد", j: "5142", id: "55669948112", b: "management", sec: "قطاع السعودية تيست", tr: "مسار السعودية تيست", on: true },
+  { n: "ابراهيم السيد حسن الشريف", j: "5132", id: "1120003020", b: "بنات - ابتدائي", sec: "", tr: "", on: true },
+  { n: "احمد محمد عبدالرحمن حسين", j: "5129", id: "1020003000", b: "بنين - عليا", sec: "", tr: "", on: true },
+  { n: "موظف امل الجيل الجديد", j: "5123", id: "1234567893", b: "التطوير", sec: "قطاع السعودية تيست", tr: "مسار السعودية تيست", on: false },
+  { n: "ابراهيم احمد محمد دويوب", j: "5122", id: "12345678891234", b: "بنين - متوسط", sec: "قطاع السعودية تيست", tr: "مسار مصر", on: false },
+  { n: "مدرسة واحة الغد الاهلية الملقا", j: "5119", id: "1010202030", b: "بنات - ثانوي", sec: "", tr: "", on: true },
+  { n: "احمد سيد حسين الامام", j: "5085", id: "1022334488", b: "بنات - رياض أطفال", sec: "", tr: "", on: true },
+  { n: "محمد شرف ابراهيم سيد", j: "156", id: "1122334455", b: "management", sec: "قطاع مصر", tr: "مسار مصر", on: true },
+  { n: "عاصم خالد محمد حسن", j: "141", id: "1023526325", b: "Security", sec: "قطاع السعودية تيست", tr: "مسار مصر", on: false },
+];
+
+function FingerprintExceptions() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Btn icon="add" variant="teal" onClick={() => setOpen(true)}>
+          اضافة استثناءات
+        </Btn>
+      </div>
+      <div
+        className="rounded-2xl border border-border bg-secondary/40 p-5"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Field label="الفرع">
+            <Select options={branches} />
+          </Field>
+          <Field label="القسم الرئيسي">
+            <Select options={opt} />
+          </Field>
+          <Field label="الأقسام">
+            <Select options={opt} />
+          </Field>
+          <Field label="القطاع">
+            <Select options={opt} />
+          </Field>
+          <Field label="المسار">
+            <Select options={opt} />
+          </Field>
+          <div className="flex items-end">
+            <Btn icon="search">بحث</Btn>
+          </div>
+        </div>
+      </div>
+      <div
+        className="overflow-hidden rounded-2xl border border-border bg-card"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <TableToolbar title="استثناء من خصومات البصمة" />
+        <DataTable
+          columns={["اسم الموظف", "الرقم الوظيفى", "رقم الهويه", "الفرع", "الأقسام", "القسم الرئيسى", "القطاع", "المسار", "عرض فى تقارير البصمه"]}
+          rows={fpRows.map((r) => ({
+            "اسم الموظف": r.n,
+            "الرقم الوظيفى": r.j,
+            "رقم الهويه": r.id,
+            الفرع: "شركة الحلول الخبيرة",
+            الأقسام: r.b,
+            "القسم الرئيسى": "—",
+            القطاع: r.sec || "—",
+            المسار: r.tr || "—",
+            "عرض فى تقارير البصمه": r.on ? (
+              <MaterialIcon name="check" size={18} className="text-teal" />
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            ),
+          }))}
+        />
+        <Pager page={1} pages={3} total={29} />
+      </div>
+
+      {open && (
+        <Modal title="اضافة استثناءات" onClose={() => setOpen(false)}>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="الفرع">
+              <Select options={branches} />
+            </Field>
+            <Field label="القسم">
+              <Select options={opt} />
+            </Field>
+            <Field label="موظف">
+              <Select options={opt} />
+            </Field>
+          </div>
+          <div className="mt-4">
+            <Check label="عرض فى تقارير البصمه" />
+          </div>
+          <div className="mt-5 flex justify-center">
+            <Btn icon="save" variant="teal" onClick={() => setOpen(false)}>
+              حفظ
+            </Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function AttendanceExceptions() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Btn icon="add" variant="teal" onClick={() => setOpen(true)}>
+          اضافة استثناءات
+        </Btn>
+      </div>
+      <div
+        className="rounded-2xl border border-border bg-secondary/40 p-5"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Field label="نوع الاستثناء">
+            <Select options={["اختر ....", "استثناء تأخير", "استثناء انصراف مبكر", "استثناء غياب"]} />
+          </Field>
+          <Field label="الفروع">
+            <Select options={branches} />
+          </Field>
+          <Field label="القسم">
+            <Select options={opt} />
+          </Field>
+          <Field label="الحاله">
+            <Select options={["اختر ....", "مفعل", "موقوف"]} />
+          </Field>
+          <Field label="الوظيفه الحالية">
+            <Select options={opt} />
+          </Field>
+          <Field label="القسم الرئيسي">
+            <Select options={opt} />
+          </Field>
+          <Field label="القطاع">
+            <Select options={opt} />
+          </Field>
+          <Field label="المستوى الوظيفي">
+            <Select options={opt} />
+          </Field>
+          <Field label="المسار">
+            <Select options={opt} />
+          </Field>
+          <Field label="موظف">
+            <Input placeholder="البحث بإسم او رقم الموظف" />
+          </Field>
+          <Field label="التاريخ من">
+            <DateInput />
+          </Field>
+          <Field label="التاريخ الى">
+            <DateInput />
+          </Field>
+          <div className="flex items-end">
+            <Btn icon="search">بحث</Btn>
+          </div>
+        </div>
+      </div>
+      <TableBlock columns={["التاريخ", "الرقم الوظيفى", "اسم الموظف", "اسم المستخدم", "نوع الاستثناء", "السبب"]} />
+
+      {open && (
+        <Modal title="اضافة استثناءات" onClose={() => setOpen(false)}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="الشهر">
+              <Select options={months} />
+            </Field>
+            <Field label="نوع الاستثناء">
+              <Select options={["اختر ....", "استثناء تأخير", "استثناء انصراف مبكر", "استثناء غياب"]} />
+            </Field>
+            <Field label="الفرع">
+              <Select options={branches} />
+            </Field>
+            <Field label="القسم">
+              <Select options={opt} />
+            </Field>
+            <Field label="التاريخ من">
+              <DateInput />
+            </Field>
+            <Field label="التاريخ الى">
+              <DateInput />
+            </Field>
+            <Field label="موظف">
+              <Select options={opt} />
+            </Field>
+            <Field label="السبب">
+              <Input />
+            </Field>
+          </div>
+          <div className="mt-5 flex justify-center">
+            <Btn icon="save" variant="teal" onClick={() => setOpen(false)}>
+              حفظ
+            </Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+const runRows = [
+  { y: "2025", m: "3", op: "حذف المسير", t: "تصفيه", d: "2025/03/24" },
+  { y: "2025", m: "3", op: "اضافة المسير", t: "تصفيه", d: "2025/03/24" },
+  { y: "2025", m: "4", op: "اضافة المسير", t: "تصفيه", d: "2025/04/13" },
+  { y: "2025", m: "4", op: "حذف المسير", t: "تصفيه", d: "2025/04/20" },
+  { y: "2025", m: "4", op: "اضافة المسير", t: "تصفيه", d: "2025/04/27" },
+  { y: "2025", m: "4", op: "حذف المسير", t: "تصفيه", d: "2025/04/27" },
+  { y: "2025", m: "4", op: "اضافة المسير", t: "تصفيه", d: "2025/04/27" },
+  { y: "2025", m: "4", op: "حذف المسير", t: "تصفيه", d: "2025/04/27" },
+  { y: "2025", m: "4", op: "اضافة المسير", t: "تصفيه", d: "2025/04/27" },
+  { y: "2025", m: "5", op: "اضافة المسير", t: "تصفيه", d: "2025/05/19" },
+];
+
+function RunsArchive() {
+  return (
+    <div
+      className="overflow-hidden rounded-2xl border border-border bg-card"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <TableToolbar title="ارشيف المسيرات" />
+      <DataTable
+        columns={["سنة", "شهر", "نوع العملية", "نوع المسير", "تاريخ الادخال", "اسم المستخدم", "الفروع", "رقم القيد", "رقم المسير"]}
+        rows={runRows.map((r) => ({
+          سنة: r.y,
+          شهر: r.m,
+          "نوع العملية": (
+            <span className={r.op.startsWith("حذف") ? "text-destructive" : "text-teal"}>{r.op}</span>
+          ),
+          "نوع المسير": <Chip label={r.t} tone="teal" />,
+          "تاريخ الادخال": r.d,
+          "اسم المستخدم": "system@system.com",
+          الفروع: "—",
+          "رقم القيد": "—",
+          "رقم المسير": "—",
+        }))}
+      />
+      <Pager page={1} pages={129} total={1289} />
+    </div>
+  );
+}
+
 function Payroll() {
   const [tab, setTab] = useState("draft");
   const [sub, setSub] = useState(0);
@@ -499,13 +919,10 @@ function Payroll() {
     if (tab === "settle") return sub === 0 ? <SettleCalc /> : <SettleEdit />;
     if (tab === "journal")
       return <Simple title="ترحيل قيد مسير الرواتب" icon="sync_alt" columns={["رقم القيد", "التاريخ", "نوع المسير", "الفرع", "مدين", "دائن", "الحالة"]} />;
-    if (tab === "bank")
-      return <Simple title="ملف البنك" icon="account_balance" columns={["اسم الموظف", "الرقم الوظيفى", "البنك", "رقم الايبان", "صافى الراتب", "الحالة"]} />;
-    if (tab === "archive")
-      return <Simple title="الارشيف" icon="inventory_2" columns={["رقم المسير", "السنه", "الشهر", "نوع المسير", "الفرع", "صافى الرواتب"]} />;
-    if (tab === "exceptions")
-      return <Simple title="الاستثناءات" icon="rule" columns={["اسم الموظف", "الرقم الوظيفى", "سبب الاستثناء", "الشهر", "الفرع"]} />;
-    return <Simple title="ارشيف المسيرات" icon="folder_copy" columns={["رقم المسير", "تاريخ التجهيز", "نوع المسير", "عدد الموظفين", "صافى الرواتب", "الحالة"]} />;
+    if (tab === "bank") return <BankFile bank={menu.items[sub] ?? "بنك الراجحي"} />;
+    if (tab === "archive") return <BankArchive />;
+    if (tab === "exceptions") return sub === 0 ? <FingerprintExceptions /> : <AttendanceExceptions />;
+    return <RunsArchive />;
   })();
 
   return (

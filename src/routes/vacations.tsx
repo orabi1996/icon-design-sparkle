@@ -75,6 +75,32 @@ const annualRows = [
   { emp: "رضوى مصطفى عبدالعزيز القاضي", branch: "شركة الحلول الخبيرة", dept: "التطوير", nat: "سعودي", no: "٢", level: "سعودي تأمينات", type: "أجازة سنوية ٣٥ يوم", from: "٢٠٢٤/٠١/١٠", to: "٢٠٢٤/٠٣/٠٧", work: "٥٨", dur: "٥", val: "١٦٦٧" },
 ];
 
+const unpaidRows = [
+  { emp: "جوليا حسين سيد القزاز", type: "اجازة بدون راتب", bal: "١٠", entry: "٢٠٢٤/٠٦/٠٣", from: "٢٠٢٤/٠٧/٠٩", to: "٢٠٢٤/٠٩/١١", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "تست ايه رجب محمد", type: "اجازة بدون راتب", bal: "٦", entry: "٢٠٢٤/٠٦/٠٣", from: "٢٠٢٤/٠٤/٠٣", to: "٢٠٢٤/٠٥/١٠", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "اشرف رجب السيد نصر", type: "اجازة بدون راتب", bal: "٥", entry: "٢٠٢٤/٠٦/٢٥", from: "", to: "", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "ايمن عبدالوهاب محمد علي", type: "اجازة بدون راتب", bal: "٦٠", entry: "٢٠٢٥/٠٣/١٧", from: "٢٠٢٥/٠٣/١٧", to: "٢٠٢٥/٠٥/١٧", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "محمد شعبان عبدالحميد فرج", type: "اجازة بدون راتب", bal: "٢٠", entry: "٢٠٢٥/٠٣/٢٥", from: "٢٠٢٥/٠٣/٠١", to: "٢٠٢٥/٠٣/٣١", user: "System Admin", calc: "لم يتم الاحتساب" },
+  { emp: "عبدالله بيومي رمضان بيومي", type: "اجازة بدون راتب", bal: "٢٠", entry: "٢٠٢٥/٠٣/٢٥", from: "٢٠٢٥/٠٣/٠١", to: "٢٠٢٥/٠٣/٣١", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "الشريف احمد", type: "اجازة بدون راتب", bal: "١٠", entry: "٢٠٢٥/٠٤/١٥", from: "٢٠٢٥/٠٤/٠١", to: "٢٠٢٥/٠٦/٣٠", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "عاصم خالد فتحي قرني", type: "اجازة بدون راتب", bal: "٤", entry: "٢٠٢٥/٠٥/٠٨", from: "٢٠٢٥/٠٥/٠١", to: "٢٠٢٥/٠٥/٠٤", user: "System Admin", calc: "تم الاحتساب" },
+  { emp: "مدثر محمد احمد محمد", type: "اجازة بدون راتب", bal: "١٠", entry: "٢٠٢٥/٠٥/٠٨", from: "٢٠٢٥/٠٥/٠٨", to: "٢٠٢٥/٠٥/١٨", user: "System Admin", calc: "لم يتم الاحتساب" },
+  { emp: "رضوى مصطفى عبدالعزيز القاضي", type: "اجازة بدون راتب", bal: "٥", entry: "٢٠٢٥/٠٥/١٢", from: "٢٠٢٥/٠٥/١٢", to: "٢٠٢٥/٠٥/١٦", user: "System Admin", calc: "تم الاحتساب" },
+];
+
+const carryRows = [
+  { emp: "مراد احمد متولي يونس", contract: "C1-20230101", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "٧", carryDate: "٢٠٢٢/٠١/٠١", entry: "٢٠٢٤/٠٢/٠٨", from: "٢٠٢٢/١٢/٣١", to: "٢٠٢٢/٠١/٠١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "مراد احمد متولي يونس", contract: "C2-20230101", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣١", carryDate: "٢٠٢٣/١٢/٣١", entry: "٢٠٢٤/٠٢/٠٨", from: "٢٠٢٣/٠١/٠١", to: "٢٠٢٣/١٢/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "مراد احمد متولي يونس", contract: "C3-20230101", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٥٦", carryDate: "٢٠٢٤/١٢/٣١", entry: "٢٠٢٤/٠٢/٠٨", from: "٢٠٢٤/٠١/٠١", to: "٢٠٢٤/١٢/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "رضوى مصطفى عبدالعزيز القاضي", contract: "C3-20240101", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "١٠", carryDate: "٢٠٢٤/٠٢/٢٩", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢٣/٠١/٠١", to: "٢٠٢٤/٠٢/٢٩", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "اصلاح طلعت صالح محمود", contract: "C3-20230101", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣٠", carryDate: "٢٠٢٤/٠٣/٠٣", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢٣/٠١/٠١", to: "٢٠٢٤/٠٣/٠٣", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "عاصم خالد عاصم", contract: "C3-20231231", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣٠", carryDate: "٢٠٢٥/١٢/٣١", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢٤/١٢/٣١", to: "٢٠٢٥/١٢/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "ليلى احمد احمد محمد", contract: "C2-20211231", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٣٠", carryDate: "٢٠٢٢/١٢/٣٠", entry: "٢٠٢٤/٠٥/٢٠", from: "٢٠٢١/١٢/٣١", to: "٢٠٢٢/١٢/٣٠", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "احمد رجب عبدالعظيم", contract: "C2-20240516", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "١٠", carryDate: "٢٠٢٤/٠١/٣١", entry: "٢٠٢٤/٠٥/٢١", from: "٢٠٢٤/٠٥/١٣", to: "٢٠٢٤/٠١/٣١", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "علي احمد محمد احمد", contract: "C2-20230213", type: "أجازة سنوية ٣٥ يوم", method: "تلقائي", days: "٢٥", carryDate: "٢٠٢٣/١٢/١٣", entry: "٢٠٢٤/٠٥/٢٢", from: "٢٠٢٣/٠٢/١٣", to: "٢٠٢٣/١٢/١٣", user: "System Admin", yearType: "سنة عقدية" },
+  { emp: "تست ايه رجب محمد", contract: "C2-20240131", type: "أجازة سنوية ٣٥ يوم", method: "يدوي", days: "١٠", carryDate: "٢٠٢٤/٠٥/٢٣", entry: "٢٠٢٤/٠٥/٢٣", from: "٢٠٢٤/٠٥/٢٣", to: "٢٠٢٤/٠٥/٢٣", user: "System Admin", yearType: "سنة عقدية" },
+];
+
 function IconBtn({ icon, tone = "primary" }: { icon: string; tone?: "primary" | "danger" }) {
   return (
     <button
@@ -155,7 +181,9 @@ function Modal({
 function VacationsPage() {
   const [tab, setTab] = useState<TabKey>("search");
   const [annualSub, setAnnualSub] = useState<"notices" | "calc">("notices");
-  const [open, setOpen] = useState<"request" | "group" | "notice" | "calc" | null>(null);
+  const [open, setOpen] = useState<
+    "request" | "group" | "notice" | "calc" | "unpaidAdd" | "carryFirst" | "carryManual" | null
+  >(null);
 
   return (
     <AppShell>
@@ -495,6 +523,11 @@ function VacationsPage() {
 
         {tab === "unpaid" && (
           <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Btn icon="add" variant="teal" onClick={() => setOpen("unpaidAdd")}>
+                اضافة رصيد اجازة بدون راتب
+              </Btn>
+            </div>
             <FilterCard>
               <Field label="الفرع">
                 <Select options={branches} />
@@ -503,10 +536,7 @@ function VacationsPage() {
                 <Select options={depts} />
               </Field>
               <Field label="اسم الموظف">
-                <Input placeholder="البحث بإسم او رقم الموظف" />
-              </Field>
-              <Field label="السنة">
-                <Select options={["اختر ....", "٢٠٢٤", "٢٠٢٥", "٢٠٢٦"]} />
+                <Select options={opt} />
               </Field>
             </FilterCard>
             <div
@@ -517,23 +547,40 @@ function VacationsPage() {
               <DataTable
                 columns={[
                   "اسم الموظف",
-                  "الرقم الوظيفى",
-                  "الفرع",
-                  "القسم",
-                  "السنة",
-                  "الرصيد المستحق",
-                  "المستهلك",
-                  "المتبقى",
+                  "اسم الاجازه",
+                  "رصيد الأجازة بدون راتب المستهلك",
+                  "تاريخ الادخال",
+                  "التاريخ من",
+                  "التاريخ الى",
+                  "اسم المستخدم",
+                  "نوع السنة",
                 ]}
-                rows={[]}
+                rows={unpaidRows.map((r) => ({
+                  "اسم الموظف": <span className="font-extrabold text-primary">{r.emp}</span>,
+                  "اسم الاجازه": r.type,
+                  "رصيد الأجازة بدون راتب المستهلك": <span className="font-extrabold text-teal">{r.bal}</span>,
+                  "تاريخ الادخال": r.entry,
+                  "التاريخ من": r.from || "—",
+                  "التاريخ الى": r.to || "—",
+                  "اسم المستخدم": r.user,
+                  "نوع السنة": <StateChip label={r.calc} />,
+                }))}
               />
-              <Pager page={1} pages={1} total={0} />
+              <Pager page={1} pages={2} total={15} />
             </div>
           </div>
         )}
 
         {tab === "carry" && (
           <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Btn icon="playlist_add" variant="teal" onClick={() => setOpen("carryFirst")}>
+                رصيد اول المدة للأجازات
+              </Btn>
+              <Btn icon="swap_vert" variant="soft" onClick={() => setOpen("carryManual")}>
+                الترحيل اليدوي
+              </Btn>
+            </div>
             <FilterCard>
               <Field label="الفرع">
                 <Select options={branches} />
@@ -542,10 +589,7 @@ function VacationsPage() {
                 <Select options={depts} />
               </Field>
               <Field label="اسم الموظف">
-                <Input placeholder="البحث بإسم او رقم الموظف" />
-              </Field>
-              <Field label="سنة الترحيل">
-                <Select options={["اختر ....", "٢٠٢٤", "٢٠٢٥"]} />
+                <Select options={opt} />
               </Field>
             </FilterCard>
             <div
@@ -556,20 +600,109 @@ function VacationsPage() {
               <DataTable
                 columns={[
                   "اسم الموظف",
-                  "الرقم الوظيفى",
-                  "الفرع",
-                  "القسم",
-                  "سنة الترحيل",
-                  "الرصيد السابق",
-                  "المرحّل",
-                  "الرصيد الحالى",
+                  "رقم العقد",
+                  "اسم الاجازه",
+                  "طريقة الترحيل",
+                  "المدة",
+                  "تاريخ الترحيل",
+                  "تاريخ الادخال",
+                  "التاريخ من",
+                  "التاريخ الى",
                   "اسم المستخدم",
+                  "نوع السنة",
                 ]}
-                rows={[]}
+                rows={carryRows.map((r) => ({
+                  "اسم الموظف": <span className="font-extrabold text-primary">{r.emp}</span>,
+                  "رقم العقد": r.contract,
+                  "اسم الاجازه": r.type,
+                  "طريقة الترحيل": <StateChip label={r.method} />,
+                  المدة: r.days,
+                  "تاريخ الترحيل": r.carryDate,
+                  "تاريخ الادخال": r.entry,
+                  "التاريخ من": r.from,
+                  "التاريخ الى": r.to,
+                  "اسم المستخدم": r.user,
+                  "نوع السنة": r.yearType,
+                }))}
               />
-              <Pager page={1} pages={1} total={0} />
+              <Pager page={1} pages={4} total={37} />
             </div>
           </div>
+        )}
+
+        {open === "unpaidAdd" && (
+          <Modal title="اضافة رصيد اجازة بدون راتب" submit="اضافة رصيد الأجازة" onClose={() => setOpen(null)} wide>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="حالة الموظف">
+                <Select options={["اختر ....", "على رأس العمل", "موقوف"]} />
+              </Field>
+              <Field label="اسم الاجازه" required>
+                <Select options={["اختر ....", "اجازة بدون راتب"]} />
+              </Field>
+              <Field label="اسم الموظف" required>
+                <Select options={opt} />
+              </Field>
+              <Field label="رصيد الأجازة بدون راتب المستهلك" required>
+                <Input type="number" defaultValue={0} />
+              </Field>
+              <Field label="التاريخ من" required>
+                <DateInput />
+              </Field>
+              <Field label="التاريخ الى" required>
+                <DateInput />
+              </Field>
+            </div>
+          </Modal>
+        )}
+
+        {open === "carryFirst" && (
+          <Modal title="رصيد اول المدة للأجازات" submit="اضافة" onClose={() => setOpen(null)}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="اسم الاجازه" required>
+                <Select options={leaveTypes} />
+              </Field>
+              <Field label="اسم الموظف" required>
+                <Select options={opt} />
+              </Field>
+              <Field label="رصيد الاجازة المتبقي" required>
+                <Input type="number" defaultValue={0} />
+              </Field>
+              <Field label="تاريخ الترحيل" required>
+                <DateInput />
+              </Field>
+              <Field label="تاريخ بداية احتساب رصيد الاجازة">
+                <DateInput />
+              </Field>
+            </div>
+          </Modal>
+        )}
+
+        {open === "carryManual" && (
+          <Modal title="ترحيل رصيد الاجازات السنوية يدوياً" submit="اضافة" onClose={() => setOpen(null)}>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="نوع الأجازة" required>
+                <Select options={["اختر ....", "سنوية"]} />
+              </Field>
+              <Field label="الفرع">
+                <Select options={branches} />
+              </Field>
+              <Field label="الأقسام">
+                <Select options={depts} />
+              </Field>
+              <Field label="القسم الرئيسي">
+                <Select options={opt} />
+              </Field>
+              <Field label="المسار">
+                <Select options={opt} />
+              </Field>
+              <Field label="القطاع">
+                <Select options={opt} />
+              </Field>
+              <Field label="الموظفين">
+                <Select options={opt} />
+              </Field>
+            </div>
+          </Modal>
         )}
 
         {open === "request" && (

@@ -7,7 +7,12 @@ export const Route = createFileRoute("/regulations")({
 });
 
 const tabs: {
-  to: "/regulations" | "/regulations/deductions" | "/regulations/bank-fees" | "/regulations/vacations";
+  to:
+    | "/regulations"
+    | "/regulations/deductions"
+    | "/regulations/bank-fees"
+    | "/regulations/vacations"
+    | "/regulations/shifts";
   label: string;
   icon: string;
   exact?: boolean;
@@ -16,6 +21,7 @@ const tabs: {
   { to: "/regulations/deductions", label: "لائحة الإستقطاعات", icon: "remove_circle" },
   { to: "/regulations/bank-fees", label: "تهيئة العمولات البنكية", icon: "account_balance" },
   { to: "/regulations/vacations", label: "تهيئة الاجازات", icon: "beach_access" },
+  { to: "/regulations/shifts", label: "تهيئة مجموعات الدوام", icon: "schedule" },
 ];
 
 function RegulationsLayout() {

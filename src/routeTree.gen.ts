@@ -16,6 +16,7 @@ import { Route as StaffRouteImport } from './routes/staff'
 import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
 import { Route as RegulationsDeductionsRouteImport } from './routes/regulations.deductions'
+import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shifts'
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
@@ -58,6 +59,11 @@ const RegulationsBankFeesRoute = RegulationsBankFeesRouteImport.update({
 const RegulationsDeductionsRoute = RegulationsDeductionsRouteImport.update({
   id: '/deductions',
   path: '/deductions',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsShiftsRoute = RegulationsShiftsRouteImport.update({
+  id: '/shifts',
+  path: '/shifts',
   getParentRoute: () => RegulationsRoute,
 } as any)
 const RegulationsVacationsRoute = RegulationsVacationsRouteImport.update({
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRouteWithChildren
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/request-notifications': typeof RequestNotificationsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/staff': typeof StaffRouteWithChildren
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
+  '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/shifts'
     | '/regulations/vacations'
     | '/staff/add'
     | '/staff/bank-block'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/request-notifications'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/shifts'
     | '/regulations/vacations'
     | '/staff/add'
     | '/staff/bank-block'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
+    | '/regulations/shifts'
     | '/regulations/vacations'
     | '/staff/add'
     | '/staff/bank-block'
@@ -261,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegulationsDeductionsRouteImport
       parentRoute: typeof RegulationsRoute
     }
+    '/regulations/shifts': {
+      id: '/regulations/shifts'
+      path: '/shifts'
+      fullPath: '/regulations/shifts'
+      preLoaderRoute: typeof RegulationsShiftsRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
     '/regulations/vacations': {
       id: '/regulations/vacations'
       path: '/vacations'
@@ -323,6 +342,7 @@ declare module '@tanstack/react-router' {
 interface RegulationsRouteChildren {
   RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
   RegulationsDeductionsRoute: typeof RegulationsDeductionsRoute
+  RegulationsShiftsRoute: typeof RegulationsShiftsRoute
   RegulationsVacationsRoute: typeof RegulationsVacationsRoute
   RegulationsIndexRoute: typeof RegulationsIndexRoute
 }
@@ -330,6 +350,7 @@ interface RegulationsRouteChildren {
 const RegulationsRouteChildren: RegulationsRouteChildren = {
   RegulationsBankFeesRoute: RegulationsBankFeesRoute,
   RegulationsDeductionsRoute: RegulationsDeductionsRoute,
+  RegulationsShiftsRoute: RegulationsShiftsRoute,
   RegulationsVacationsRoute: RegulationsVacationsRoute,
   RegulationsIndexRoute: RegulationsIndexRoute,
 }

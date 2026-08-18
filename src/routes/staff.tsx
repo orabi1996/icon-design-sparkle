@@ -6,11 +6,17 @@ export const Route = createFileRoute("/staff")({
   component: StaffLayout,
 });
 
-const tabs: { to: "/staff" | "/staff/add" | "/staff/transfer" | "/staff/contracts"; label: string; icon: string; exact?: boolean }[] = [
+const tabs: {
+  to: "/staff" | "/staff/add" | "/staff/transfer" | "/staff/contracts" | "/staff/update";
+  label: string;
+  icon: string;
+  exact?: boolean;
+}[] = [
   { to: "/staff", label: "شؤون الموظفين", icon: "badge", exact: true },
   { to: "/staff/add", label: "إضافة موظف", icon: "person_add" },
   { to: "/staff/transfer", label: "النقل والترقية", icon: "swap_horiz" },
   { to: "/staff/contracts", label: "تجديد العقود", icon: "description" },
+  { to: "/staff/update", label: "تحديث البيانات", icon: "cloud_sync" },
 ];
 
 function StaffLayout() {

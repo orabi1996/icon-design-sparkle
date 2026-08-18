@@ -479,7 +479,7 @@ function Simple({ title, icon, columns }: { title: string; icon: string; columns
 function Payroll() {
   const [tab, setTab] = useState("draft");
   const [sub, setSub] = useState(0);
-  const menu = subMenus[tab];
+  const menu = subMenus[tab] ?? subMenus["draft"]!;
 
   const content = (() => {
     if (tab === "draft") {

@@ -155,7 +155,9 @@ function Modal({
 function VacationsPage() {
   const [tab, setTab] = useState<TabKey>("search");
   const [annualSub, setAnnualSub] = useState<"notices" | "calc">("notices");
-  const [open, setOpen] = useState<"request" | "group" | "notice" | "calc" | null>(null);
+  const [open, setOpen] = useState<
+    "request" | "group" | "notice" | "calc" | "unpaidAdd" | "carryFirst" | "carryManual" | null
+  >(null);
 
   return (
     <AppShell>

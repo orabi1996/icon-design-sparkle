@@ -60,7 +60,7 @@ export function useSaveRow(table: HrTable) {
     },
     onSuccess: (_d, vars) => {
       invalidate(qc, table);
-      toast.success(vars.id ? "تم تحديث السجل بنجاح" : "تمت الإضافة بنجاح");
+      toast.success(vars['id'] ? "تم تحديث السجل بنجاح" : "تمت الإضافة بنجاح");
     },
     onError: (e: Error) => toast.error(`تعذر الحفظ: ${e.message}`),
   });

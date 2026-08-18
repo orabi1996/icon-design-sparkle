@@ -45,7 +45,7 @@ export function CrudTable({
   orderBy?: string;
   toolbarExtra?: ReactNode;
 }) {
-  const { data: rows = [], isLoading, error } = useRows(table, { orderBy });
+  const { data: rows = [], isLoading, error } = useRows(table, orderBy ? { orderBy } : undefined);
   const save = useSaveRow(table);
   const del = useDeleteRow(table);
   const [draft, setDraft] = useState<Row | null>(null);

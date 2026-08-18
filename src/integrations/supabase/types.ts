@@ -14,7 +14,443 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      announcements: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          target: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          target?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          target?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      attendance_records: {
+        Row: {
+          check_in: string | null
+          check_out: string | null
+          created_at: string
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          late_minutes: number
+          status: string
+          updated_at: string
+          work_date: string
+        }
+        Insert: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          late_minutes?: number
+          status?: string
+          updated_at?: string
+          work_date?: string
+        }
+        Update: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          late_minutes?: number
+          status?: string
+          updated_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deductions: {
+        Row: {
+          active: boolean
+          amount: number
+          calc_type: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          calc_type?: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          calc_type?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          branch: string
+          created_at: string
+          id: string
+          manager_name: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          branch?: string
+          created_at?: string
+          id?: string
+          manager_name?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          branch?: string
+          created_at?: string
+          id?: string
+          manager_name?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          allowances: number
+          bank_name: string | null
+          basic_salary: number
+          branch: string | null
+          contract_end: string | null
+          created_at: string
+          department: string | null
+          email: string | null
+          emp_no: string
+          full_name: string
+          gender: string | null
+          hire_date: string | null
+          iban: string | null
+          id: string
+          job_title: string | null
+          manager_name: string | null
+          national_id: string | null
+          nationality: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          allowances?: number
+          bank_name?: string | null
+          basic_salary?: number
+          branch?: string | null
+          contract_end?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          emp_no: string
+          full_name: string
+          gender?: string | null
+          hire_date?: string | null
+          iban?: string | null
+          id?: string
+          job_title?: string | null
+          manager_name?: string | null
+          national_id?: string | null
+          nationality?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          allowances?: number
+          bank_name?: string | null
+          basic_salary?: number
+          branch?: string | null
+          contract_end?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          emp_no?: string
+          full_name?: string
+          gender?: string | null
+          hire_date?: string | null
+          iban?: string | null
+          id?: string
+          job_title?: string | null
+          manager_name?: string | null
+          national_id?: string | null
+          nationality?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      entitlements: {
+        Row: {
+          active: boolean
+          amount: number
+          calc_type: string
+          created_at: string
+          gosi_subject: boolean
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          calc_type?: string
+          created_at?: string
+          gosi_subject?: boolean
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          calc_type?: string
+          created_at?: string
+          gosi_subject?: boolean
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      leave_requests: {
+        Row: {
+          balance_before: number | null
+          created_at: string
+          days: number
+          employee_id: string | null
+          employee_name: string | null
+          from_date: string
+          id: string
+          leave_type: string
+          notes: string | null
+          status: string
+          to_date: string
+          updated_at: string
+        }
+        Insert: {
+          balance_before?: number | null
+          created_at?: string
+          days?: number
+          employee_id?: string | null
+          employee_name?: string | null
+          from_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          status?: string
+          to_date?: string
+          updated_at?: string
+        }
+        Update: {
+          balance_before?: number | null
+          created_at?: string
+          days?: number
+          employee_id?: string | null
+          employee_name?: string | null
+          from_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          status?: string
+          to_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          amount: number
+          created_at: string
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          installments: number
+          monthly_amount: number
+          notes: string | null
+          paid_amount: number
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          installments?: number
+          monthly_amount?: number
+          notes?: string | null
+          paid_amount?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          installments?: number
+          monthly_amount?: number
+          notes?: string | null
+          paid_amount?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_runs: {
+        Row: {
+          created_at: string
+          employees_count: number
+          id: string
+          month: number
+          status: string
+          title: string
+          total_deductions: number
+          total_gross: number
+          total_net: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          employees_count?: number
+          id?: string
+          month?: number
+          status?: string
+          title: string
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          year?: number
+        }
+        Update: {
+          created_at?: string
+          employees_count?: number
+          id?: string
+          month?: number
+          status?: string
+          title?: string
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      requests: {
+        Row: {
+          amount: number | null
+          created_at: string
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          notes: string | null
+          request_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          notes?: string | null
+          request_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          notes?: string | null
+          request_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

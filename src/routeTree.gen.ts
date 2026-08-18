@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
 import { Route as StaffRouteImport } from './routes/staff'
+import { Route as SurveysRouteImport } from './routes/surveys'
 import { Route as VacationsRouteImport } from './routes/vacations'
 import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
 import { Route as RegulationsApprovalsRouteImport } from './routes/regulations.approvals'
@@ -51,6 +52,11 @@ const RequestNotificationsRoute = RequestNotificationsRouteImport.update({
 const StaffRoute = StaffRouteImport.update({
   id: '/staff',
   path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SurveysRoute = SurveysRouteImport.update({
+  id: '/surveys',
+  path: '/surveys',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VacationsRoute = VacationsRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/request-notifications': typeof RequestNotificationsRoute
+  '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/surveys'
     | '/vacations'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/request-notifications'
+    | '/surveys'
     | '/vacations'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/surveys'
     | '/vacations'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
@@ -304,6 +316,7 @@ export interface RootRouteChildren {
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
   StaffRoute: typeof StaffRouteWithChildren
+  SurveysRoute: typeof SurveysRoute
   VacationsRoute: typeof VacationsRoute
 }
 
@@ -335,6 +348,13 @@ declare module '@tanstack/react-router' {
       path: '/staff'
       fullPath: '/staff'
       preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/surveys': {
+      id: '/surveys'
+      path: '/surveys'
+      fullPath: '/surveys'
+      preLoaderRoute: typeof SurveysRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vacations': {
@@ -532,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
   StaffRoute: StaffRouteWithChildren,
+  SurveysRoute: SurveysRoute,
   VacationsRoute: VacationsRoute,
 }
 export const routeTree = rootRouteImport

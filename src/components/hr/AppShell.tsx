@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { MegaMenu } from "@/components/MegaMenu";
-import { nav, sidebar } from "@/components/hr/nav-data";
+import { nav } from "@/components/hr/nav-data";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -55,67 +55,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         <MegaMenu items={nav} />
       </header>
 
-      <div className="flex">
-        <aside className="sticky top-[7.5rem] hidden h-[calc(100vh-7.5rem)] w-64 shrink-0 flex-col border-e border-sidebar-border bg-sidebar lg:flex">
-          <p className="px-5 pb-2 pt-5 text-[11px] font-bold tracking-widest text-muted-foreground">
-            لوحات المعلومات
-          </p>
-          <ul className="space-y-1 px-3">
-            {sidebar.map((item) => {
-              const base =
-                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors text-sidebar-foreground/80 hover:bg-sidebar-accent";
-              const inner = (
-                <>
-                  <MaterialIcon name={item.icon} size={20} />
-                  <span className="flex-1 text-right">{item.label}</span>
-                  {item.badge && (
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-accent-foreground">
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              );
-              return (
-                <li key={item.label}>
-                  {item.to ? (
-                    <Link
-                      to={item.to}
-                      className={base}
-                      activeOptions={{ exact: item.to === "/" }}
-                      activeProps={{
-                        className:
-                          "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold bg-primary text-primary-foreground",
-                      }}
-                    >
-                      {inner}
-                    </Link>
-                  ) : (
-                    <button className={base}>{inner}</button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="mt-auto p-3">
-            <button
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-primary-foreground"
-              style={{ background: "var(--gradient-brand)", boxShadow: "var(--shadow-raised)" }}
-            >
-              <MaterialIcon name="design_services" size={20} filled />
-              تعديل في المُصمم
-            </button>
-          </div>
-        </aside>
-
-        <main className="min-w-0 flex-1 px-4 py-6 md:px-8">
+      <main className="min-w-0 px-4 py-6 md:px-8">
           {children}
 
           <footer className="mt-8 flex flex-wrap items-center justify-center gap-1 border-t border-border pt-5 text-xs font-semibold text-muted-foreground">
             جميع الحقوق محفوظة © <span className="text-primary">الحلول الخبيرة</span>
           </footer>
-        </main>
-      </div>
+      </main>
 
       <button
         className="fixed bottom-6 left-6 grid size-14 place-items-center rounded-full text-primary-foreground"

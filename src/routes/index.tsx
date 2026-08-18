@@ -319,8 +319,8 @@ function Dashboard() {
                 <YAxis
                   type="category"
                   dataKey="name"
-                  width={110}
-                  tick={{ fontSize: 10, fontWeight: 700 }}
+                  width={130}
+                  tick={{ fontSize: 11, fontWeight: 700, textAnchor: "end" }}
                   stroke="var(--muted-foreground)"
                 />
                 <Tooltip {...tooltipStyle} />

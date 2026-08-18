@@ -12,7 +12,8 @@ const tabs: {
     | "/regulations/deductions"
     | "/regulations/bank-fees"
     | "/regulations/vacations"
-    | "/regulations/shifts";
+    | "/regulations/shifts"
+    | "/regulations/loans";
   label: string;
   icon: string;
   exact?: boolean;
@@ -22,6 +23,7 @@ const tabs: {
   { to: "/regulations/bank-fees", label: "تهيئة العمولات البنكية", icon: "account_balance" },
   { to: "/regulations/vacations", label: "تهيئة الاجازات", icon: "beach_access" },
   { to: "/regulations/shifts", label: "تهيئة مجموعات الدوام", icon: "schedule" },
+  { to: "/regulations/loans", label: "تهيئة السلف", icon: "request_quote" },
 ];
 
 function RegulationsLayout() {

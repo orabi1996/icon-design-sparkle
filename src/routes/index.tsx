@@ -1,417 +1,400 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { AppShell } from "@/components/hr/AppShell";
+import { ar, money, useRows, type Row } from "@/lib/hr-db";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "الموارد البشرية | لوحة تحكم إدارة شؤون الموظفين" },
+      { title: "لوحة معلومات الموارد البشرية | مؤشرات ورسومات مباشرة" },
       {
         name: "description",
         content:
-          "نظام الموارد البشرية: لوحة تحكم لإدارة المهام، الطلبات، تقييم الأداء، اللوائح وشؤون الموظفين.",
+          "لوحة تحكم الموارد البشرية: مؤشرات الموظفين والحضور والطلبات والأجازات والرواتب مع رسومات بيانية مباشرة من قاعدة البيانات.",
       },
-      { property: "og:title", content: "الموارد البشرية | لوحة تحكم إدارة شؤون الموظفين" },
+      { property: "og:title", content: "لوحة معلومات الموارد البشرية" },
       {
         property: "og:description",
-        content: "متابعة الطلبات، الاعتمادات، الحضور وتقييم الأداء من مكان واحد.",
+        content: "مؤشرات مباشرة للحضور، الطلبات، الأجازات، توزيع الأقسام ومسيرات الرواتب.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Index,
+  component: Dashboard,
 });
 
-type Stat = {
+const palette = ["var(--sky)", "var(--cyan)", "var(--teal)", "var(--indigo)", "var(--gblue)", "var(--violet)"];
+
+const tones: Record<string, string> = {
+  sky: "bg-sky/12 text-sky",
+  teal: "bg-teal/12 text-teal",
+  cyan: "bg-cyan/12 text-cyan",
+  indigo: "bg-indigo/12 text-indigo",
+};
+const bars: Record<string, string> = {
+  sky: "bg-sky",
+  teal: "bg-teal",
+  cyan: "bg-cyan",
+  indigo: "bg-indigo",
+};
+
+function StatCard({
+  label,
+  value,
+  hint,
+  icon,
+  tone,
+  to,
+}: {
   label: string;
   value: string;
   hint: string;
   icon: string;
-  tone: "blue" | "red" | "yellow" | "green";
-  trend: { dir: "up" | "down"; text: string };
+  tone: keyof typeof tones;
+  to?: string;
+}) {
+  const body = (
+    <article
+      className="group relative h-full overflow-hidden rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-lg"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <span className={`absolute inset-x-0 top-0 h-1 ${bars[tone]}`} />
+      <span className={`grid size-11 place-items-center rounded-2xl ${tones[tone]}`}>
+        <MaterialIcon name={icon} size={22} filled />
+      </span>
+      <p className="mt-4 text-sm font-semibold text-muted-foreground">{label}</p>
+      <p className="mt-1 text-3xl font-extrabold tracking-tight">{value}</p>
+      <p className="mt-1 text-xs font-semibold text-muted-foreground">{hint}</p>
+    </article>
+  );
+  return to ? (
+    <Link to={to as never} className="block h-full">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
+}
+
+function Panel({
+  title,
+  icon,
+  children,
+  className = "",
+  badge,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+  className?: string;
+  badge?: string;
+}) {
+  return (
+    <section
+      className={`rounded-2xl border border-border bg-card p-5 ${className}`}
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-base font-bold">
+          <MaterialIcon name={icon} size={20} className="text-primary" filled />
+          {title}
+        </h3>
+        {badge && (
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary">{badge}</span>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const tooltipStyle = {
+  contentStyle: {
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    background: "var(--card)",
+    fontFamily: "inherit",
+    fontSize: 12,
+    fontWeight: 700,
+    direction: "rtl" as const,
+  },
 };
 
-const toneStyles: Record<Stat["tone"], { icon: string; bar: string; text: string }> = {
-  blue: { icon: "bg-sky/12 text-sky", bar: "bg-sky", text: "text-sky" },
-  red: { icon: "bg-indigo/12 text-indigo", bar: "bg-indigo", text: "text-indigo" },
-  yellow: { icon: "bg-cyan/12 text-cyan", bar: "bg-cyan", text: "text-cyan" },
-  green: { icon: "bg-teal/12 text-teal", bar: "bg-teal", text: "text-teal" },
-};
+function Dashboard() {
+  const employees = useRows("employees", { orderBy: "emp_no", ascending: true }).data ?? [];
+  const attendance = useRows("attendance_records", { orderBy: "work_date", ascending: true, limit: 1000 }).data ?? [];
+  const requests = useRows("requests").data ?? [];
+  const leaves = useRows("leave_requests").data ?? [];
+  const loans = useRows("loans").data ?? [];
+  const runs = useRows("payroll_runs", { orderBy: "month", ascending: true }).data ?? [];
+  const announcements = useRows("announcements", { limit: 4 }).data ?? [];
 
-const stats: Stat[] = [
-  {
-    label: "إجمالي الموظفين",
-    value: "٣٢٤",
-    hint: "٢٨١ نشط · ٤٣ إجازة",
-    icon: "groups",
-    tone: "blue",
-    trend: { dir: "up", text: "٤٪ عن الشهر الماضي" },
-  },
-  {
-    label: "الحضور اليوم",
-    value: "٩٤٪",
-    hint: "٣٠٥ حاضر · ١٩ غائب",
-    icon: "how_to_reg",
-    tone: "green",
-    trend: { dir: "up", text: "٢٪ عن الأمس" },
-  },
-  {
-    label: "طلبات معلّقة",
-    value: "١٨",
-    hint: "٤ عاجلة · ٧ للمراجعة",
-    icon: "pending_actions",
-    tone: "yellow",
-    trend: { dir: "down", text: "٦ طلبات أُغلقت اليوم" },
-  },
-  {
-    label: "إجازات هذا الشهر",
-    value: "٤٢",
-    hint: "٧ جارية · ٣٥ مقبولة",
-    icon: "beach_access",
-    tone: "red",
-    trend: { dir: "up", text: "٩ طلبات جديدة" },
-  },
-];
+  const active = employees.filter((e) => e["status"] === "نشط").length;
+  const payroll = employees.reduce(
+    (s, e) => s + Number(e["basic_salary"] ?? 0) + Number(e["allowances"] ?? 0),
+    0,
+  );
+  const pendingRequests = requests.filter((r) => ["جديد", "قيد المعالجة"].includes(String(r["status"]))).length;
+  const pendingLeaves = leaves.filter((l) => l["status"] === "بانتظار الموافقة").length;
+  const openLoans = loans.filter((l) => l["status"] === "قيد السداد");
+  const loansOutstanding = openLoans.reduce(
+    (s, l) => s + (Number(l["amount"] ?? 0) - Number(l["paid_amount"] ?? 0)),
+    0,
+  );
 
-const attendanceWeek = [
-  { day: "الأحد", value: 96 },
-  { day: "الإثنين", value: 94 },
-  { day: "الثلاثاء", value: 98 },
-  { day: "الأربعاء", value: 92 },
-  { day: "الخميس", value: 95 },
-];
+  // Attendance trend for the last 12 recorded work days
+  const byDay = new Map<string, { present: number; total: number; late: number }>();
+  for (const a of attendance) {
+    const d = String(a["work_date"]);
+    const cur = byDay.get(d) ?? { present: 0, total: 0, late: 0 };
+    cur.total += 1;
+    if (a["status"] !== "غائب") cur.present += 1;
+    if (a["status"] === "متأخر") cur.late += 1;
+    byDay.set(d, cur);
+  }
+  const days = [...byDay.entries()].slice(-12).map(([d, v]) => ({
+    day: d.slice(5).replace("-", "/"),
+    نسبة_الحضور: Math.round((v.present / Math.max(v.total, 1)) * 100),
+    متأخرون: v.late,
+  }));
+  const todayRate = days.length ? days[days.length - 1]!["نسبة_الحضور"] : 0;
 
-const departments = [
-  { name: "المبيعات", count: 72, color: "var(--sky)" },
-  { name: "الإدارة", count: 64, color: "var(--indigo)" },
-  { name: "تقنية المعلومات", count: 52, color: "var(--cyan)" },
-  { name: "الموارد البشرية", count: 50, color: "var(--teal)" },
-  { name: "التسويق", count: 48, color: "var(--gblue)" },
-  { name: "المالية", count: 38, color: "var(--violet)" },
-];
+  const deptMap = new Map<string, number>();
+  for (const e of employees) deptMap.set(String(e["department"] ?? "غير محدد"), (deptMap.get(String(e["department"] ?? "غير محدد")) ?? 0) + 1);
+  const depts = [...deptMap.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
-const requests = [
-  { name: "سارة العتيبي", role: "أخصائية تسويق", type: "إجازة سنوية", days: "٥ أيام", state: "بانتظار الاعتماد", time: "قبل ٢ ساعة" },
-  { name: "محمد الحربي", role: "مطور برمجيات", type: "سلفة راتب", days: "٣٠٠٠ ر.س", state: "مكتمل", time: "قبل ٥ ساعات" },
-  { name: "نورة القحطاني", role: "محاسبة", type: "خطاب تعريف", days: "بنك", state: "قيد المراجعة", time: "أمس" },
-  { name: "خالد الزهراني", role: "مشرف عمليات", type: "إجازة مرضية", days: "٢ أيام", state: "مكتمل", time: "قبل يومين" },
-  { name: "ريم السالم", role: "مصممة", type: "إذن خروج", days: "ساعتان", state: "بانتظار الاعتماد", time: "قبل ٣ ساعات" },
-];
+  const reqMap = new Map<string, number>();
+  for (const r of requests) reqMap.set(String(r["request_type"]), (reqMap.get(String(r["request_type"])) ?? 0) + 1);
+  const reqTypes = [...reqMap.entries()].map(([name, عدد]) => ({ name, عدد })).sort((a, b) => b["عدد"] - a["عدد"]);
 
-const stateStyle: Record<string, string> = {
-  "بانتظار الاعتماد": "bg-gyellow/18 text-gold border-gyellow/40",
-  مكتمل: "bg-ggreen/12 text-ggreen border-ggreen/35",
-  "قيد المراجعة": "bg-gblue/10 text-gblue border-gblue/30",
-};
+  const runTrend = runs.map((r) => ({
+    name: `${r["month"]}/${r["year"]}`,
+    الصافي: Number(r["total_net"] ?? 0),
+    الاستقطاعات: Number(r["total_deductions"] ?? 0),
+  }));
 
-const announcements = [
-  { title: "تحديث سياسة العمل عن بُعد", body: "تم اعتماد ثلاثة أيام أسبوعياً عن بُعد لجميع الأقسام بدءاً من سبتمبر.", time: "قبل يومين", icon: "work_history" },
-  { title: "إطلاق نظام التقييم الجديد", body: "تقييم الأداء ربع السنوي ينتقل للنموذج الرقمي الجديد.", time: "قبل ٤ أيام", icon: "star_half" },
-  { title: "تذكير: تقديم طلبات الإجازة", body: "يرجى تقديم طلبات إجازات عيد الفطر قبل نهاية الأسبوع.", time: "قبل ٦ أيام", icon: "event_available" },
-];
-
-const birthdays = [
-  { name: "سارة العتيبي", role: "تسويق", date: "١٢ أغسطس" },
-  { name: "محمد الحربي", role: "تقنية", date: "١٨ أغسطس" },
-  { name: "نورة القحطاني", role: "مالية", date: "٢٤ أغسطس" },
-];
-
-function Index() {
-  const totalDept = departments.reduce((sum, d) => sum + d.count, 0);
-  let acc = 0;
-  const donutStops = departments
-    .map((d) => {
-      const start = (acc / totalDept) * 360;
-      acc += d.count;
-      const end = (acc / totalDept) * 360;
-      return `${d.color} ${start}deg ${end}deg`;
-    })
-    .join(", ");
+  const upcomingContracts = employees
+    .filter((e) => e["contract_end"])
+    .sort((a, b) => String(a["contract_end"]).localeCompare(String(b["contract_end"])))
+    .slice(0, 5);
 
   return (
     <AppShell>
-  <div className="flex flex-wrap items-end justify-between gap-4">
-    <div>
-      <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-        <MaterialIcon name="calendar_today" size={14} />
-        الأحد ١٦ أغسطس · نظرة عامة
-      </p>
-      <h2 className="mt-1 text-2xl font-extrabold tracking-tight md:text-3xl">
-        لوحة معلومات الموارد البشرية
-      </h2>
-    </div>
-    <div className="flex gap-2">
-      <button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary">
-        <MaterialIcon name="download" size={18} />
-        تصدير
-      </button>
-      <button className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
-        <MaterialIcon name="add" size={18} />
-        إضافة لوحة
-      </button>
-    </div>
-  </div>
-
-  {/* Stats */}
-  <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    {stats.map((s) => (
-      <article
-        key={s.label}
-        className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-lg"
-        style={{ boxShadow: "var(--shadow-card)" }}
-      >
-        <span className={`absolute inset-x-0 top-0 h-1 ${toneStyles[s.tone].bar}`} />
-        <div className="flex items-start justify-between">
-          <span
-            className={`grid size-11 place-items-center rounded-2xl ${toneStyles[s.tone].icon}`}
-          >
-            <MaterialIcon name={s.icon} size={22} filled />
-          </span>
-          <span
-            className={`flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-bold ${
-              s.trend.dir === "up"
-                ? "bg-ggreen/12 text-ggreen"
-                : "bg-gred/10 text-gred"
-            }`}
-          >
-            <MaterialIcon name={s.trend.dir === "up" ? "trending_up" : "trending_down"} size={14} filled />
-          </span>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <MaterialIcon name="calendar_today" size={14} />
+            {new Date().toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long" })} · بيانات مباشرة
+          </p>
+          <h2 className="mt-1 text-2xl font-extrabold tracking-tight md:text-3xl">لوحة معلومات الموارد البشرية</h2>
         </div>
-        <p className="mt-4 text-sm font-semibold text-muted-foreground">{s.label}</p>
-        <p className="mt-1 text-3xl font-extrabold tracking-tight">{s.value}</p>
-        <p className="mt-1 text-xs font-semibold text-muted-foreground">{s.hint}</p>
-        <p
-          className={`mt-3 flex items-center gap-1 text-[11px] font-bold ${
-            s.trend.dir === "up" ? "text-ggreen" : "text-gred"
-          }`}
-        >
-          <MaterialIcon name={s.trend.dir === "up" ? "arrow_upward" : "arrow_downward"} size={13} />
-          {s.trend.text}
-        </p>
-      </article>
-    ))}
-  </section>
-
-  {/* Attendance trend + departments */}
-  <div className="mt-6 grid gap-4 xl:grid-cols-3">
-    <section
-      className="rounded-2xl border border-border bg-card p-5 xl:col-span-2"
-      style={{ boxShadow: "var(--shadow-card)" }}
-    >
-      <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-base font-bold">
-          <MaterialIcon name="monitoring" size={20} className="text-gblue" filled />
-          اتجاه الحضور الأسبوعي
-        </h3>
-        <span className="rounded-full bg-gblue/10 px-3 py-1 text-[11px] font-bold text-gblue">
-          متوسط ٩٥٪
-        </span>
-      </div>
-      <div className="relative mt-6 h-60">
-        <div className="absolute inset-0 bottom-12 flex flex-col justify-between">
-          {[100, 75, 50, 25, 0].map((g) => (
-            <div key={g} className="flex items-center gap-2">
-              <span className="w-8 shrink-0 text-[10px] font-bold text-muted-foreground">{g}٪</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-          ))}
-        </div>
-        <div className="absolute inset-0 flex items-stretch gap-3 ps-10">
-          {attendanceWeek.map((d, i) => (
-            <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end">
-              <span className="mb-1.5 text-xs font-extrabold text-foreground">{d.value}٪</span>
-              <div
-                className="w-full max-w-14 rounded-t-xl transition-all hover:opacity-85"
-                style={{
-                  height: `calc(${d.value}% - 3.5rem)`,
-                  background: `linear-gradient(180deg, var(--chart-${(i % 5) + 1}) 0%, color-mix(in oklab, var(--chart-${(i % 5) + 1}) 70%, white) 100%)`,
-                }}
-                title={`${d.value}٪`}
-              />
-              <span className="mt-2 h-10 pt-1 text-[11px] font-bold text-muted-foreground">{d.day}</span>
-            </div>
-          ))}
+        <div className="flex gap-2">
+          <Link
+            to="/staff/add"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <MaterialIcon name="person_add" size={18} />
+            إضافة موظف
+          </Link>
+          <Link
+            to="/surveys"
+            className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
+          >
+            <MaterialIcon name="campaign" size={18} />
+            تعميم جديد
+          </Link>
         </div>
       </div>
-    </section>
 
-    <section
-      className="rounded-2xl border border-border bg-card p-5"
-      style={{ boxShadow: "var(--shadow-card)" }}
-    >
-      <h3 className="flex items-center gap-2 text-base font-bold">
-        <MaterialIcon name="donut_large" size={20} className="text-gblue" filled />
-        توزيع الأقسام
-      </h3>
-      <div className="mt-4 grid place-items-center">
-        <div
-          className="relative grid size-40 place-items-center rounded-full"
-          style={{ background: `conic-gradient(${donutStops})` }}
-        >
-          <div className="grid size-24 place-items-center rounded-full bg-card">
-            <span className="text-xl font-extrabold">{totalDept}</span>
-            <span className="text-[10px] font-bold text-muted-foreground">موظف</span>
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="إجمالي الموظفين"
+          value={ar(employees.length)}
+          hint={`${ar(active)} نشط · ${ar(employees.length - active)} غير نشط`}
+          icon="groups"
+          tone="sky"
+          to="/staff"
+        />
+        <StatCard
+          label="نسبة الحضور اليوم"
+          value={`${ar(todayRate)}٪`}
+          hint={`${ar(days.at(-1)?.["متأخرون"] ?? 0)} متأخر · ${ar(active)} على الدوام`}
+          icon="how_to_reg"
+          tone="teal"
+        />
+        <StatCard
+          label="طلبات وأجازات معلّقة"
+          value={ar(pendingRequests + pendingLeaves)}
+          hint={`${ar(pendingRequests)} طلب · ${ar(pendingLeaves)} أجازة`}
+          icon="pending_actions"
+          tone="cyan"
+          to="/request-notifications"
+        />
+        <StatCard
+          label="تكلفة الرواتب الشهرية"
+          value={money(payroll)}
+          hint={`سلف قائمة: ${money(loansOutstanding)}`}
+          icon="payments"
+          tone="indigo"
+          to="/payroll"
+        />
+      </section>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-3">
+        <Panel title="اتجاه الحضور اليومي" icon="monitoring" className="xl:col-span-2" badge={`${ar(todayRate)}٪ اليوم`}>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={days} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="att" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--sky)" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="var(--sky)" stopOpacity={0.03} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fontWeight: 700 }} stroke="var(--muted-foreground)" />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fontWeight: 700 }} stroke="var(--muted-foreground)" />
+                <Tooltip {...tooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="نسبة_الحضور"
+                  stroke="var(--sky)"
+                  strokeWidth={3}
+                  fill="url(#att)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
+        </Panel>
+
+        <Panel title="توزيع الموظفين على الأقسام" icon="donut_large" badge={`${ar(depts.length)} أقسام`}>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={depts} dataKey="value" nameKey="name" innerRadius={52} outerRadius={82} paddingAngle={3}>
+                  {depts.map((d, i) => (
+                    <Cell key={d.name} fill={palette[i % palette.length]} />
+                  ))}
+                </Pie>
+                <Tooltip {...tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <ul className="mt-3 space-y-1.5">
+            {depts.map((d, i) => (
+              <li key={d.name} className="flex items-center gap-2 text-[12px] font-bold">
+                <span className="size-2.5 rounded-full" style={{ background: palette[i % palette.length] }} />
+                {d.name}
+                <span className="ms-auto text-muted-foreground">{ar(d.value)}</span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+        <Panel title="الطلبات حسب النوع" icon="assignment" badge={`${ar(requests.length)} طلب`}>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={reqTypes} layout="vertical" margin={{ left: 10, right: 10 }}>
+                <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fontWeight: 700 }} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={130}
+                  tick={{ fontSize: 11, fontWeight: 700, textAnchor: "end" }}
+                  stroke="var(--muted-foreground)"
+                />
+                <Tooltip {...tooltipStyle} />
+                <Bar dataKey="عدد" fill="var(--cyan)" radius={[0, 8, 8, 0]} barSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+
+        <Panel title="مسيرات الرواتب" icon="account_balance_wallet" className="xl:col-span-2" badge={`${ar(runs.length)} مسير`}>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={runTrend}>
+                <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 700 }} stroke="var(--muted-foreground)" />
+                <YAxis tick={{ fontSize: 10, fontWeight: 700 }} stroke="var(--muted-foreground)" />
+                <Tooltip {...tooltipStyle} />
+                <Line type="monotone" dataKey="الصافي" stroke="var(--teal)" strokeWidth={3} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="الاستقطاعات" stroke="var(--indigo)" strokeWidth={2.5} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+        <Panel title="أحدث الطلبات" icon="inbox" className="xl:col-span-2">
+          <ul className="divide-y divide-border">
+            {requests.slice(0, 6).map((r: Row) => (
+              <li key={String(r["id"])} className="flex flex-wrap items-center gap-3 py-3">
+                <span className="grid size-9 place-items-center rounded-full bg-secondary text-[12px] font-bold text-primary">
+                  {String(r["employee_name"] ?? "؟").charAt(0)}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-bold">{String(r["employee_name"])}</span>
+                  <span className="block text-[11px] font-semibold text-muted-foreground">
+                    {String(r["request_type"])}
+                  </span>
+                </span>
+                <span className="ms-auto rounded-full border border-border bg-secondary px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                  {String(r["status"])}
+                </span>
+              </li>
+            ))}
+            {requests.length === 0 && (
+              <li className="py-8 text-center text-sm font-semibold text-muted-foreground">لا توجد طلبات</li>
+            )}
+          </ul>
+        </Panel>
+
+        <div className="grid gap-4">
+          <Panel title="عقود قريبة الانتهاء" icon="event_busy">
+            <ul className="space-y-2.5">
+              {upcomingContracts.map((e) => (
+                <li key={String(e["id"])} className="flex items-center gap-2 text-[12px] font-bold">
+                  <MaterialIcon name="description" size={16} className="text-cyan" />
+                  {String(e["full_name"])}
+                  <span className="ms-auto text-muted-foreground">{String(e["contract_end"])}</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+          <Panel title="أحدث التعميمات" icon="campaign">
+            <ul className="space-y-3">
+              {announcements.map((a) => (
+                <li key={String(a["id"])}>
+                  <p className="text-[12px] font-extrabold">{String(a["title"])}</p>
+                  <p className="line-clamp-2 text-[11px] font-semibold text-muted-foreground">{String(a["body"] ?? "")}</p>
+                </li>
+              ))}
+            </ul>
+          </Panel>
         </div>
       </div>
-      <ul className="mt-5 space-y-3">
-        {departments.map((d) => (
-          <li key={d.name} className="flex items-center gap-2 text-xs font-semibold">
-            <span className="size-2.5 shrink-0 rounded-full" style={{ background: d.color }} />
-            <span className="flex-1 text-foreground">{d.name}</span>
-            <span className="text-muted-foreground">{d.count}</span>
-            <span className="w-10 text-end font-bold text-foreground">
-              {Math.round((d.count / totalDept) * 100)}٪
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  </div>
-
-  {/* Requests + quick actions */}
-  <div className="mt-6 grid gap-4 xl:grid-cols-3">
-    <section
-      className="rounded-2xl border border-border bg-card xl:col-span-2"
-      style={{ boxShadow: "var(--shadow-card)" }}
-    >
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
-        <h3 className="flex items-center gap-2 text-base font-bold">
-          <MaterialIcon name="inbox" size={20} className="text-primary" filled />
-          أحدث الطلبات
-        </h3>
-        <button className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-          عرض الكل
-          <MaterialIcon name="chevron_left" size={18} />
-        </button>
-      </div>
-      <ul className="divide-y divide-border">
-        {requests.map((r) => (
-          <li
-            key={r.name}
-            className="flex flex-wrap items-center gap-4 px-5 py-4 transition-colors hover:bg-secondary/60"
-          >
-            <span className="grid size-10 place-items-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
-              {r.name.charAt(0)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold">{r.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{r.role}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-semibold">{r.type}</p>
-              <p className="text-xs text-muted-foreground">{r.days} · {r.time}</p>
-            </div>
-            <span
-              className={`rounded-full border px-3 py-1 text-[11px] font-bold ${stateStyle[r.state]}`}
-            >
-              {r.state}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
-
-    <section
-      className="rounded-2xl border border-border bg-card p-5"
-      style={{ boxShadow: "var(--shadow-card)" }}
-    >
-      <h3 className="flex items-center gap-2 text-base font-bold">
-        <MaterialIcon name="bolt" size={20} className="text-gold" filled />
-        إجراءات سريعة
-      </h3>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        {[
-          { label: "طلب إجازة", icon: "event_available" },
-          { label: "إضافة موظف", icon: "person_add" },
-          { label: "مسير الرواتب", icon: "receipt_long" },
-          { label: "تقييم أداء", icon: "star_half" },
-          { label: "خطاب تعريف", icon: "mail" },
-          { label: "تقرير حضور", icon: "insert_chart" },
-        ].map((a) => (
-          <button
-            key={a.label}
-            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-4 text-xs font-bold transition-colors hover:border-gblue/40 hover:bg-gblue/8"
-          >
-            <MaterialIcon name={a.icon} size={24} className="text-primary" />
-            {a.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-5 rounded-xl border border-teal/25 bg-teal/8 p-4">
-        <p className="flex items-center gap-2 text-sm font-bold">
-          <MaterialIcon name="verified" size={18} className="text-teal" filled />
-          اكتمال بيانات الموظفين
-        </p>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-card">
-          <div className="h-full w-[78%] rounded-full" style={{ background: "linear-gradient(90deg, var(--teal), var(--cyan))" }} />
-        </div>
-        <p className="mt-2 text-xs font-semibold text-muted-foreground">٧٨٪ مكتملة · ٧١ ملفاً ناقصاً</p>
-      </div>
-    </section>
-  </div>
-
-  {/* Announcements + birthdays */}
-  <div className="mt-6 grid gap-4 xl:grid-cols-3">
-    <section
-      className="rounded-2xl border border-border bg-card xl:col-span-2"
-      style={{ boxShadow: "var(--shadow-card)" }}
-    >
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
-        <h3 className="flex items-center gap-2 text-base font-bold">
-          <MaterialIcon name="campaign" size={20} className="text-primary" filled />
-          التعميمات والإعلانات
-        </h3>
-        <button className="text-sm font-semibold text-primary hover:underline">كل الإعلانات</button>
-      </div>
-      <ul className="divide-y divide-border">
-        {announcements.map((a) => (
-          <li key={a.title} className="flex items-start gap-4 px-5 py-4 transition-colors hover:bg-secondary/60">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-              <MaterialIcon name={a.icon} size={20} filled />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm font-bold">{a.title}</p>
-                <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">{a.time}</span>
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{a.body}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
-
-    <section
-      className="rounded-2xl border border-border bg-card p-5"
-      style={{ boxShadow: "var(--shadow-card)" }}
-    >
-      <h3 className="flex items-center gap-2 text-base font-bold">
-        <MaterialIcon name="cake" size={20} className="text-gold" filled />
-        مناسبات الشهر
-      </h3>
-      <ul className="mt-4 space-y-3">
-        {birthdays.map((b) => (
-          <li key={b.name} className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3">
-            <span className="grid size-10 place-items-center rounded-full bg-gold/20 text-gold">
-              <MaterialIcon name="celebration" size={20} filled />
-            </span>
-            <div className="flex-1">
-              <p className="text-sm font-bold">{b.name}</p>
-              <p className="text-xs text-muted-foreground">{b.role}</p>
-            </div>
-            <span className="rounded-full bg-card px-3 py-1 text-[11px] font-bold text-foreground ring-1 ring-border">
-              {b.date}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-secondary/50 py-2.5 text-sm font-bold transition-colors hover:bg-accent">
-        <MaterialIcon name="calendar_month" size={18} className="text-primary" />
-        تقويم المناسبات
-      </button>
-    </section>
-  </div>
     </AppShell>
   );
 }

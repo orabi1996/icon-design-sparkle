@@ -127,6 +127,7 @@ export const nav: NavItem[] = [
         title: "عمليات الموظفين",
         items: [
           { label: "الأجازات", to: "/vacations" },
+          { label: "طلبات الأجازات", to: "/leaves" },
           { label: "الاستبيانات و التعميم", to: "/surveys" },
           "المسائلات",
           "الاذونات",
@@ -176,7 +177,7 @@ export const sidebar: { label: string; icon: string; to?: string; badge?: string
   { label: "العقود", icon: "description", to: "/staff/contracts" },
   { label: "اشعارات الطلبات", icon: "notifications_active", to: "/request-notifications", badge: "٦" },
   { label: "الحضور والانصراف", icon: "schedule" },
-  { label: "الإجازات", icon: "beach_access", to: "/regulations/vacations", badge: "٧" },
+  { label: "الإجازات", icon: "beach_access", to: "/leaves" },
   { label: "اللوائح المالية", icon: "format_list_bulleted", to: "/regulations" },
   { label: "الرواتب", icon: "payments" },
   { label: "التدريب", icon: "school" },

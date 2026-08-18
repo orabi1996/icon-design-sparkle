@@ -14,6 +14,7 @@ import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
+import { Route as RegulationsApprovalsRouteImport } from './routes/regulations.approvals'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
 import { Route as RegulationsDeductionsRouteImport } from './routes/regulations.deductions'
 import { Route as RegulationsLoansRouteImport } from './routes/regulations.loans'
@@ -50,6 +51,11 @@ const StaffRoute = StaffRouteImport.update({
 const RegulationsIndexRoute = RegulationsIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsApprovalsRoute = RegulationsApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
   getParentRoute: () => RegulationsRoute,
 } as any)
 const RegulationsBankFeesRoute = RegulationsBankFeesRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/regulations/loans': typeof RegulationsLoansRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/request-notifications': typeof RequestNotificationsRoute
+  '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/regulations/loans': typeof RegulationsLoansRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/regulations/loans': typeof RegulationsLoansRoute
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
     | '/regulations/loans'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/request-notifications'
+    | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
     | '/regulations/loans'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/regulations'
     | '/request-notifications'
     | '/staff'
+    | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
     | '/regulations/loans'
@@ -269,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/regulations/'
       preLoaderRoute: typeof RegulationsIndexRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
+    '/regulations/approvals': {
+      id: '/regulations/approvals'
+      path: '/approvals'
+      fullPath: '/regulations/approvals'
+      preLoaderRoute: typeof RegulationsApprovalsRouteImport
       parentRoute: typeof RegulationsRoute
     }
     '/regulations/bank-fees': {
@@ -359,6 +378,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface RegulationsRouteChildren {
+  RegulationsApprovalsRoute: typeof RegulationsApprovalsRoute
   RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
   RegulationsDeductionsRoute: typeof RegulationsDeductionsRoute
   RegulationsLoansRoute: typeof RegulationsLoansRoute
@@ -368,6 +388,7 @@ interface RegulationsRouteChildren {
 }
 
 const RegulationsRouteChildren: RegulationsRouteChildren = {
+  RegulationsApprovalsRoute: RegulationsApprovalsRoute,
   RegulationsBankFeesRoute: RegulationsBankFeesRoute,
   RegulationsDeductionsRoute: RegulationsDeductionsRoute,
   RegulationsLoansRoute: RegulationsLoansRoute,

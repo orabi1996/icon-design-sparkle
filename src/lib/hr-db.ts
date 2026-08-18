@@ -1,0 +1,86 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+/** Loose client wrapper: keeps generated types out of the hot type path. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as unknown as { from: (t: string) => any };
+
+export type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+export type HrTable =
+  | "employees"
+  | "departments"
+  | "entitlements"
+  | "deductions"
+  | "loans"
+  | "leave_requests"
+  | "requests"
+  | "announcements"
+  | "attendance_records"
+  | "payroll_runs";
+
+export function useRows(
+  table: HrTable,
+  opts?: { orderBy?: string; ascending?: boolean; limit?: number },
+) {
+  return useQuery({
+    queryKey: [table, opts?.orderBy ?? "created_at", opts?.ascending ?? false, opts?.limit ?? 0],
+    queryFn: async (): Promise<Row[]> => {
+      let q = db
+        .from(table)
+        .select("*")
+        .order(opts?.orderBy ?? "created_at", { ascending: opts?.ascending ?? false });
+      if (opts?.limit) q = q.limit(opts.limit);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    },
+  });
+}
+
+function invalidate(qc: ReturnType<typeof useQueryClient>, table: HrTable) {
+  qc.invalidateQueries({ queryKey: [table] });
+}
+
+/** Insert when the row has no id, update otherwise. */
+export function useSaveRow(table: HrTable) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: Row) => {
+      const { id, created_at: _c, updated_at: _u, ...values } = row;
+      if (id) {
+        const { data, error } = await db.from(table).update(values).eq("id", id).select().single();
+        if (error) throw error;
+        return data as Row;
+      }
+      const { data, error } = await db.from(table).insert(values).select().single();
+      if (error) throw error;
+      return data as Row;
+    },
+    onSuccess: (_d, vars) => {
+      invalidate(qc, table);
+      toast.success(vars.id ? "تم تحديث السجل بنجاح" : "تمت الإضافة بنجاح");
+    },
+    onError: (e: Error) => toast.error(`تعذر الحفظ: ${e.message}`),
+  });
+}
+
+export function useDeleteRow(table: HrTable) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await db.from(table).delete().eq("id", id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      invalidate(qc, table);
+      toast.success("تم حذف السجل");
+    },
+    onError: (e: Error) => toast.error(`تعذر الحذف: ${e.message}`),
+  });
+}
+
+export const ar = (n: number) => new Intl.NumberFormat("ar-SA").format(Math.round(n));
+export const money = (n: number) => `${new Intl.NumberFormat("ar-SA").format(Math.round(n))} ر.س`;

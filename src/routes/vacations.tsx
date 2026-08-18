@@ -495,6 +495,11 @@ function VacationsPage() {
 
         {tab === "unpaid" && (
           <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Btn icon="add" variant="teal" onClick={() => setOpen("unpaidAdd")}>
+                اضافة رصيد اجازة بدون راتب
+              </Btn>
+            </div>
             <FilterCard>
               <Field label="الفرع">
                 <Select options={branches} />
@@ -503,10 +508,7 @@ function VacationsPage() {
                 <Select options={depts} />
               </Field>
               <Field label="اسم الموظف">
-                <Input placeholder="البحث بإسم او رقم الموظف" />
-              </Field>
-              <Field label="السنة">
-                <Select options={["اختر ....", "٢٠٢٤", "٢٠٢٥", "٢٠٢٦"]} />
+                <Select options={opt} />
               </Field>
             </FilterCard>
             <div
@@ -517,23 +519,40 @@ function VacationsPage() {
               <DataTable
                 columns={[
                   "اسم الموظف",
-                  "الرقم الوظيفى",
-                  "الفرع",
-                  "القسم",
-                  "السنة",
-                  "الرصيد المستحق",
-                  "المستهلك",
-                  "المتبقى",
+                  "اسم الاجازه",
+                  "رصيد الأجازة بدون راتب المستهلك",
+                  "تاريخ الادخال",
+                  "التاريخ من",
+                  "التاريخ الى",
+                  "اسم المستخدم",
+                  "نوع السنة",
                 ]}
-                rows={[]}
+                rows={unpaidRows.map((r) => ({
+                  "اسم الموظف": <span className="font-extrabold text-primary">{r.emp}</span>,
+                  "اسم الاجازه": r.type,
+                  "رصيد الأجازة بدون راتب المستهلك": <span className="font-extrabold text-teal">{r.bal}</span>,
+                  "تاريخ الادخال": r.entry,
+                  "التاريخ من": r.from || "—",
+                  "التاريخ الى": r.to || "—",
+                  "اسم المستخدم": r.user,
+                  "نوع السنة": <StateChip label={r.calc} />,
+                }))}
               />
-              <Pager page={1} pages={1} total={0} />
+              <Pager page={1} pages={2} total={15} />
             </div>
           </div>
         )}
 
         {tab === "carry" && (
           <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Btn icon="playlist_add" variant="teal" onClick={() => setOpen("carryFirst")}>
+                رصيد اول المدة للأجازات
+              </Btn>
+              <Btn icon="swap_vert" variant="soft" onClick={() => setOpen("carryManual")}>
+                الترحيل اليدوي
+              </Btn>
+            </div>
             <FilterCard>
               <Field label="الفرع">
                 <Select options={branches} />
@@ -542,10 +561,7 @@ function VacationsPage() {
                 <Select options={depts} />
               </Field>
               <Field label="اسم الموظف">
-                <Input placeholder="البحث بإسم او رقم الموظف" />
-              </Field>
-              <Field label="سنة الترحيل">
-                <Select options={["اختر ....", "٢٠٢٤", "٢٠٢٥"]} />
+                <Select options={opt} />
               </Field>
             </FilterCard>
             <div
@@ -556,20 +572,109 @@ function VacationsPage() {
               <DataTable
                 columns={[
                   "اسم الموظف",
-                  "الرقم الوظيفى",
-                  "الفرع",
-                  "القسم",
-                  "سنة الترحيل",
-                  "الرصيد السابق",
-                  "المرحّل",
-                  "الرصيد الحالى",
+                  "رقم العقد",
+                  "اسم الاجازه",
+                  "طريقة الترحيل",
+                  "المدة",
+                  "تاريخ الترحيل",
+                  "تاريخ الادخال",
+                  "التاريخ من",
+                  "التاريخ الى",
                   "اسم المستخدم",
+                  "نوع السنة",
                 ]}
-                rows={[]}
+                rows={carryRows.map((r) => ({
+                  "اسم الموظف": <span className="font-extrabold text-primary">{r.emp}</span>,
+                  "رقم العقد": r.contract,
+                  "اسم الاجازه": r.type,
+                  "طريقة الترحيل": <StateChip label={r.method} />,
+                  المدة: r.days,
+                  "تاريخ الترحيل": r.carryDate,
+                  "تاريخ الادخال": r.entry,
+                  "التاريخ من": r.from,
+                  "التاريخ الى": r.to,
+                  "اسم المستخدم": r.user,
+                  "نوع السنة": r.yearType,
+                }))}
               />
-              <Pager page={1} pages={1} total={0} />
+              <Pager page={1} pages={4} total={37} />
             </div>
           </div>
+        )}
+
+        {open === "unpaidAdd" && (
+          <Modal title="اضافة رصيد اجازة بدون راتب" submit="اضافة رصيد الأجازة" onClose={() => setOpen(null)} wide>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="حالة الموظف">
+                <Select options={["اختر ....", "على رأس العمل", "موقوف"]} />
+              </Field>
+              <Field label="اسم الاجازه" required>
+                <Select options={["اختر ....", "اجازة بدون راتب"]} />
+              </Field>
+              <Field label="اسم الموظف" required>
+                <Select options={opt} />
+              </Field>
+              <Field label="رصيد الأجازة بدون راتب المستهلك" required>
+                <Input type="number" defaultValue={0} />
+              </Field>
+              <Field label="التاريخ من" required>
+                <DateInput />
+              </Field>
+              <Field label="التاريخ الى" required>
+                <DateInput />
+              </Field>
+            </div>
+          </Modal>
+        )}
+
+        {open === "carryFirst" && (
+          <Modal title="رصيد اول المدة للأجازات" submit="اضافة" onClose={() => setOpen(null)}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="اسم الاجازه" required>
+                <Select options={leaveTypes} />
+              </Field>
+              <Field label="اسم الموظف" required>
+                <Select options={opt} />
+              </Field>
+              <Field label="رصيد الاجازة المتبقي" required>
+                <Input type="number" defaultValue={0} />
+              </Field>
+              <Field label="تاريخ الترحيل" required>
+                <DateInput />
+              </Field>
+              <Field label="تاريخ بداية احتساب رصيد الاجازة">
+                <DateInput />
+              </Field>
+            </div>
+          </Modal>
+        )}
+
+        {open === "carryManual" && (
+          <Modal title="ترحيل رصيد الاجازات السنوية يدوياً" submit="اضافة" onClose={() => setOpen(null)}>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="نوع الأجازة" required>
+                <Select options={["اختر ....", "سنوية"]} />
+              </Field>
+              <Field label="الفرع">
+                <Select options={branches} />
+              </Field>
+              <Field label="الأقسام">
+                <Select options={depts} />
+              </Field>
+              <Field label="القسم الرئيسي">
+                <Select options={opt} />
+              </Field>
+              <Field label="المسار">
+                <Select options={opt} />
+              </Field>
+              <Field label="القطاع">
+                <Select options={opt} />
+              </Field>
+              <Field label="الموظفين">
+                <Select options={opt} />
+              </Field>
+            </div>
+          </Modal>
         )}
 
         {open === "request" && (

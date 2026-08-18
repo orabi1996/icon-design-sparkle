@@ -220,7 +220,7 @@ function StaffUpdate() {
                     </label>
                   ) : (
                     <Field key={f.label} label={f.label}>
-                      <Select options={f.options} />
+                      <Select options={f.options ?? ["اختر ...."]} />
                     </Field>
                   ),
                 )}
@@ -267,12 +267,7 @@ function StaffUpdate() {
                       : "text-foreground/80 hover:bg-secondary"
                   }`}
                 >
-                  <MaterialIcon
-                    name={item.icon}
-                    size={18}
-                    filled={on}
-                    className={on ? undefined : "text-primary"}
-                  />
+                  <MaterialIcon name={item.icon} size={18} filled={on} className={on ? "" : "text-primary"} />
                   <span className="text-start">{item.label}</span>
                 </button>
               );

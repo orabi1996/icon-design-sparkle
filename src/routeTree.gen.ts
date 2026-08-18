@@ -16,6 +16,7 @@ import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
 import { Route as StaffContractsRouteImport } from './routes/staff.contracts'
 import { Route as StaffTransferRouteImport } from './routes/staff.transfer'
+import { Route as StaffUpdateRouteImport } from './routes/staff.update'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const StaffTransferRoute = StaffTransferRouteImport.update({
   path: '/transfer',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffUpdateRoute = StaffUpdateRouteImport.update({
+  id: '/update',
+  path: '/update',
+  getParentRoute: () => StaffRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/staff/add': typeof StaffAddRoute
   '/staff/contracts': typeof StaffContractsRoute
   '/staff/transfer': typeof StaffTransferRoute
+  '/staff/update': typeof StaffUpdateRoute
   '/staff/': typeof StaffIndexRoute
 }
 export interface FileRoutesByTo {
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/staff/add': typeof StaffAddRoute
   '/staff/contracts': typeof StaffContractsRoute
   '/staff/transfer': typeof StaffTransferRoute
+  '/staff/update': typeof StaffUpdateRoute
   '/staff': typeof StaffIndexRoute
 }
 export interface FileRoutesById {
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/staff/add': typeof StaffAddRoute
   '/staff/contracts': typeof StaffContractsRoute
   '/staff/transfer': typeof StaffTransferRoute
+  '/staff/update': typeof StaffUpdateRoute
   '/staff/': typeof StaffIndexRoute
 }
 export interface FileRouteTypes {
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/staff/add'
     | '/staff/contracts'
     | '/staff/transfer'
+    | '/staff/update'
     | '/staff/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/staff/add'
     | '/staff/contracts'
     | '/staff/transfer'
+    | '/staff/update'
     | '/staff'
   id:
     | '__root__'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/staff/add'
     | '/staff/contracts'
     | '/staff/transfer'
+    | '/staff/update'
     | '/staff/'
   fileRoutesById: FileRoutesById
 }
@@ -166,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffTransferRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/staff/update': {
+      id: '/staff/update'
+      path: '/update'
+      fullPath: '/staff/update'
+      preLoaderRoute: typeof StaffUpdateRouteImport
+      parentRoute: typeof StaffRoute
+    }
   }
 }
 
@@ -173,6 +192,7 @@ interface StaffRouteChildren {
   StaffAddRoute: typeof StaffAddRoute
   StaffContractsRoute: typeof StaffContractsRoute
   StaffTransferRoute: typeof StaffTransferRoute
+  StaffUpdateRoute: typeof StaffUpdateRoute
   StaffIndexRoute: typeof StaffIndexRoute
 }
 
@@ -180,6 +200,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffAddRoute: StaffAddRoute,
   StaffContractsRoute: StaffContractsRoute,
   StaffTransferRoute: StaffTransferRoute,
+  StaffUpdateRoute: StaffUpdateRoute,
   StaffIndexRoute: StaffIndexRoute,
 }
 

@@ -97,7 +97,7 @@ export const nav: NavItem[] = [
           { label: "تهيئة الاجازات", to: "/regulations/vacations" },
           { label: "تهيئة مجموعات الدوام", to: "/regulations/shifts" },
           { label: "تهيئة السلف", to: "/regulations/loans" },
-          "تهيئة سلاسل الموافقات",
+          { label: "تهيئة سلاسل الموافقات", to: "/regulations/approvals" },
           "تهيئة لائحة الأذونات",
         ],
       },

@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Area,
@@ -137,14 +138,120 @@ const tooltipStyle = {
   },
 };
 
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const shift = (days: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return iso(d);
+};
+
+const presets = [
+  { key: "7", label: "٧ أيام", days: 7 },
+  { key: "30", label: "٣٠ يوم", days: 30 },
+  { key: "90", label: "٩٠ يوم", days: 90 },
+  { key: "365", label: "سنة", days: 365 },
+];
+
+function RangeFilter({
+  preset,
+  from,
+  to,
+  onPreset,
+  onFrom,
+  onTo,
+}: {
+  preset: string;
+  from: string;
+  to: string;
+  onPreset: (k: string) => void;
+  onFrom: (v: string) => void;
+  onTo: (v: string) => void;
+}) {
+  const input =
+    "h-9 rounded-xl border border-input bg-background px-2.5 text-[12px] font-bold outline-none focus:border-primary";
+  return (
+    <section
+      className="mt-6 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <span className="flex items-center gap-2 text-[12.5px] font-extrabold">
+        <MaterialIcon name="date_range" size={18} className="text-primary" filled />
+        نطاق التاريخ
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {presets.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => onPreset(p.key)}
+            className={`rounded-xl px-3 py-1.5 text-[12px] font-bold transition-colors ${
+              preset === p.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+        <button
+          onClick={() => onPreset("custom")}
+          className={`rounded-xl px-3 py-1.5 text-[12px] font-bold transition-colors ${
+            preset === "custom" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          مخصص
+        </button>
+      </div>
+      <div className="ms-auto flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1.5 text-[11.5px] font-bold text-muted-foreground">
+          من
+          <input type="date" className={input} value={from} onChange={(e) => onFrom(e.target.value)} />
+        </label>
+        <label className="flex items-center gap-1.5 text-[11.5px] font-bold text-muted-foreground">
+          إلى
+          <input type="date" className={input} value={to} onChange={(e) => onTo(e.target.value)} />
+        </label>
+      </div>
+    </section>
+  );
+}
+
 function Dashboard() {
+  const [preset, setPreset] = useState("30");
+  const [from, setFrom] = useState(() => shift(30));
+  const [to, setTo] = useState(() => iso(new Date()));
+
+  const applyPreset = (k: string) => {
+    setPreset(k);
+    const p = presets.find((x) => x.key === k);
+    if (p) {
+      setFrom(shift(p.days));
+      setTo(iso(new Date()));
+    }
+  };
+  const setFromCustom = (v: string) => {
+    setPreset("custom");
+    setFrom(v);
+  };
+  const setToCustom = (v: string) => {
+    setPreset("custom");
+    setTo(v);
+  };
+
+  const rangeLabel = `${from} — ${to}`;
+
   const employees = useRows("employees", { orderBy: "emp_no", ascending: true }).data ?? [];
-  const attendance = useRows("attendance_records", { orderBy: "work_date", ascending: true, limit: 1000 }).data ?? [];
-  const requests = useRows("requests").data ?? [];
-  const leaves = useRows("leave_requests").data ?? [];
+  const attendance =
+    useRows("attendance_records", {
+      orderBy: "work_date",
+      ascending: true,
+      limit: 5000,
+      rangeColumn: "work_date",
+      from,
+      to,
+    }).data ?? [];
+  const requests = useRows("requests", { from, to }).data ?? [];
+  const leaves = useRows("leave_requests", { rangeColumn: "from_date", from, to }).data ?? [];
   const loans = useRows("loans").data ?? [];
-  const runs = useRows("payroll_runs", { orderBy: "month", ascending: true }).data ?? [];
-  const announcements = useRows("announcements", { limit: 4 }).data ?? [];
+  const runs = useRows("payroll_runs", { orderBy: "month", ascending: true, from, to }).data ?? [];
+  const announcements = useRows("announcements", { limit: 4, from, to }).data ?? [];
 
   const active = employees.filter((e) => e["status"] === "نشط").length;
   const payroll = employees.reduce(
@@ -159,22 +266,33 @@ function Dashboard() {
     0,
   );
 
-  // Attendance trend for the last 12 recorded work days
-  const byDay = new Map<string, { present: number; total: number; late: number }>();
-  for (const a of attendance) {
-    const d = String(a["work_date"]);
-    const cur = byDay.get(d) ?? { present: 0, total: 0, late: 0 };
-    cur.total += 1;
-    if (a["status"] !== "غائب") cur.present += 1;
-    if (a["status"] === "متأخر") cur.late += 1;
-    byDay.set(d, cur);
-  }
-  const days = [...byDay.entries()].slice(-12).map(([d, v]) => ({
-    day: d.slice(5).replace("-", "/"),
-    نسبة_الحضور: Math.round((v.present / Math.max(v.total, 1)) * 100),
-    متأخرون: v.late,
-  }));
-  const todayRate = days.length ? days[days.length - 1]!["نسبة_الحضور"] : 0;
+  // Attendance trend across the selected range
+  const { days, avgRate, lateTotal, absentTotal } = useMemo(() => {
+    const byDay = new Map<string, { present: number; total: number; late: number; absent: number }>();
+    for (const a of attendance) {
+      const d = String(a["work_date"]);
+      const cur = byDay.get(d) ?? { present: 0, total: 0, late: 0, absent: 0 };
+      cur.total += 1;
+      if (a["status"] !== "غائب") cur.present += 1;
+      if (a["status"] === "متأخر") cur.late += 1;
+      if (a["status"] === "غائب") cur.absent += 1;
+      byDay.set(d, cur);
+    }
+    const entries = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    const list = entries.map(([d, v]) => ({
+      day: d.slice(5).replace("-", "/"),
+      نسبة_الحضور: Math.round((v.present / Math.max(v.total, 1)) * 100),
+      متأخرون: v.late,
+      غائبون: v.absent,
+    }));
+    const rate = list.length ? Math.round(list.reduce((s, x) => s + x["نسبة_الحضور"], 0) / list.length) : 0;
+    return {
+      days: list,
+      avgRate: rate,
+      lateTotal: entries.reduce((s, [, v]) => s + v.late, 0),
+      absentTotal: entries.reduce((s, [, v]) => s + v.absent, 0),
+    };
+  }, [attendance]);
 
   const deptMap = new Map<string, number>();
   for (const e of employees) deptMap.set(String(e["department"] ?? "غير محدد"), (deptMap.get(String(e["department"] ?? "غير محدد")) ?? 0) + 1);
@@ -194,6 +312,9 @@ function Dashboard() {
     .filter((e) => e["contract_end"])
     .sort((a, b) => String(a["contract_end"]).localeCompare(String(b["contract_end"])))
     .slice(0, 5);
+
+  const leaveDays = leaves.reduce((s, l) => s + Number(l["days"] ?? 0), 0);
+  const runsNet = runs.reduce((s, r) => s + Number(r["total_net"] ?? 0), 0);
 
   return (
     <AppShell>
@@ -223,7 +344,16 @@ function Dashboard() {
         </div>
       </div>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <RangeFilter
+        preset={preset}
+        from={from}
+        to={to}
+        onPreset={applyPreset}
+        onFrom={setFromCustom}
+        onTo={setToCustom}
+      />
+
+      <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="إجمالي الموظفين"
           value={ar(employees.length)}
@@ -233,16 +363,16 @@ function Dashboard() {
           to="/staff"
         />
         <StatCard
-          label="نسبة الحضور اليوم"
-          value={`${ar(todayRate)}٪`}
-          hint={`${ar(days.at(-1)?.["متأخرون"] ?? 0)} متأخر · ${ar(active)} على الدوام`}
+          label="متوسط نسبة الحضور"
+          value={`${ar(avgRate)}٪`}
+          hint={`${ar(lateTotal)} تأخير · ${ar(absentTotal)} غياب خلال الفترة`}
           icon="how_to_reg"
           tone="teal"
         />
         <StatCard
           label="طلبات وأجازات معلّقة"
           value={ar(pendingRequests + pendingLeaves)}
-          hint={`${ar(pendingRequests)} طلب · ${ar(pendingLeaves)} أجازة`}
+          hint={`${ar(pendingRequests)} طلب · ${ar(pendingLeaves)} أجازة · ${ar(leaveDays)} يوم`}
           icon="pending_actions"
           tone="cyan"
           to="/request-notifications"
@@ -250,7 +380,7 @@ function Dashboard() {
         <StatCard
           label="تكلفة الرواتب الشهرية"
           value={money(payroll)}
-          hint={`سلف قائمة: ${money(loansOutstanding)}`}
+          hint={`صافي مسيرات الفترة: ${money(runsNet)} · سلف قائمة: ${money(loansOutstanding)}`}
           icon="payments"
           tone="indigo"
           to="/payroll"
@@ -258,7 +388,7 @@ function Dashboard() {
       </section>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-3">
-        <Panel title="اتجاه الحضور اليومي" icon="monitoring" className="xl:col-span-2" badge={`${ar(todayRate)}٪ اليوم`}>
+        <Panel title="اتجاه الحضور اليومي" icon="monitoring" className="xl:col-span-2" badge={rangeLabel}>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={days} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
@@ -279,9 +409,15 @@ function Dashboard() {
                   strokeWidth={3}
                   fill="url(#att)"
                 />
+                <Line type="monotone" dataKey="متأخرون" stroke="var(--indigo)" strokeWidth={2} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+          {days.length === 0 && (
+            <p className="-mt-52 text-center text-sm font-semibold text-muted-foreground">
+              لا توجد بيانات حضور في هذه الفترة
+            </p>
+          )}
         </Panel>
 
         <Panel title="توزيع الموظفين على الأقسام" icon="donut_large" badge={`${ar(depts.length)} أقسام`}>

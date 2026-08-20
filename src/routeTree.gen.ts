@@ -30,6 +30,7 @@ import { Route as RegulationsPermitsRouteImport } from './routes/regulations.per
 import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shifts'
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
+import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
 import { Route as StaffBankBlockRouteImport } from './routes/staff.bank-block'
@@ -143,6 +144,11 @@ const SettingsBasicRoute = SettingsBasicRouteImport.update({
   path: '/basic',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
+  id: '/general',
+  path: '/general',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -259,6 +267,7 @@ export interface FileRoutesById {
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/regulations/shifts'
     | '/regulations/vacations'
     | '/settings/basic'
+    | '/settings/general'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/regulations/shifts'
     | '/regulations/vacations'
     | '/settings/basic'
+    | '/settings/general'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/regulations/shifts'
     | '/regulations/vacations'
     | '/settings/basic'
+    | '/settings/general'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -520,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsBasicRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/general': {
+      id: '/settings/general'
+      path: '/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof SettingsGeneralRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/staff/': {
       id: '/staff/'
       path: '/'
@@ -606,10 +625,12 @@ const RegulationsRouteWithChildren = RegulationsRoute._addFileChildren(
 
 interface SettingsRouteChildren {
   SettingsBasicRoute: typeof SettingsBasicRoute
+  SettingsGeneralRoute: typeof SettingsGeneralRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsBasicRoute: SettingsBasicRoute,
+  SettingsGeneralRoute: SettingsGeneralRoute,
 }
 
 const SettingsRouteWithChildren = SettingsRoute._addFileChildren(

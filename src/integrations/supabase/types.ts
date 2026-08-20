@@ -95,40 +95,58 @@ export type Database = {
         Row: {
           active: boolean
           category: string
+          code: string | null
           created_at: string
+          details: string | null
+          flag: boolean
           id: string
           kind: string | null
           linked_leaves: string | null
           name_ar: string
           name_en: string | null
           notes: string | null
+          notify_days: number | null
           penalty: string | null
+          ref_number: string | null
+          sabb_code: string | null
           updated_at: string
         }
         Insert: {
           active?: boolean
           category: string
+          code?: string | null
           created_at?: string
+          details?: string | null
+          flag?: boolean
           id?: string
           kind?: string | null
           linked_leaves?: string | null
           name_ar: string
           name_en?: string | null
           notes?: string | null
+          notify_days?: number | null
           penalty?: string | null
+          ref_number?: string | null
+          sabb_code?: string | null
           updated_at?: string
         }
         Update: {
           active?: boolean
           category?: string
+          code?: string | null
           created_at?: string
+          details?: string | null
+          flag?: boolean
           id?: string
           kind?: string | null
           linked_leaves?: string | null
           name_ar?: string
           name_en?: string | null
           notes?: string | null
+          notify_days?: number | null
           penalty?: string | null
+          ref_number?: string | null
+          sabb_code?: string | null
           updated_at?: string
         }
         Relationships: []

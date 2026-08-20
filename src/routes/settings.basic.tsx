@@ -82,10 +82,63 @@ const SECTIONS: Section[] = [
   { key: "الجنسيه", label: "الجنسيه", icon: "flag", group: "اعدادات اساسية" },
   { key: "الديانه", label: "الديانه", icon: "menu_book", group: "اعدادات اساسية" },
   { key: "الدولة", label: "الدولة", icon: "public", group: "اعدادات اساسية" },
-  { key: "بنك", label: "بنك", icon: "account_balance", group: "اعدادات اساسية" },
+  {
+    key: "بنك",
+    label: "بنك",
+    icon: "account_balance",
+    group: "اعدادات اساسية",
+    extra: [
+      { key: "code", label: "رمز البنك" },
+      { key: "sabb_code", label: "رمز البنك الخاص ب SABB" },
+      { key: "flag", label: "بنك صرف الرواتب", type: "checkbox" },
+    ],
+  },
+  {
+    key: "نوع العقد",
+    label: "نوع العقد",
+    icon: "description",
+    group: "اعدادات العقود والمستندات والمؤهلات",
+    extra: [{ key: "flag", label: "أجير", type: "checkbox" }],
+  },
+  { key: "الجامعة", label: "الجامعة", icon: "school", group: "اعدادات العقود والمستندات والمؤهلات" },
+  {
+    key: "المؤهلات الدراسيه",
+    label: "المؤهلات الدراسيه",
+    icon: "workspace_premium",
+    group: "اعدادات العقود والمستندات والمؤهلات",
+  },
+  {
+    key: "بنود العقد",
+    label: "بنود العقد",
+    icon: "list_alt",
+    group: "اعدادات العقود والمستندات والمؤهلات",
+    extra: [
+      { key: "details", label: "تفاصيل", type: "textarea" },
+      { key: "active", label: "تفعيل / ايقاف", type: "checkbox" },
+    ],
+  },
+  {
+    key: "المستندات",
+    label: "المستندات",
+    icon: "folder_open",
+    group: "اعدادات العقود والمستندات والمؤهلات",
+    extra: [
+      {
+        key: "kind",
+        label: "نوع البند",
+        type: "select",
+        options: ["الهوية", "العقد", "شهاده", "وثيقه جواز", "اخرى"],
+      },
+      { key: "ref_number", label: "رقم المستند" },
+      { key: "notify_days", label: "عدد ايام التنبيه", type: "number" },
+    ],
+  },
+  { key: "التقيم", label: "التقيم", icon: "star", group: "اعدادات العقود والمستندات والمؤهلات" },
+  { key: "التقدير", label: "التقدير", icon: "emoji_events", group: "اعدادات العقود والمستندات والمؤهلات" },
+  { key: "نوع التدريب", label: "نوع التدريب", icon: "cast_for_education", group: "اعدادات العقود والمستندات والمؤهلات" },
 ];
 
-const GROUPS = ["اعدادات بيانات العمل", "اعدادات اساسية"];
+const GROUPS = ["اعدادات بيانات العمل", "اعدادات اساسية", "اعدادات العقود والمستندات والمؤهلات"];
 
 function BasicData() {
   const [active, setActive] = useState(SECTIONS[0]!.key);

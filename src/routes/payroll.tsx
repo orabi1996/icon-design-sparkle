@@ -30,7 +30,10 @@ export const Route = createFileRoute("/payroll")({
           "تجهيز مسودة المسير والتسوية والتحميل من الاكسيل، اغلاق وفك اغلاق المسير، التصفية، ملف البنك، الاستثناءات وأرشيف المسيرات.",
       },
       { property: "og:title", content: "تجهيز المسير" },
-      { property: "og:description", content: "إدارة مسير الرواتب: المسودة، الاغلاق، الترحيل، التصفية والبنك." },
+      {
+        property: "og:description",
+        content: "إدارة مسير الرواتب: المسودة، الاغلاق، الترحيل، التصفية والبنك.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -96,7 +99,12 @@ function RadioRow({ options, name }: { options: string[]; name: string }) {
     <div className="flex flex-wrap items-center justify-center gap-6 rounded-xl border border-border bg-card px-5 py-3">
       {options.map((o, i) => (
         <label key={o} className="flex cursor-pointer items-center gap-2 text-[13px] font-bold">
-          <input type="radio" name={name} defaultChecked={i === 0} className="size-4 accent-[var(--primary)]" />
+          <input
+            type="radio"
+            name={name}
+            defaultChecked={i === 0}
+            className="size-4 accent-[var(--primary)]"
+          />
           {o}
         </label>
       ))}
@@ -118,7 +126,13 @@ function FilterBar({ children, action }: { children: React.ReactNode; action: Re
 
 function DraftPrepare() {
   return (
-    <FilterBar action={<Btn icon="play_circle" variant="teal">تجهيز</Btn>}>
+    <FilterBar
+      action={
+        <Btn icon="play_circle" variant="teal">
+          تجهيز
+        </Btn>
+      }
+    >
       <Field label="السنه" required>
         <Select options={years} />
       </Field>
@@ -150,7 +164,10 @@ function DraftPrepare() {
         <Select options={opt} />
       </Field>
       <div className="sm:col-span-2">
-        <Check label="اضافة قيمة رصيد الاجازة للمسير" hint="يتم إضافة رصيد الأجازة المستحق ضمن احتساب المسير" />
+        <Check
+          label="اضافة قيمة رصيد الاجازة للمسير"
+          hint="يتم إضافة رصيد الأجازة المستحق ضمن احتساب المسير"
+        />
       </div>
     </FilterBar>
   );
@@ -158,7 +175,13 @@ function DraftPrepare() {
 
 function SettlementPrepare() {
   return (
-    <FilterBar action={<Btn icon="calculate" variant="teal">احتساب التسوية</Btn>}>
+    <FilterBar
+      action={
+        <Btn icon="calculate" variant="teal">
+          احتساب التسوية
+        </Btn>
+      }
+    >
       <Field label="السنه" required>
         <Select options={years} />
       </Field>
@@ -228,21 +251,67 @@ function ExcelUpload() {
           <MaterialIcon name="cloud_upload" size={26} filled />
         </span>
         <span className="text-[13px] font-bold">اسحب ملف الاكسيل هنا أو اضغط للاختيار</span>
-        <span className="text-[11px] font-semibold text-muted-foreground">xlsx / xls بحد أقصى ٥ ميجابايت</span>
+        <span className="text-[11px] font-semibold text-muted-foreground">
+          xlsx / xls بحد أقصى ٥ ميجابايت
+        </span>
         <input type="file" className="hidden" accept=".xlsx,.xls" />
       </label>
       <div className="mt-4 flex justify-center gap-2">
-        <Btn icon="upload" variant="teal">رفع</Btn>
-        <Btn icon="download" variant="ghost">تحميل نموذج</Btn>
+        <Btn icon="upload" variant="teal">
+          رفع
+        </Btn>
+        <Btn icon="download" variant="ghost">
+          تحميل نموذج
+        </Btn>
       </div>
     </Card>
   );
 }
 
-const excelCols = ["السنه", "الشهور", "الاستحقاقات", "الاستقطاعات", "الرقم الوظيفى", "الاستحقاق القيمة", "الاستقطاع القيمة"];
-const editCols = ["اسم الموظف", "تاريخ الادخال", "الفرع", "القسم", "نوع المسير", "طريقة الاحتساب", "المستخدم", "اسم البند", "القيمة", "إجراءات"];
-const deleteCols = ["اسم الموظف", "الرقم الوظيفى", "Insert Date", "اسم المستخدم", "رقم الهويه", "الأقسام", "القسم الرئيسى", "القطاع", "المسار", "نوع المسير", "الاستحقاقات", "الاستقطاعات"];
-const unlockCols = ["رقم المسير", "الشهر", "تاريخ الاغلاق", "نوع المسير", "الفرع", "اغلاق", "صافى الرواتب"];
+const excelCols = [
+  "السنه",
+  "الشهور",
+  "الاستحقاقات",
+  "الاستقطاعات",
+  "الرقم الوظيفى",
+  "الاستحقاق القيمة",
+  "الاستقطاع القيمة",
+];
+const editCols = [
+  "اسم الموظف",
+  "تاريخ الادخال",
+  "الفرع",
+  "القسم",
+  "نوع المسير",
+  "طريقة الاحتساب",
+  "المستخدم",
+  "اسم البند",
+  "القيمة",
+  "إجراءات",
+];
+const deleteCols = [
+  "اسم الموظف",
+  "الرقم الوظيفى",
+  "Insert Date",
+  "اسم المستخدم",
+  "رقم الهويه",
+  "الأقسام",
+  "القسم الرئيسى",
+  "القطاع",
+  "المسار",
+  "نوع المسير",
+  "الاستحقاقات",
+  "الاستقطاعات",
+];
+const unlockCols = [
+  "رقم المسير",
+  "الشهر",
+  "تاريخ الاغلاق",
+  "نوع المسير",
+  "الفرع",
+  "اغلاق",
+  "صافى الرواتب",
+];
 
 function TableBlock({ columns }: { columns: string[] }) {
   return (
@@ -330,7 +399,13 @@ function Unlock() {
 
 function SettleCalc() {
   return (
-    <FilterBar action={<Btn icon="calculate" variant="teal">احتساب التصفية</Btn>}>
+    <FilterBar
+      action={
+        <Btn icon="calculate" variant="teal">
+          احتساب التصفية
+        </Btn>
+      }
+    >
       <Field label="الجنسيه">
         <Select options={opt} />
       </Field>
@@ -419,9 +494,15 @@ function SettleEdit() {
             <Select options={["اختر ....", "جواد صغرى - إقرار الجحيش - انتهى"]} />
           </Field>
         </div>
-        <Btn icon="add" variant="teal">اضافة استحقاق</Btn>
-        <Btn icon="remove" variant="ghost">اضافة استقطاع</Btn>
-        <Btn icon="delete" variant="soft">حذف التصفية</Btn>
+        <Btn icon="add" variant="teal">
+          اضافة استحقاق
+        </Btn>
+        <Btn icon="remove" variant="ghost">
+          اضافة استقطاع
+        </Btn>
+        <Btn icon="delete" variant="soft">
+          حذف التصفية
+        </Btn>
       </div>
 
       <Card title="بيانات الموظف" icon="badge">
@@ -496,15 +577,22 @@ function Simple({ title, icon, columns }: { title: string; icon: string; columns
   );
 }
 
-
-function IconBtn({ icon, tone = "primary" }: { icon: string; tone?: "primary" | "destructive" | "teal" }) {
+function IconBtn({
+  icon,
+  tone = "primary",
+}: {
+  icon: string;
+  tone?: "primary" | "destructive" | "teal";
+}) {
   const tones = {
     primary: "bg-primary/10 text-primary hover:bg-primary/20",
     destructive: "bg-destructive/10 text-destructive hover:bg-destructive/20",
     teal: "bg-teal/12 text-teal hover:bg-teal/20",
   } as const;
   return (
-    <button className={`grid size-8 place-items-center rounded-lg transition-colors ${tones[tone]}`}>
+    <button
+      className={`grid size-8 place-items-center rounded-lg transition-colors ${tones[tone]}`}
+    >
       <MaterialIcon name={icon} size={17} />
     </button>
   );
@@ -551,7 +639,12 @@ function BankFile({ bank }: { bank: string }) {
           <span className="text-[12px] font-extrabold text-muted-foreground">نوع المسير:</span>
           {["رواتب", "تصفية", "تسوية"].map((o, i) => (
             <label key={o} className="flex cursor-pointer items-center gap-2 text-[13px] font-bold">
-              <input type="radio" name="banktype" defaultChecked={i === 0} className="size-4 accent-[var(--primary)]" />
+              <input
+                type="radio"
+                name="banktype"
+                defaultChecked={i === 0}
+                className="size-4 accent-[var(--primary)]"
+              />
               {o}
             </label>
           ))}
@@ -571,7 +664,9 @@ function BankFile({ bank }: { bank: string }) {
             <Select options={branches} />
           </Field>
           <Field label="اسم الكفيل">
-            <Select options={["اختر ....", "شركة الحلول الخبيرة لتقنية المعلومات", "كفالة افتراضية تيست"]} />
+            <Select
+              options={["اختر ....", "شركة الحلول الخبيرة لتقنية المعلومات", "كفالة افتراضية تيست"]}
+            />
           </Field>
           <Field label="اسم الموظف">
             <Select options={opt} />
@@ -579,7 +674,9 @@ function BankFile({ bank }: { bank: string }) {
         </div>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <Btn icon="settings_suggest">معالجة</Btn>
-          <Btn icon="verified" variant="ghost">تحقق نسبة الالتزام</Btn>
+          <Btn icon="verified" variant="ghost">
+            تحقق نسبة الالتزام
+          </Btn>
         </div>
       </div>
       <Card title="تحقق نسبة الالتزام" icon="donut_large">
@@ -591,7 +688,17 @@ function BankFile({ bank }: { bank: string }) {
   );
 }
 
-const archiveCols = ["اسم الحقل", "اسم الكفيل", "تاريخ التصدير", "اسم المستخدم", "حالة البنك", "نوع المسير", 'الاسم "الارشيف"', "تصدير", "حذف"];
+const archiveCols = [
+  "اسم الحقل",
+  "اسم الكفيل",
+  "تاريخ التصدير",
+  "اسم المستخدم",
+  "حالة البنك",
+  "نوع المسير",
+  'الاسم "الارشيف"',
+  "تصدير",
+  "حذف",
+];
 const archiveRows = [
   { f: "20251016100221", k: "شركة الحلول الخبيرة لتقنية المعلومات", d: "2025/10/16", t: "رواتب" },
   { f: "20251127125747", k: "شركة الحلول الخبيرة", d: "2025/11/27", t: "رواتب" },
@@ -671,7 +778,12 @@ function PayrollRuns() {
         { key: "title", label: "اسم المسير", required: true },
         { key: "month", label: "الشهر", type: "number" },
         { key: "year", label: "السنة", type: "number" },
-        { key: "status", label: "الحالة", type: "select", options: ["مسودة", "قيد المعالجة", "مقفل"] },
+        {
+          key: "status",
+          label: "الحالة",
+          type: "select",
+          options: ["مسودة", "قيد المعالجة", "مقفل"],
+        },
         { key: "employees_count", label: "عدد الموظفين", type: "number" },
         { key: "total_gross", label: "إجمالي الاستحقاقات", type: "number" },
         { key: "total_deductions", label: "إجمالي الاستقطاعات", type: "number" },
@@ -692,7 +804,13 @@ function AttendanceExceptionsDb({ status }: { status: string }) {
       orderBy="work_date"
       filters={{ status }}
       fields={[
-        { key: "employee_name", label: "اسم الموظف", type: "select", options: names, required: true },
+        {
+          key: "employee_name",
+          label: "اسم الموظف",
+          type: "select",
+          options: names,
+          required: true,
+        },
         { key: "work_date", label: "التاريخ", type: "date" },
         { key: "check_in", label: "وقت الحضور" },
         { key: "check_out", label: "وقت الانصراف" },
@@ -721,25 +839,39 @@ function Payroll() {
       if (sub === 3) return <SearchDraft withType columns={editCols} />;
       return <SearchDraft withType columns={deleteCols} />;
     }
-    if (tab === "close") return sub === 0 ? <SearchDraft withType columns={deleteCols} /> : <Unlock />;
+    if (tab === "close")
+      return sub === 0 ? <SearchDraft withType columns={deleteCols} /> : <Unlock />;
     if (tab === "settle") return sub === 0 ? <SettleCalc /> : <SettleEdit />;
     if (tab === "journal")
-      return <Simple title="ترحيل قيد مسير الرواتب" icon="sync_alt" columns={["رقم القيد", "التاريخ", "نوع المسير", "الفرع", "مدين", "دائن", "الحالة"]} />;
+      return (
+        <Simple
+          title="ترحيل قيد مسير الرواتب"
+          icon="sync_alt"
+          columns={["رقم القيد", "التاريخ", "نوع المسير", "الفرع", "مدين", "دائن", "الحالة"]}
+        />
+      );
     if (tab === "bank") return <BankFile bank={menu.items[sub] ?? "بنك الراجحي"} />;
     if (tab === "archive") return <BankArchive />;
-    if (tab === "exceptions") return <AttendanceExceptionsDb status={sub === 0 ? "متأخر" : "غائب"} />;
+    if (tab === "exceptions")
+      return <AttendanceExceptionsDb status={sub === 0 ? "متأخر" : "غائب"} />;
     return <PayrollRuns />;
   })();
 
   return (
     <AppShell>
       <div className="mt-4">
-        <Breadcrumbs trail={["رواتب الموظفين", "تجهيز مسودة المسير", menu.items[sub] ?? menu.title]} />
+        <Breadcrumbs
+          trail={["رواتب الموظفين", "تجهيز مسودة المسير", menu.items[sub] ?? menu.title]}
+        />
         <PageBanner
           icon="payments"
           title="تجهيز المسير"
           subtitle="تجهيز المسودة والتسوية، الاغلاق والترحيل، التصفية وملفات البنك"
-          actions={<Btn icon="download" variant="onDark">تصدير</Btn>}
+          actions={
+            <Btn icon="download" variant="onDark">
+              تصدير
+            </Btn>
+          }
         />
 
         <div
@@ -756,7 +888,9 @@ function Payroll() {
                   setSub(0);
                 }}
                 className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-[12.5px] font-bold transition-colors ${
-                  on ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                  on
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-secondary"
                 }`}
               >
                 <MaterialIcon name={t.icon} size={17} filled={on} />
@@ -781,10 +915,15 @@ function Payroll() {
                     key={it}
                     onClick={() => setSub(i)}
                     className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-right text-[12.5px] font-bold transition-colors ${
-                      on ? "bg-primary text-primary-foreground" : "text-foreground/80 hover:bg-secondary"
+                      on
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground/80 hover:bg-secondary"
                     }`}
                   >
-                    <MaterialIcon name={on ? "radio_button_checked" : "radio_button_unchecked"} size={16} />
+                    <MaterialIcon
+                      name={on ? "radio_button_checked" : "radio_button_unchecked"}
+                      size={16}
+                    />
                     <span className="min-w-0 flex-1">{it}</span>
                   </button>
                 );

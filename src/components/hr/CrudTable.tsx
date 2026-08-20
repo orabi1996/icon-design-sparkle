@@ -2,7 +2,14 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { Btn, Chip } from "@/components/hr/ui";
-import { useDeleteRow, useRows, useSaveRow, type HrTable, type Row, type RowFilters } from "@/lib/hr-db";
+import {
+  useDeleteRow,
+  useRows,
+  useSaveRow,
+  type HrTable,
+  type Row,
+  type RowFilters,
+} from "@/lib/hr-db";
 
 export type FieldDef = {
   key: string;
@@ -76,7 +83,8 @@ export function CrudTable({
 
   const openNew = () => {
     const blank: Row = {};
-    for (const f of formFields) blank[f.key] = f.type === "checkbox" ? false : f.type === "number" ? 0 : "";
+    for (const f of formFields)
+      blank[f.key] = f.type === "checkbox" ? false : f.type === "number" ? 0 : "";
     setDraft({ ...blank, ...(filters ?? {}) });
   };
 
@@ -158,12 +166,20 @@ export function CrudTable({
                   className="border-b border-border transition-colors last:border-0 odd:bg-secondary/35 hover:bg-accent/50"
                 >
                   {tableFields.map((f) => (
-                    <td key={f.key} className="whitespace-nowrap px-4 py-3 text-[13px] font-semibold">
+                    <td
+                      key={f.key}
+                      className="whitespace-nowrap px-4 py-3 text-[13px] font-semibold"
+                    >
                       {f.render ? (
                         f.render(r)
                       ) : f.type === "checkbox" ? (
                         r[f.key] ? (
-                          <MaterialIcon name="check_circle" size={18} className="text-teal" filled />
+                          <MaterialIcon
+                            name="check_circle"
+                            size={18}
+                            className="text-teal"
+                            filled
+                          />
                         ) : (
                           <span className="inline-block size-3.5 rounded border border-border bg-secondary" />
                         )
@@ -188,7 +204,8 @@ export function CrudTable({
                       <button
                         title="حذف"
                         onClick={() => {
-                          if (confirm("هل تريد حذف هذا السجل نهائياً؟")) del.mutate(String(r["id"]));
+                          if (confirm("هل تريد حذف هذا السجل نهائياً؟"))
+                            del.mutate(String(r["id"]));
                         }}
                         className="grid size-8 place-items-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
@@ -207,15 +224,26 @@ export function CrudTable({
         <div className="fixed inset-0 z-50 grid place-items-center bg-topbar/50 p-4">
           <div className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card">
             <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-              <MaterialIcon name={draft["id"] ? "edit" : "add_circle"} size={20} className="text-primary" filled />
+              <MaterialIcon
+                name={draft["id"] ? "edit" : "add_circle"}
+                size={20}
+                className="text-primary"
+                filled
+              />
               <h3 className="text-sm font-extrabold">{draft["id"] ? "تعديل سجل" : addLabel}</h3>
-              <button onClick={() => setDraft(null)} className="ms-auto text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setDraft(null)}
+                className="ms-auto text-muted-foreground hover:text-foreground"
+              >
                 <MaterialIcon name="close" size={20} />
               </button>
             </div>
             <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
               {formFields.map((f) => (
-                <label key={f.key} className={f.type === "textarea" ? "sm:col-span-2 xl:col-span-3" : "block"}>
+                <label
+                  key={f.key}
+                  className={f.type === "textarea" ? "sm:col-span-2 xl:col-span-3" : "block"}
+                >
                   <span className="mb-1.5 flex items-center gap-1 text-[12px] font-bold text-foreground/80">
                     {f.label}
                     {f.required && <span className="text-destructive">*</span>}

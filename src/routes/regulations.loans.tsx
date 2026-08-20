@@ -9,7 +9,8 @@ export const Route = createFileRoute("/regulations/loans")({
       { title: "تهيئة السلف | اللوائح المالية" },
       {
         name: "description",
-        content: "إدارة سلف الموظفين: المبلغ وعدد الأقساط والقسط الشهري والمسدد وحالة السلفة مع الإضافة والتعديل والحذف.",
+        content:
+          "إدارة سلف الموظفين: المبلغ وعدد الأقساط والقسط الشهري والمسدد وحالة السلفة مع الإضافة والتعديل والحذف.",
       },
       { property: "og:title", content: "تهيئة السلف | اللوائح المالية" },
       { property: "og:description", content: "متابعة سلف الموظفين وأقساطها وحالة السداد." },
@@ -27,7 +28,11 @@ function Loans() {
   return (
     <div className="mt-4">
       <Breadcrumbs trail={["اللوائح المالية", "تهيئة السلف"]} />
-      <PageBanner icon="request_quote" title="السلف" subtitle="إضافة سلفة جديدة ومتابعة الأقساط والسداد" />
+      <PageBanner
+        icon="request_quote"
+        title="السلف"
+        subtitle="إضافة سلفة جديدة ومتابعة الأقساط والسداد"
+      />
       <CrudTable
         table="loans"
         title="سلف الموظفين"
@@ -39,7 +44,12 @@ function Loans() {
           { key: "monthly_amount", label: "القسط الشهري", type: "number" },
           { key: "paid_amount", label: "المسدد", type: "number" },
           { key: "start_date", label: "تاريخ البداية", type: "date" },
-          { key: "status", label: "الحالة", type: "select", options: ["بانتظار الموافقة", "قيد السداد", "مسددة", "مرفوضة"] },
+          {
+            key: "status",
+            label: "الحالة",
+            type: "select",
+            options: ["بانتظار الموافقة", "قيد السداد", "مسددة", "مرفوضة"],
+          },
           { key: "notes", label: "ملاحظات", type: "textarea" },
         ]}
       />

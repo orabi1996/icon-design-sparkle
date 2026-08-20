@@ -15,7 +15,10 @@ export const Route = createFileRoute("/regulations/shifts")({
           "تهيئة مجموعات الدوام وأوقات الحضور والانصراف ودقائق السماح، وإدارة سجلات حضور الموظفين إضافة وتعديلاً وحذفاً.",
       },
       { property: "og:title", content: "تهيئة مجموعات الدوام والحضور" },
-      { property: "og:description", content: "مجموعات الدوام وسجلات الحضور اليومية مرتبطة بقاعدة البيانات." },
+      {
+        property: "og:description",
+        content: "مجموعات الدوام وسجلات الحضور اليومية مرتبطة بقاعدة البيانات.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -53,7 +56,9 @@ function Shifts() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-[12.5px] font-bold transition-colors ${
-                on ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                on
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               <MaterialIcon name={t.icon} size={17} filled={on} />
@@ -72,7 +77,12 @@ function Shifts() {
           ascending
           fields={[
             { key: "name", label: "اسم المجموعة", required: true },
-            { key: "branch", label: "الفرع", type: "select", options: ["الفرع الرئيسي", "فرع جدة", "فرع الدمام"] },
+            {
+              key: "branch",
+              label: "الفرع",
+              type: "select",
+              options: ["الفرع الرئيسي", "فرع جدة", "فرع الدمام"],
+            },
             { key: "work_days", label: "أيام العمل", type: "number" },
             { key: "start_time", label: "وقت الحضور" },
             { key: "end_time", label: "وقت الانصراف" },
@@ -89,11 +99,22 @@ function Shifts() {
           addLabel="إضافة سجل حضور"
           orderBy="work_date"
           fields={[
-            { key: "employee_name", label: "الموظف", type: "select", options: names, required: true },
+            {
+              key: "employee_name",
+              label: "الموظف",
+              type: "select",
+              options: names,
+              required: true,
+            },
             { key: "work_date", label: "التاريخ", type: "date" },
             { key: "check_in", label: "وقت الحضور" },
             { key: "check_out", label: "وقت الانصراف" },
-            { key: "status", label: "الحالة", type: "select", options: ["حاضر", "متأخر", "غائب", "أجازة", "إذن"] },
+            {
+              key: "status",
+              label: "الحالة",
+              type: "select",
+              options: ["حاضر", "متأخر", "غائب", "أجازة", "إذن"],
+            },
             { key: "late_minutes", label: "دقائق التأخير", type: "number" },
           ]}
         />

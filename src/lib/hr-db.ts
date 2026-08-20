@@ -56,7 +56,11 @@ export function useRows(table: HrTable, opts?: RowsOptions) {
       for (const [k, v] of Object.entries(opts?.filters ?? {})) q = q.eq(k, v);
       const col = opts?.rangeColumn ?? "created_at";
       if (opts?.from) q = q.gte(col, opts.from);
-      if (opts?.to) q = q.lte(col, opts.to.length === 10 && col !== "created_at" ? opts.to : `${opts.to}T23:59:59`);
+      if (opts?.to)
+        q = q.lte(
+          col,
+          opts.to.length === 10 && col !== "created_at" ? opts.to : `${opts.to}T23:59:59`,
+        );
       if (opts?.limit) q = q.limit(opts.limit);
       const { data, error } = await q;
       if (error) throw error;
@@ -86,7 +90,7 @@ export function useSaveRow(table: HrTable) {
     },
     onSuccess: (_d, vars) => {
       invalidate(qc, table);
-      toast.success(vars['id'] ? "تم تحديث السجل بنجاح" : "تمت الإضافة بنجاح");
+      toast.success(vars["id"] ? "تم تحديث السجل بنجاح" : "تمت الإضافة بنجاح");
     },
     onError: (e: Error) => toast.error(`تعذر الحفظ: ${e.message}`),
   });

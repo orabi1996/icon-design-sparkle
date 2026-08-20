@@ -25,7 +25,10 @@ export const Route = createFileRoute("/regulations/vacations")({
           "تهيئة مراحل اعتماد الاجازات والاجازات الرسمية ولائحة الاجازات براتب وبدون راتب والاجازة السنوية مع الحدود والقواعد.",
       },
       { property: "og:title", content: "تهيئة الاجازات | اللوائح" },
-      { property: "og:description", content: "مراحل الاعتماد، الاجازات الرسمية، ولائحة الاجازات بأنواعها." },
+      {
+        property: "og:description",
+        content: "مراحل الاعتماد، الاجازات الرسمية، ولائحة الاجازات بأنواعها.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -69,28 +72,184 @@ const kinds = [
   { key: "annual", label: "الاجازة السنوية", icon: "calendar_month" },
 ];
 
-const listRows: Record<string, { n: string; y: string; max: string; times: string; per: string; min: string; type: string; from: string }[]> = {
+const listRows: Record<
+  string,
+  {
+    n: string;
+    y: string;
+    max: string;
+    times: string;
+    per: string;
+    min: string;
+    type: string;
+    from: string;
+  }[]
+> = {
   paid: [
-    { n: "أجازة مرضية ٤٠", y: "٥٥", max: "٥٥", times: "٣", per: "١٠", min: "٠", type: "سنة عقدية", from: "بداية التعيين" },
-    { n: "أجازة وفاة", y: "٣٠", max: "٣٠", times: "١", per: "٣٠", min: "١", type: "سنة عادية", from: "تاريخ بداية الاجازة" },
-    { n: "أجازة زواج", y: "١٠", max: "٢٠", times: "٥", per: "٥", min: "١", type: "سنة عادية", from: "بداية التعيين" },
-    { n: "أجازة حج", y: "١٤", max: "١٤", times: "١", per: "١٤", min: "١", type: "سنة مالية", from: "بداية التعيين" },
-    { n: "أجازة براتب طويلة", y: "١٠٠", max: "١٠٠", times: "١٠٠", per: "١٠٠", min: "١", type: "سنة عقدية", from: "بداية التعيين" },
-    { n: "مرضية م", y: "١٥", max: "١٥", times: "١٥", per: "١٥", min: "١٥", type: "سنة عادية", from: "بداية التعيين" },
+    {
+      n: "أجازة مرضية ٤٠",
+      y: "٥٥",
+      max: "٥٥",
+      times: "٣",
+      per: "١٠",
+      min: "٠",
+      type: "سنة عقدية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "أجازة وفاة",
+      y: "٣٠",
+      max: "٣٠",
+      times: "١",
+      per: "٣٠",
+      min: "١",
+      type: "سنة عادية",
+      from: "تاريخ بداية الاجازة",
+    },
+    {
+      n: "أجازة زواج",
+      y: "١٠",
+      max: "٢٠",
+      times: "٥",
+      per: "٥",
+      min: "١",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "أجازة حج",
+      y: "١٤",
+      max: "١٤",
+      times: "١",
+      per: "١٤",
+      min: "١",
+      type: "سنة مالية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "أجازة براتب طويلة",
+      y: "١٠٠",
+      max: "١٠٠",
+      times: "١٠٠",
+      per: "١٠٠",
+      min: "١",
+      type: "سنة عقدية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "مرضية م",
+      y: "١٥",
+      max: "١٥",
+      times: "١٥",
+      per: "١٥",
+      min: "١٥",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
   ],
   unpaid: [
-    { n: "أجازة مرضية ٣٥ بدون راتب", y: "٣٥", max: "٣٥", times: "٣٠", per: "٣٠", min: "١", type: "سنة عقدية", from: "بداية التعيين" },
-    { n: "أجازة بدون راتب", y: "١٠٠", max: "١٠٠", times: "١٠٠", per: "١٠٠", min: "١", type: "سنة عادية", from: "بداية التعيين" },
-    { n: "أجازة بدون راتب طويلة", y: "٣٠٠", max: "٣٠٠", times: "٣٠٠", per: "٣٠٠", min: "١", type: "سنة عادية", from: "بداية التعيين" },
-    { n: "اجازه استثناء", y: "١٤", max: "١٤", times: "٣", per: "٥", min: "٣٠", type: "سنة عادية", from: "بداية التعيين" },
-    { n: "سفر", y: "٢١", max: "٢١", times: "٤", per: "٧", min: "١٢٠", type: "سنة عادية", from: "بداية التعيين" },
+    {
+      n: "أجازة مرضية ٣٥ بدون راتب",
+      y: "٣٥",
+      max: "٣٥",
+      times: "٣٠",
+      per: "٣٠",
+      min: "١",
+      type: "سنة عقدية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "أجازة بدون راتب",
+      y: "١٠٠",
+      max: "١٠٠",
+      times: "١٠٠",
+      per: "١٠٠",
+      min: "١",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "أجازة بدون راتب طويلة",
+      y: "٣٠٠",
+      max: "٣٠٠",
+      times: "٣٠٠",
+      per: "٣٠٠",
+      min: "١",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "اجازه استثناء",
+      y: "١٤",
+      max: "١٤",
+      times: "٣",
+      per: "٥",
+      min: "٣٠",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "سفر",
+      y: "٢١",
+      max: "٢١",
+      times: "٤",
+      per: "٧",
+      min: "١٢٠",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
   ],
   annual: [
-    { n: "أجازة سنوية ٣٥ يوم", y: "٣٥", max: "٣٥", times: "٥", per: "٣٥", min: "١", type: "سنة عقدية", from: "تاريخ بداية الاجازة" },
-    { n: "اعتيادية فئة الموظفين (دوام كامل)", y: "٣٦", max: "٣٦", times: "١٠", per: "٣٦", min: "١", type: "سنة عادية", from: "تاريخ بداية الاجازة" },
-    { n: "أجازة سنوية ٢١ يوم", y: "٢١", max: "٢١", times: "٢١", per: "٢١", min: "٧", type: "سنة عقدية", from: "تاريخ بداية الاجازة" },
-    { n: "سنوية", y: "٣٦٥", max: "٣٦٥", times: "١", per: "٣٦٥", min: "٦٠٠", type: "سنة عادية", from: "بداية التعيين" },
-    { n: "سنوية ٢٧ يوم", y: "٢٧", max: "٣٠", times: "١", per: "٢٧", min: "١٥٠", type: "سنة عادية", from: "بداية التعيين" },
+    {
+      n: "أجازة سنوية ٣٥ يوم",
+      y: "٣٥",
+      max: "٣٥",
+      times: "٥",
+      per: "٣٥",
+      min: "١",
+      type: "سنة عقدية",
+      from: "تاريخ بداية الاجازة",
+    },
+    {
+      n: "اعتيادية فئة الموظفين (دوام كامل)",
+      y: "٣٦",
+      max: "٣٦",
+      times: "١٠",
+      per: "٣٦",
+      min: "١",
+      type: "سنة عادية",
+      from: "تاريخ بداية الاجازة",
+    },
+    {
+      n: "أجازة سنوية ٢١ يوم",
+      y: "٢١",
+      max: "٢١",
+      times: "٢١",
+      per: "٢١",
+      min: "٧",
+      type: "سنة عقدية",
+      from: "تاريخ بداية الاجازة",
+    },
+    {
+      n: "سنوية",
+      y: "٣٦٥",
+      max: "٣٦٥",
+      times: "١",
+      per: "٣٦٥",
+      min: "٦٠٠",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
+    {
+      n: "سنوية ٢٧ يوم",
+      y: "٢٧",
+      max: "٣٠",
+      times: "١",
+      per: "٢٧",
+      min: "١٥٠",
+      type: "سنة عادية",
+      from: "بداية التعيين",
+    },
   ],
 };
 
@@ -118,14 +277,22 @@ const flags = [
   "ضرورة ذكر سبب طلب الاجازة",
 ];
 
-function IconBtn({ icon, tone = "primary" }: { icon: string; tone?: "primary" | "destructive" | "teal" }) {
+function IconBtn({
+  icon,
+  tone = "primary",
+}: {
+  icon: string;
+  tone?: "primary" | "destructive" | "teal";
+}) {
   const tones = {
     primary: "bg-primary/10 text-primary hover:bg-primary/20",
     destructive: "bg-destructive/10 text-destructive hover:bg-destructive/20",
     teal: "bg-teal/12 text-teal hover:bg-teal/20",
   } as const;
   return (
-    <button className={`grid size-8 place-items-center rounded-lg transition-colors ${tones[tone]}`}>
+    <button
+      className={`grid size-8 place-items-center rounded-lg transition-colors ${tones[tone]}`}
+    >
       <MaterialIcon name={icon} size={17} />
     </button>
   );
@@ -160,7 +327,9 @@ function Vacations() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-bold transition-colors ${
-                on ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                on
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               <MaterialIcon name={t.icon} size={18} filled={on} />
@@ -196,7 +365,14 @@ function Vacations() {
             >
               <TableToolbar title="مراحل الاعتماد" />
               <DataTable
-                columns={["ترتيب المرحلة", "اسم المرحلة", "الاسم بالإنجليزية", "تعديل", "اضافة المستخدمين", "تفعيل وايقاف"]}
+                columns={[
+                  "ترتيب المرحلة",
+                  "اسم المرحلة",
+                  "الاسم بالإنجليزية",
+                  "تعديل",
+                  "اضافة المستخدمين",
+                  "تفعيل وايقاف",
+                ]}
                 rows={stages.map((s) => ({
                   "ترتيب المرحلة": s.i,
                   "اسم المرحلة": <span className="font-extrabold text-primary">{s.n}</span>,
@@ -257,7 +433,15 @@ function Vacations() {
             >
               <TableToolbar title="الاجازات الرسمية" />
               <DataTable
-                columns={["اسم الاجازة", "الشهور", "التاريخ من", "التاريخ الى", "المدة", "تعديل", "الغاء"]}
+                columns={[
+                  "اسم الاجازة",
+                  "الشهور",
+                  "التاريخ من",
+                  "التاريخ الى",
+                  "المدة",
+                  "تعديل",
+                  "الغاء",
+                ]}
                 rows={official.map((o) => ({
                   "اسم الاجازة": <span className="font-extrabold text-primary">{o.n}</span>,
                   الشهور: o.m,
@@ -330,7 +514,10 @@ function Vacations() {
                 <Field label="الحد الاقصى لايام الاجازة سنوياً" required>
                   <Input type="number" defaultValue={0} />
                 </Field>
-                <Field label={kind === "annual" ? "عدد أيام العمل السنوية" : "نسبة احتساب خصم اليوم"} required>
+                <Field
+                  label={kind === "annual" ? "عدد أيام العمل السنوية" : "نسبة احتساب خصم اليوم"}
+                  required
+                >
                   <Input type="number" defaultValue={0} />
                 </Field>
               </div>
@@ -342,7 +529,13 @@ function Vacations() {
                     احتساب الاجازة ابتداء من تاريخ
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {["بداية التعيين", "تاريخ مباشرة الاجازة", "سنة عادية", "سنة مالية", "سنة عقدية"].map((o, i) => (
+                    {[
+                      "بداية التعيين",
+                      "تاريخ مباشرة الاجازة",
+                      "سنة عادية",
+                      "سنة مالية",
+                      "سنة عقدية",
+                    ].map((o, i) => (
                       <button
                         key={o}
                         className={`rounded-xl px-3.5 py-2 text-[12px] font-bold transition-colors ${
@@ -362,7 +555,10 @@ function Vacations() {
                     عدم التجاوز
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {["عدم تجاوز الحد الاقصى لايام الاجازة", "عدم تجاوز عدد ايام الاجازة السنوى"].map((o, i) => (
+                    {[
+                      "عدم تجاوز الحد الاقصى لايام الاجازة",
+                      "عدم تجاوز عدد ايام الاجازة السنوى",
+                    ].map((o, i) => (
                       <button
                         key={o}
                         className={`rounded-xl px-3.5 py-2 text-[12px] font-bold transition-colors ${

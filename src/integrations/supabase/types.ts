@@ -407,6 +407,45 @@ export type Database = {
         }
         Relationships: []
       }
+      regulation_rules: {
+        Row: {
+          active: boolean
+          amount: number
+          category: string
+          created_at: string
+          days: number
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+          value_type: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          category: string
+          created_at?: string
+          days?: number
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+          value_type?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          category?: string
+          created_at?: string
+          days?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          value_type?: string
+        }
+        Relationships: []
+      }
       requests: {
         Row: {
           amount: number | null
@@ -450,6 +489,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      work_shift_groups: {
+        Row: {
+          active: boolean
+          branch: string
+          break_minutes: number
+          created_at: string
+          end_time: string
+          grace_minutes: number
+          id: string
+          name: string
+          notes: string | null
+          start_time: string
+          updated_at: string
+          work_days: number
+        }
+        Insert: {
+          active?: boolean
+          branch?: string
+          break_minutes?: number
+          created_at?: string
+          end_time?: string
+          grace_minutes?: number
+          id?: string
+          name: string
+          notes?: string | null
+          start_time?: string
+          updated_at?: string
+          work_days?: number
+        }
+        Update: {
+          active?: boolean
+          branch?: string
+          break_minutes?: number
+          created_at?: string
+          end_time?: string
+          grace_minutes?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          start_time?: string
+          updated_at?: string
+          work_days?: number
+        }
+        Relationships: []
       }
     }
     Views: {

@@ -414,7 +414,7 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
           {days.length === 0 && (
-            <p className="-mt-52 text-center text-sm font-semibold text-muted-foreground">
+            <p className="mt-2 text-center text-sm font-semibold text-muted-foreground">
               لا توجد بيانات حضور في هذه الفترة
             </p>
           )}

@@ -22,7 +22,7 @@ export const Route = createFileRoute("/settings/basic")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: BasicData;
+  component: BasicData,
 });
 
 type Section = {

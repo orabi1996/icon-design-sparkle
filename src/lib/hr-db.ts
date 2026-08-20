@@ -18,19 +18,45 @@ export type HrTable =
   | "requests"
   | "announcements"
   | "attendance_records"
-  | "payroll_runs";
+  | "payroll_runs"
+  | "work_shift_groups"
+  | "regulation_rules";
 
-export function useRows(
-  table: HrTable,
-  opts?: { orderBy?: string; ascending?: boolean; limit?: number },
-) {
+export type RowFilters = Record<string, string | number | boolean>;
+
+export type RowsOptions = {
+  orderBy?: string;
+  ascending?: boolean;
+  limit?: number;
+  /** equality filters applied server-side */
+  filters?: RowFilters;
+  /** inclusive date range applied on `rangeColumn` (default: created_at) */
+  from?: string;
+  to?: string;
+  rangeColumn?: string;
+};
+
+export function useRows(table: HrTable, opts?: RowsOptions) {
   return useQuery({
-    queryKey: [table, opts?.orderBy ?? "created_at", opts?.ascending ?? false, opts?.limit ?? 0],
+    queryKey: [
+      table,
+      opts?.orderBy ?? "created_at",
+      opts?.ascending ?? false,
+      opts?.limit ?? 0,
+      opts?.filters ?? null,
+      opts?.from ?? null,
+      opts?.to ?? null,
+      opts?.rangeColumn ?? "created_at",
+    ],
     queryFn: async (): Promise<Row[]> => {
       let q = db
         .from(table)
         .select("*")
         .order(opts?.orderBy ?? "created_at", { ascending: opts?.ascending ?? false });
+      for (const [k, v] of Object.entries(opts?.filters ?? {})) q = q.eq(k, v);
+      const col = opts?.rangeColumn ?? "created_at";
+      if (opts?.from) q = q.gte(col, opts.from);
+      if (opts?.to) q = q.lte(col, opts.to.length === 10 && col !== "created_at" ? opts.to : `${opts.to}T23:59:59`);
       if (opts?.limit) q = q.limit(opts.limit);
       const { data, error } = await q;
       if (error) throw error;

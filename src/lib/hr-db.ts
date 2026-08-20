@@ -21,7 +21,8 @@ export type HrTable =
   | "payroll_runs"
   | "work_shift_groups"
   | "regulation_rules"
-  | "basic_lookups";
+  | "basic_lookups"
+  | "app_settings";
 
 export type RowFilters = Record<string, string | number | boolean>;
 

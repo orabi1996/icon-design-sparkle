@@ -200,8 +200,16 @@ const GROUPS = [
 ];
 
 function BasicData() {
+  const [group, setGroup] = useState(GROUPS[0]!);
   const [active, setActive] = useState(SECTIONS[0]!.key);
-  const section = SECTIONS.find((s) => s.key === active) ?? SECTIONS[0]!;
+  const groupSections = SECTIONS.filter((s) => s.group === group);
+  const section = groupSections.find((s) => s.key === active) ?? groupSections[0]!;
+
+  const pickGroup = (g: string) => {
+    setGroup(g);
+    const first = SECTIONS.find((s) => s.group === g);
+    if (first) setActive(first.key);
+  };
 
   return (
     <div className="mt-4">
@@ -212,38 +220,54 @@ function BasicData() {
         subtitle="إدارة كل قوائم النظام الأساسية بالعربية والإنجليزية مع الإضافة والتعديل والحذف"
       />
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[260px_1fr]">
-        <aside className="space-y-4">
-          {GROUPS.map((g) => (
-            <div
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-b border-border pb-0">
+        {GROUPS.map((g) => {
+          const on = g === group;
+          return (
+            <button
               key={g}
-              className="overflow-hidden rounded-2xl border border-border bg-card"
-              style={{ boxShadow: "var(--shadow-card)" }}
+              onClick={() => pickGroup(g)}
+              className={`-mb-px rounded-t-xl border px-4 py-2.5 text-[13px] font-extrabold transition-colors ${
+                on
+                  ? "border-border border-b-card bg-card text-primary"
+                  : "border-transparent text-foreground/70 hover:bg-accent/50"
+              }`}
             >
-              <h2 className="border-b border-border bg-secondary px-4 py-3 text-[12px] font-extrabold text-secondary-foreground">
-                {g}
-              </h2>
-              <nav className="p-2">
-                {SECTIONS.filter((s) => s.group === g).map((s) => {
-                  const on = s.key === active;
-                  return (
-                    <button
-                      key={s.key}
-                      onClick={() => setActive(s.key)}
-                      className={`mb-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-colors ${
-                        on
-                          ? "bg-primary text-primary-foreground"
-                          : "text-foreground/80 hover:bg-accent/60"
-                      }`}
-                    >
-                      <MaterialIcon name={s.icon} size={18} filled={on} />
-                      <span className="truncate">{s.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-          ))}
+              {g}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[260px_1fr]">
+        <aside>
+          <div
+            className="overflow-hidden rounded-2xl border border-border bg-card"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <h2 className="border-b border-border bg-secondary px-4 py-3 text-[12px] font-extrabold text-secondary-foreground">
+              {group}
+            </h2>
+            <nav className="p-2">
+              {groupSections.map((s) => {
+                const on = s.key === section.key;
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => setActive(s.key)}
+                    className={`mb-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-colors ${
+                      on
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground/80 hover:bg-accent/60"
+                    }`}
+                  >
+                    <MaterialIcon name={s.icon} size={18} filled={on} />
+                    <span className="truncate">{s.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </aside>
 
         <div>

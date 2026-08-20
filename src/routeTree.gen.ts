@@ -14,6 +14,7 @@ import { Route as LeavesRouteImport } from './routes/leaves'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SurveysRouteImport } from './routes/surveys'
 import { Route as VacationsRouteImport } from './routes/vacations'
@@ -28,6 +29,7 @@ import { Route as RegulationsOtherRouteImport } from './routes/regulations.other
 import { Route as RegulationsPermitsRouteImport } from './routes/regulations.permits'
 import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shifts'
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
+import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
 import { Route as StaffBankBlockRouteImport } from './routes/staff.bank-block'
@@ -59,6 +61,11 @@ const RegulationsRoute = RegulationsRouteImport.update({
 const RequestNotificationsRoute = RequestNotificationsRouteImport.update({
   id: '/request-notifications',
   path: '/request-notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffRoute = StaffRouteImport.update({
@@ -131,6 +138,11 @@ const RegulationsVacationsRoute = RegulationsVacationsRouteImport.update({
   path: '/vacations',
   getParentRoute: () => RegulationsRoute,
 } as any)
+const SettingsBasicRoute = SettingsBasicRouteImport.update({
+  id: '/basic',
+  path: '/basic',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -173,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/staff': typeof StaffRouteWithChildren
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
@@ -186,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/settings/basic': typeof SettingsBasicRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -200,6 +214,7 @@ export interface FileRoutesByTo {
   '/leaves': typeof LeavesRoute
   '/payroll': typeof PayrollRoute
   '/request-notifications': typeof RequestNotificationsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
@@ -212,6 +227,7 @@ export interface FileRoutesByTo {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/settings/basic': typeof SettingsBasicRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -228,6 +244,7 @@ export interface FileRoutesById {
   '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/staff': typeof StaffRouteWithChildren
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
@@ -241,6 +258,7 @@ export interface FileRoutesById {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/settings/basic': typeof SettingsBasicRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -258,6 +276,7 @@ export interface FileRouteTypes {
     | '/payroll'
     | '/regulations'
     | '/request-notifications'
+    | '/settings'
     | '/staff'
     | '/surveys'
     | '/vacations'
@@ -271,6 +290,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/settings/basic'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -285,6 +305,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/payroll'
     | '/request-notifications'
+    | '/settings'
     | '/surveys'
     | '/vacations'
     | '/regulations/approvals'
@@ -297,6 +318,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/settings/basic'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -312,6 +334,7 @@ export interface FileRouteTypes {
     | '/payroll'
     | '/regulations'
     | '/request-notifications'
+    | '/settings'
     | '/staff'
     | '/surveys'
     | '/vacations'
@@ -325,6 +348,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/settings/basic'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -341,6 +365,7 @@ export interface RootRouteChildren {
   PayrollRoute: typeof PayrollRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   StaffRoute: typeof StaffRouteWithChildren
   SurveysRoute: typeof SurveysRoute
   VacationsRoute: typeof VacationsRoute
@@ -381,6 +406,13 @@ declare module '@tanstack/react-router' {
       path: '/request-notifications'
       fullPath: '/request-notifications'
       preLoaderRoute: typeof RequestNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff': {
@@ -481,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegulationsVacationsRouteImport
       parentRoute: typeof RegulationsRoute
     }
+    '/settings/basic': {
+      id: '/settings/basic'
+      path: '/basic'
+      fullPath: '/settings/basic'
+      preLoaderRoute: typeof SettingsBasicRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/staff/': {
       id: '/staff/'
       path: '/'
@@ -565,6 +604,18 @@ const RegulationsRouteWithChildren = RegulationsRoute._addFileChildren(
   RegulationsRouteChildren,
 )
 
+interface SettingsRouteChildren {
+  SettingsBasicRoute: typeof SettingsBasicRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsBasicRoute: SettingsBasicRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 interface StaffRouteChildren {
   StaffAddRoute: typeof StaffAddRoute
   StaffBankBlockRoute: typeof StaffBankBlockRoute
@@ -593,6 +644,7 @@ const rootRouteChildren: RootRouteChildren = {
   PayrollRoute: PayrollRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   StaffRoute: StaffRouteWithChildren,
   SurveysRoute: SurveysRoute,
   VacationsRoute: VacationsRoute,

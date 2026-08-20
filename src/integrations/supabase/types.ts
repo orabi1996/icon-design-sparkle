@@ -91,6 +91,48 @@ export type Database = {
           },
         ]
       }
+      basic_lookups: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          id: string
+          kind: string | null
+          linked_leaves: string | null
+          name_ar: string
+          name_en: string | null
+          notes: string | null
+          penalty: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          id?: string
+          kind?: string | null
+          linked_leaves?: string | null
+          name_ar: string
+          name_en?: string | null
+          notes?: string | null
+          penalty?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          id?: string
+          kind?: string | null
+          linked_leaves?: string | null
+          name_ar?: string
+          name_en?: string | null
+          notes?: string | null
+          penalty?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deductions: {
         Row: {
           active: boolean

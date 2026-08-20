@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { Btn, Chip } from "@/components/hr/ui";
-import { useDeleteRow, useRows, useSaveRow, type HrTable, type Row } from "@/lib/hr-db";
+import { useDeleteRow, useRows, useSaveRow, type HrTable, type Row, type RowFilters } from "@/lib/hr-db";
 
 export type FieldDef = {
   key: string;
@@ -35,6 +35,8 @@ export function CrudTable({
   addLabel = "إضافة سجل",
   searchKeys,
   orderBy,
+  ascending,
+  filters,
   toolbarExtra,
 }: {
   table: HrTable;
@@ -43,9 +45,20 @@ export function CrudTable({
   addLabel?: string;
   searchKeys?: string[];
   orderBy?: string;
+  ascending?: boolean;
+  /** fixed column values: used to scope the list and stamped on new rows */
+  filters?: RowFilters;
   toolbarExtra?: ReactNode;
 }) {
-  const { data: rows = [], isLoading, error } = useRows(table, orderBy ? { orderBy } : undefined);
+  const {
+    data: rows = [],
+    isLoading,
+    error,
+  } = useRows(table, {
+    ...(orderBy ? { orderBy } : {}),
+    ...(ascending === undefined ? {} : { ascending }),
+    ...(filters ? { filters } : {}),
+  });
   const save = useSaveRow(table);
   const del = useDeleteRow(table);
   const [draft, setDraft] = useState<Row | null>(null);
@@ -64,7 +77,7 @@ export function CrudTable({
   const openNew = () => {
     const blank: Row = {};
     for (const f of formFields) blank[f.key] = f.type === "checkbox" ? false : f.type === "number" ? 0 : "";
-    setDraft(blank);
+    setDraft({ ...blank, ...(filters ?? {}) });
   };
 
   const submit = async () => {

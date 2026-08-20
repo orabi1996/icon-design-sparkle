@@ -20,7 +20,8 @@ export type HrTable =
   | "attendance_records"
   | "payroll_runs"
   | "work_shift_groups"
-  | "regulation_rules";
+  | "regulation_rules"
+  | "basic_lookups";
 
 export type RowFilters = Record<string, string | number | boolean>;
 

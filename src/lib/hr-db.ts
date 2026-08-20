@@ -116,3 +116,39 @@ export function useDeleteRow(table: HrTable) {
 
 export const ar = (n: number) => new Intl.NumberFormat("ar-SA").format(Math.round(n));
 export const money = (n: number) => `${new Intl.NumberFormat("ar-SA").format(Math.round(n))} ر.س`;
+
+/* ============ إعدادات التهيئة العامة (app_settings) ============ */
+
+export type SettingsMap = Record<string, string>;
+
+export function useSettings(section: string) {
+  return useQuery({
+    queryKey: ["app_settings", section],
+    queryFn: async (): Promise<SettingsMap> => {
+      const { data, error } = await db.from("app_settings").select("*").eq("section", section);
+      if (error) throw error;
+      const map: SettingsMap = {};
+      for (const r of (data ?? []) as Row[]) map[r["key"] as string] = (r["value"] ?? "") as string;
+      return map;
+    },
+  });
+}
+
+export function useSaveSettings(section: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: SettingsMap) => {
+      const rows = Object.entries(values).map(([key, value]) => ({ section, key, value }));
+      const { error } = await db
+        .from("app_settings")
+        .upsert(rows, { onConflict: "section,key" });
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["app_settings", section] });
+      toast.success("تم حفظ الإعدادات بنجاح");
+    },
+    onError: (e: Error) => toast.error(`تعذر الحفظ: ${e.message}`),
+  });
+}

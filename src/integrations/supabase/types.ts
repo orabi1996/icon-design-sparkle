@@ -94,12 +94,23 @@ export type Database = {
       basic_lookups: {
         Row: {
           active: boolean
+          age_from: number | null
+          age_to: number | null
+          amount: number | null
           category: string
           code: string | null
           created_at: string
           details: string | null
+          end_date: string | null
           flag: boolean
+          gender: string | null
+          grade: number | null
           id: string
+          insurance_class: string | null
+          insurance_company: string | null
+          is_employee: boolean
+          is_married: boolean
+          job_role: string | null
           kind: string | null
           linked_leaves: string | null
           name_ar: string
@@ -108,17 +119,30 @@ export type Database = {
           notify_days: number | null
           penalty: string | null
           ref_number: string | null
+          relation: string | null
           sabb_code: string | null
+          start_date: string | null
           updated_at: string
         }
         Insert: {
           active?: boolean
+          age_from?: number | null
+          age_to?: number | null
+          amount?: number | null
           category: string
           code?: string | null
           created_at?: string
           details?: string | null
+          end_date?: string | null
           flag?: boolean
+          gender?: string | null
+          grade?: number | null
           id?: string
+          insurance_class?: string | null
+          insurance_company?: string | null
+          is_employee?: boolean
+          is_married?: boolean
+          job_role?: string | null
           kind?: string | null
           linked_leaves?: string | null
           name_ar: string
@@ -127,17 +151,30 @@ export type Database = {
           notify_days?: number | null
           penalty?: string | null
           ref_number?: string | null
+          relation?: string | null
           sabb_code?: string | null
+          start_date?: string | null
           updated_at?: string
         }
         Update: {
           active?: boolean
+          age_from?: number | null
+          age_to?: number | null
+          amount?: number | null
           category?: string
           code?: string | null
           created_at?: string
           details?: string | null
+          end_date?: string | null
           flag?: boolean
+          gender?: string | null
+          grade?: number | null
           id?: string
+          insurance_class?: string | null
+          insurance_company?: string | null
+          is_employee?: boolean
+          is_married?: boolean
+          job_role?: string | null
           kind?: string | null
           linked_leaves?: string | null
           name_ar?: string
@@ -146,7 +183,9 @@ export type Database = {
           notify_days?: number | null
           penalty?: string | null
           ref_number?: string | null
+          relation?: string | null
           sabb_code?: string | null
+          start_date?: string | null
           updated_at?: string
         }
         Relationships: []

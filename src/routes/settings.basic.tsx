@@ -133,12 +133,71 @@ const SECTIONS: Section[] = [
       { key: "notify_days", label: "عدد ايام التنبيه", type: "number" },
     ],
   },
-  { key: "التقيم", label: "التقيم", icon: "star", group: "اعدادات العقود والمستندات والمؤهلات" },
+  {
+    key: "التقيم",
+    label: "التقيم",
+    icon: "star",
+    group: "اعدادات العقود والمستندات والمؤهلات",
+    extra: [
+      {
+        key: "job_role",
+        label: "الوظيفه",
+        type: "select",
+        options: ["الكل", "أجير", "مقيم تأمينات", "معلم", "اداري"],
+      },
+      { key: "grade", label: "درجة", type: "number" },
+    ],
+  },
   { key: "التقدير", label: "التقدير", icon: "emoji_events", group: "اعدادات العقود والمستندات والمؤهلات" },
   { key: "نوع التدريب", label: "نوع التدريب", icon: "cast_for_education", group: "اعدادات العقود والمستندات والمؤهلات" },
+  {
+    key: "شركه التامين",
+    label: "شركه التامين",
+    icon: "apartment",
+    group: "شركه التامين",
+    extra: [
+      { key: "ref_number", label: "رقم المستند" },
+      { key: "start_date", label: "تاريخ البداية", type: "date" },
+      { key: "end_date", label: "تاريخ النهاية", type: "date" },
+    ],
+  },
+  {
+    key: "فئه التامين",
+    label: "فئه التامين",
+    icon: "layers",
+    group: "شركه التامين",
+    extra: [{ key: "insurance_company", label: "شركه التامين" }],
+  },
+  {
+    key: "اسم الفئة العمرية",
+    label: "اسم الفئة العمرية",
+    icon: "groups",
+    group: "شركه التامين",
+    extra: [
+      { key: "age_from", label: "العمر من", type: "number" },
+      { key: "age_to", label: "العمر الى", type: "number" },
+      { key: "insurance_company", label: "شركه التامين" },
+      { key: "insurance_class", label: "فئه التامين" },
+      { key: "gender", label: "الجنس", type: "select", options: ["الكل", "ذكر", "أنثى"] },
+      {
+        key: "relation",
+        label: "صله القرابه",
+        type: "select",
+        options: ["زوج / زوجة", "ابن", "ابنة", "أب", "أم"],
+      },
+      { key: "amount", label: "مبلغ التامين", type: "number" },
+      { key: "is_employee", label: "موظف", type: "checkbox" },
+      { key: "is_married", label: "متزوج", type: "checkbox" },
+    ],
+  },
 ];
 
-const GROUPS = ["اعدادات بيانات العمل", "اعدادات اساسية", "اعدادات العقود والمستندات والمؤهلات"];
+const GROUPS = [
+  "اعدادات بيانات العمل",
+  "اعدادات اساسية",
+  "اعدادات العقود والمستندات والمؤهلات",
+  "شركه التامين",
+];
 
 function BasicData() {
   const [active, setActive] = useState(SECTIONS[0]!.key);

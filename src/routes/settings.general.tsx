@@ -410,7 +410,7 @@ function GeneralSettings() {
                       ) : (
                         <input
                           className={control}
-                          type={f.type === "check" ? "text" : (f.type ?? "text")}
+                          type={f.type ?? "text"}
                           value={val(f.key)}
                           onChange={(e) => set(f.key, e.target.value)}
                           placeholder="اختر ...."

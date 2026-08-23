@@ -1,12 +1,53 @@
-import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import type { User } from "@supabase/supabase-js";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { MegaMenu } from "@/components/MegaMenu";
 import { nav } from "@/components/hr/nav-data";
+import { supabase } from "@/integrations/supabase/client";
+
+function useSessionGate() {
+  const navigate = useNavigate();
+  const [state, setState] = useState<{ ready: boolean; user: User | null }>({
+    ready: false,
+    user: null,
+  });
+
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!alive) return;
+      setState({ ready: true, user: data.user ?? null });
+      if (!data.user) navigate({ to: "/auth" });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      setState({ ready: true, user: session?.user ?? null });
+      if (!session) navigate({ to: "/auth" });
+    });
+    return () => {
+      alive = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  return state;
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { ready, user } = useSessionGate();
+
+  if (!ready || !user) {
+    return (
+      <div dir="rtl" className="grid min-h-screen place-items-center bg-background">
+        <span className="text-sm font-bold text-muted-foreground">جارٍ التحقق من الجلسة...</span>
+      </div>
+    );
+  }
+
   return (
     <div dir="rtl" className="min-h-screen bg-background text-foreground">
+
       <header className="sticky top-0 z-30">
         <div className="flex h-16 items-center gap-4 border-b border-topbar-border bg-topbar px-4 text-topbar-foreground md:px-6">
           <Link to="/" className="flex items-center gap-3">

@@ -38,22 +38,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             <TopAction icon="content_paste" count="٠" />
             <TopAction icon="language" />
             <div className="mx-2 hidden h-8 w-px bg-white/15 sm:block" />
-            <button
-              onClick={() => supabase.auth.signOut()}
-              title="تسجيل الخروج"
-              className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-topbar-hover"
-            >
+            <div className="flex items-center gap-2 rounded-xl px-2 py-1.5">
               <span className="grid size-9 place-items-center rounded-full bg-topbar-accent text-sm font-bold text-topbar">
-                {(user.email ?? "؟").slice(0, 2).toUpperCase()}
+                <MaterialIcon name="person" size={20} filled />
               </span>
               <span className="hidden text-right leading-tight sm:block">
                 <span className="block text-xs font-bold">مرحباً بك</span>
                 <span className="block text-[11px] font-semibold text-topbar-muted">
-                  {user.email}
+                  مدير الموارد البشرية
                 </span>
               </span>
-              <MaterialIcon name="logout" size={18} className="text-topbar-muted" />
-            </button>
+            </div>
           </div>
         </div>
 

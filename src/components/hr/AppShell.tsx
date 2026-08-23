@@ -1,50 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import type { User } from "@supabase/supabase-js";
+import { type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { MegaMenu } from "@/components/MegaMenu";
 import { nav } from "@/components/hr/nav-data";
-import { supabase } from "@/integrations/supabase/client";
-
-function useSessionGate() {
-  const navigate = useNavigate();
-  const [state, setState] = useState<{ ready: boolean; user: User | null }>({
-    ready: false,
-    user: null,
-  });
-
-  useEffect(() => {
-    let alive = true;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!alive) return;
-      setState({ ready: true, user: data.user ?? null });
-      if (!data.user) navigate({ to: "/auth" });
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      setState({ ready: true, user: session?.user ?? null });
-      if (!session) navigate({ to: "/auth" });
-    });
-    return () => {
-      alive = false;
-      sub.subscription.unsubscribe();
-    };
-  }, [navigate]);
-
-  return state;
-}
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { ready, user } = useSessionGate();
-
-  if (!ready || !user) {
-    return (
-      <div dir="rtl" className="grid min-h-screen place-items-center bg-background">
-        <span className="text-sm font-bold text-muted-foreground">جارٍ التحقق من الجلسة...</span>
-      </div>
-    );
-  }
-
   return (
     <div dir="rtl" className="min-h-screen bg-background text-foreground">
 
@@ -78,22 +38,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             <TopAction icon="content_paste" count="٠" />
             <TopAction icon="language" />
             <div className="mx-2 hidden h-8 w-px bg-white/15 sm:block" />
-            <button
-              onClick={() => supabase.auth.signOut()}
-              title="تسجيل الخروج"
-              className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-topbar-hover"
-            >
+            <div className="flex items-center gap-2 rounded-xl px-2 py-1.5">
               <span className="grid size-9 place-items-center rounded-full bg-topbar-accent text-sm font-bold text-topbar">
-                {(user.email ?? "؟").slice(0, 2).toUpperCase()}
+                <MaterialIcon name="person" size={20} filled />
               </span>
               <span className="hidden text-right leading-tight sm:block">
                 <span className="block text-xs font-bold">مرحباً بك</span>
                 <span className="block text-[11px] font-semibold text-topbar-muted">
-                  {user.email}
+                  مدير الموارد البشرية
                 </span>
               </span>
-              <MaterialIcon name="logout" size={18} className="text-topbar-muted" />
-            </button>
+            </div>
           </div>
         </div>
 

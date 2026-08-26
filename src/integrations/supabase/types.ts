@@ -529,46 +529,127 @@ export type Database = {
       }
       loans: {
         Row: {
+          account_name: string | null
+          allowances: number
           amount: number
+          approved_amount: number
+          attachment_url: string | null
+          basic_salary: number
+          branch: string | null
           created_at: string
+          deduction_method: string | null
+          department: string | null
+          emp_no: string | null
           employee_id: string | null
           employee_name: string | null
+          entry_date: string | null
+          expense_account: string | null
+          first_installment_date: string | null
           id: string
           installments: number
+          job_title: string | null
+          loan_name: string | null
+          loan_type: string
+          main_department: string | null
+          month: number | null
           monthly_amount: number
+          national_id: string | null
+          nationality: string | null
           notes: string | null
           paid_amount: number
+          path: string | null
+          posted: boolean
+          request_date: string | null
+          request_status: string
+          sector: string | null
+          stage: string | null
           start_date: string | null
           status: string
+          total_salary: number
           updated_at: string
+          year: number | null
         }
         Insert: {
+          account_name?: string | null
+          allowances?: number
           amount?: number
+          approved_amount?: number
+          attachment_url?: string | null
+          basic_salary?: number
+          branch?: string | null
           created_at?: string
+          deduction_method?: string | null
+          department?: string | null
+          emp_no?: string | null
           employee_id?: string | null
           employee_name?: string | null
+          entry_date?: string | null
+          expense_account?: string | null
+          first_installment_date?: string | null
           id?: string
           installments?: number
+          job_title?: string | null
+          loan_name?: string | null
+          loan_type?: string
+          main_department?: string | null
+          month?: number | null
           monthly_amount?: number
+          national_id?: string | null
+          nationality?: string | null
           notes?: string | null
           paid_amount?: number
+          path?: string | null
+          posted?: boolean
+          request_date?: string | null
+          request_status?: string
+          sector?: string | null
+          stage?: string | null
           start_date?: string | null
           status?: string
+          total_salary?: number
           updated_at?: string
+          year?: number | null
         }
         Update: {
+          account_name?: string | null
+          allowances?: number
           amount?: number
+          approved_amount?: number
+          attachment_url?: string | null
+          basic_salary?: number
+          branch?: string | null
           created_at?: string
+          deduction_method?: string | null
+          department?: string | null
+          emp_no?: string | null
           employee_id?: string | null
           employee_name?: string | null
+          entry_date?: string | null
+          expense_account?: string | null
+          first_installment_date?: string | null
           id?: string
           installments?: number
+          job_title?: string | null
+          loan_name?: string | null
+          loan_type?: string
+          main_department?: string | null
+          month?: number | null
           monthly_amount?: number
+          national_id?: string | null
+          nationality?: string | null
           notes?: string | null
           paid_amount?: number
+          path?: string | null
+          posted?: boolean
+          request_date?: string | null
+          request_status?: string
+          sector?: string | null
+          stage?: string | null
           start_date?: string | null
           status?: string
+          total_salary?: number
           updated_at?: string
+          year?: number | null
         }
         Relationships: [
           {

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -384,6 +384,95 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      inquiries: {
+        Row: {
+          active: boolean
+          approved_by: string | null
+          branch: string | null
+          created_at: string
+          department: string | null
+          email_sent: boolean
+          emp_no: string | null
+          employee_id: string | null
+          employee_name: string | null
+          employee_reply: string | null
+          entry_date: string
+          id: string
+          inquiry_date: string
+          inquiry_name: string
+          inquiry_type: string
+          main_department: string | null
+          national_id: string | null
+          notes: string | null
+          path: string | null
+          sector: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_name: string | null
+        }
+        Insert: {
+          active?: boolean
+          approved_by?: string | null
+          branch?: string | null
+          created_at?: string
+          department?: string | null
+          email_sent?: boolean
+          emp_no?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          employee_reply?: string | null
+          entry_date?: string
+          id?: string
+          inquiry_date?: string
+          inquiry_name?: string
+          inquiry_type?: string
+          main_department?: string | null
+          national_id?: string | null
+          notes?: string | null
+          path?: string | null
+          sector?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_name?: string | null
+        }
+        Update: {
+          active?: boolean
+          approved_by?: string | null
+          branch?: string | null
+          created_at?: string
+          department?: string | null
+          email_sent?: boolean
+          emp_no?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          employee_reply?: string | null
+          entry_date?: string
+          id?: string
+          inquiry_date?: string
+          inquiry_name?: string
+          inquiry_type?: string
+          main_department?: string | null
+          national_id?: string | null
+          notes?: string | null
+          path?: string | null
+          sector?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leave_requests: {
         Row: {

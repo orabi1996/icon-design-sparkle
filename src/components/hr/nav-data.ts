@@ -129,7 +129,7 @@ export const nav: NavItem[] = [
           { label: "الأجازات", to: "/vacations" },
           { label: "طلبات الأجازات", to: "/leaves" },
           { label: "الاستبيانات و التعميم", to: "/surveys" },
-          "المسائلات",
+          { label: "المسائلات", to: "/inquiries" },
           "الاذونات",
           "المراسلات",
           "مخصص نهاية الخدمة",

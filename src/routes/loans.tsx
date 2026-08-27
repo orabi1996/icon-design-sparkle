@@ -25,7 +25,7 @@ export const Route = createFileRoute("/loans")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: LoansPage;
+  component: LoansPage,
 });
 
 const LOAN_TYPES = ["سلفة شخصية", "سلفة طارئة", "سلفة سكن", "سلفة زواج", "سلفة سيارة"];

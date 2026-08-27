@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InquiriesRouteImport } from './routes/inquiries'
 import { Route as LeavesRouteImport } from './routes/leaves'
+import { Route as LoansRouteImport } from './routes/loans'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
@@ -53,6 +54,11 @@ const InquiriesRoute = InquiriesRouteImport.update({
 const LeavesRoute = LeavesRouteImport.update({
   id: '/leaves',
   path: '/leaves',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoansRoute = LoansRouteImport.update({
+  id: '/loans',
+  path: '/loans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PayrollRoute = PayrollRouteImport.update({
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
+  '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
+  '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
   '/request-notifications': typeof RequestNotificationsRoute
   '/settings': typeof SettingsRouteWithChildren
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
+  '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
@@ -292,6 +301,7 @@ export interface FileRouteTypes {
     | '/'
     | '/inquiries'
     | '/leaves'
+    | '/loans'
     | '/payroll'
     | '/regulations'
     | '/request-notifications'
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/'
     | '/inquiries'
     | '/leaves'
+    | '/loans'
     | '/payroll'
     | '/request-notifications'
     | '/settings'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/'
     | '/inquiries'
     | '/leaves'
+    | '/loans'
     | '/payroll'
     | '/regulations'
     | '/request-notifications'
@@ -387,6 +399,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   InquiriesRoute: typeof InquiriesRoute
   LeavesRoute: typeof LeavesRoute
+  LoansRoute: typeof LoansRoute
   PayrollRoute: typeof PayrollRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
@@ -417,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/leaves'
       fullPath: '/leaves'
       preLoaderRoute: typeof LeavesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loans': {
+      id: '/loans'
+      path: '/loans'
+      fullPath: '/loans'
+      preLoaderRoute: typeof LoansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payroll': {
@@ -683,6 +703,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   InquiriesRoute: InquiriesRoute,
   LeavesRoute: LeavesRoute,
+  LoansRoute: LoansRoute,
   PayrollRoute: PayrollRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,

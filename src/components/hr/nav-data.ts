@@ -136,7 +136,7 @@ export const nav: NavItem[] = [
           "طلبات نهاية الخدمة",
         ],
       },
-      { title: "ماليات الموظفين", items: ["السلف"] },
+      { title: "ماليات الموظفين", items: [{ label: "السلف", to: "/loans" }] },
       {
         title: "رواتب الموظفين",
         items: [

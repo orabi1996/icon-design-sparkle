@@ -142,8 +142,8 @@ function AddTab() {
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!emp) return toast.error("اختر الموظف أولاً");
-    if (!Number(form["amount"])) return toast.error("أدخل مبلغ السلفة");
+    if (!emp) { toast.error("اختر الموظف أولاً"); return; }
+    if (!Number(form["amount"])) { toast.error("أدخل مبلغ السلفة"); return; }
     const d = new Date(String(form["request_date"] || today()));
     await save.mutateAsync({
       ...form,
@@ -386,7 +386,7 @@ function RepayTab() {
   };
 
   const payAll = async () => {
-    if (loans.length === 0) return toast.error("لا توجد سلف قيد السداد");
+    if (loans.length === 0) { toast.error("لا توجد سلف قيد السداد"); return; }
     setBusy(true);
     for (const r of loans) await payOne(r);
     setBusy(false);
@@ -473,7 +473,7 @@ function PostTab() {
   const total = scope.reduce((s, r) => s + Number(r["approved_amount"] || r["amount"] || 0), 0);
 
   const post = async () => {
-    if (scope.length === 0) return toast.error("لا توجد سلف غير مُرحّلة في هذه الفترة");
+    if (scope.length === 0) { toast.error("لا توجد سلف غير مُرحّلة في هذه الفترة"); return; }
     for (const r of scope) await save.mutateAsync({ id: r["id"], posted: true });
     toast.success(`تم ترحيل ${scope.length} سلفة بإجمالي ${money(total)}`);
   };
@@ -521,7 +521,7 @@ function ImportTab() {
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
-    if (lines.length === 0) return toast.error("الصق بيانات السلف أولاً");
+    if (lines.length === 0) { toast.error("الصق بيانات السلف أولاً"); return; }
     let ok = 0;
     for (const line of lines) {
       const [empNo, amount, installments, type] = line.split(/[,\t;]/).map((s) => s?.trim() ?? "");

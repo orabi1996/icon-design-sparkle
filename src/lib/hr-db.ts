@@ -24,7 +24,8 @@ export type HrTable =
   | "basic_lookups"
   | "inquiries"
   | "app_settings"
-  | "employee_permits";
+  | "employee_permits"
+  | "employee_correspondence";
 
 export type RowFilters = Record<string, string | number | boolean>;
 

@@ -42,6 +42,7 @@ import { Route as StaffContractsRouteImport } from './routes/staff.contracts'
 import { Route as StaffManagerRouteImport } from './routes/staff.manager'
 import { Route as StaffTransferRouteImport } from './routes/staff.transfer'
 import { Route as StaffUpdateRouteImport } from './routes/staff.update'
+import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -208,6 +209,11 @@ const StaffUpdateRoute = StaffUpdateRouteImport.update({
   path: '/update',
   getParentRoute: () => StaffRoute,
 } as any)
+const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
+  id: '/api/public/bootstrap-admin',
+  path: '/api/public/bootstrap-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/staff/update': typeof StaffUpdateRoute
   '/regulations/': typeof RegulationsIndexRoute
   '/staff/': typeof StaffIndexRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/staff/update': typeof StaffUpdateRoute
   '/regulations': typeof RegulationsIndexRoute
   '/staff': typeof StaffIndexRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/staff/update': typeof StaffUpdateRoute
   '/regulations/': typeof RegulationsIndexRoute
   '/staff/': typeof StaffIndexRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
     | '/staff/update'
     | '/regulations/'
     | '/staff/'
+    | '/api/public/bootstrap-admin'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/staff/update'
     | '/regulations'
     | '/staff'
+    | '/api/public/bootstrap-admin'
   id:
     | '__root__'
     | '/'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/staff/update'
     | '/regulations/'
     | '/staff/'
+    | '/api/public/bootstrap-admin'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRouteWithChildren
   SurveysRoute: typeof SurveysRoute
   VacationsRoute: typeof VacationsRoute
+  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -668,6 +681,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffUpdateRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/api/public/bootstrap-admin': {
+      id: '/api/public/bootstrap-admin'
+      path: '/api/public/bootstrap-admin'
+      fullPath: '/api/public/bootstrap-admin'
+      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -753,6 +773,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRouteWithChildren,
   SurveysRoute: SurveysRoute,
   VacationsRoute: VacationsRoute,
+  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

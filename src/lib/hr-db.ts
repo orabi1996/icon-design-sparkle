@@ -27,7 +27,8 @@ export type HrTable =
   | "employee_permits"
   | "employee_correspondence"
   | "employee_eos_provisions"
-  | "eos_provision_postings";
+  | "eos_provision_postings"
+  | "end_of_service_requests";
 
 export type RowFilters = Record<string, string | number | boolean>;
 

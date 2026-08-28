@@ -17,6 +17,7 @@ import { Route as LoansRouteImport } from './routes/loans'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SurveysRouteImport } from './routes/surveys'
@@ -80,6 +81,11 @@ const RegulationsRoute = RegulationsRouteImport.update({
 const RequestNotificationsRoute = RequestNotificationsRouteImport.update({
   id: '/request-notifications',
   path: '/request-notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRouteWithChildren
   '/staff': typeof StaffRouteWithChildren
   '/surveys': typeof SurveysRoute
@@ -245,6 +252,7 @@ export interface FileRoutesByTo {
   '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
   '/request-notifications': typeof RequestNotificationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRouteWithChildren
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/payroll': typeof PayrollRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRouteWithChildren
   '/staff': typeof StaffRouteWithChildren
   '/surveys': typeof SurveysRoute
@@ -315,6 +324,7 @@ export interface FileRouteTypes {
     | '/payroll'
     | '/regulations'
     | '/request-notifications'
+    | '/reset-password'
     | '/settings'
     | '/staff'
     | '/surveys'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/loans'
     | '/payroll'
     | '/request-notifications'
+    | '/reset-password'
     | '/settings'
     | '/surveys'
     | '/vacations'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/payroll'
     | '/regulations'
     | '/request-notifications'
+    | '/reset-password'
     | '/settings'
     | '/staff'
     | '/surveys'
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   PayrollRoute: typeof PayrollRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   StaffRoute: typeof StaffRouteWithChildren
   SurveysRoute: typeof SurveysRoute
@@ -478,6 +491,13 @@ declare module '@tanstack/react-router' {
       path: '/request-notifications'
       fullPath: '/request-notifications'
       preLoaderRoute: typeof RequestNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -728,6 +748,7 @@ const rootRouteChildren: RootRouteChildren = {
   PayrollRoute: PayrollRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRouteWithChildren,
   StaffRoute: StaffRouteWithChildren,
   SurveysRoute: SurveysRoute,

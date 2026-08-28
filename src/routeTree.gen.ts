@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CorrespondenceRouteImport } from './routes/correspondence'
+import { Route as EndOfServiceProvisionRouteImport } from './routes/end-of-service-provision'
 import { Route as InquiriesRouteImport } from './routes/inquiries'
 import { Route as LeavesRouteImport } from './routes/leaves'
 import { Route as LoansRouteImport } from './routes/loans'
@@ -58,6 +59,11 @@ const AuthRoute = AuthRouteImport.update({
 const CorrespondenceRoute = CorrespondenceRouteImport.update({
   id: '/correspondence',
   path: '/correspondence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EndOfServiceProvisionRoute = EndOfServiceProvisionRouteImport.update({
+  id: '/end-of-service-provision',
+  path: '/end-of-service-provision',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InquiriesRoute = InquiriesRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
+  '/end-of-service-provision': typeof EndOfServiceProvisionRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
+  '/end-of-service-provision': typeof EndOfServiceProvisionRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
+  '/end-of-service-provision': typeof EndOfServiceProvisionRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -337,6 +346,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/correspondence'
+    | '/end-of-service-provision'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/correspondence'
+    | '/end-of-service-provision'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -409,6 +420,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/correspondence'
+    | '/end-of-service-provision'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -447,6 +459,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   CorrespondenceRoute: typeof CorrespondenceRoute
+  EndOfServiceProvisionRoute: typeof EndOfServiceProvisionRoute
   InquiriesRoute: typeof InquiriesRoute
   LeavesRoute: typeof LeavesRoute
   LoansRoute: typeof LoansRoute
@@ -482,6 +495,13 @@ declare module '@tanstack/react-router' {
       path: '/correspondence'
       fullPath: '/correspondence'
       preLoaderRoute: typeof CorrespondenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/end-of-service-provision': {
+      id: '/end-of-service-provision'
+      path: '/end-of-service-provision'
+      fullPath: '/end-of-service-provision'
+      preLoaderRoute: typeof EndOfServiceProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inquiries': {
@@ -783,6 +803,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CorrespondenceRoute: CorrespondenceRoute,
+  EndOfServiceProvisionRoute: EndOfServiceProvisionRoute,
   InquiriesRoute: InquiriesRoute,
   LeavesRoute: LeavesRoute,
   LoansRoute: LoansRoute,

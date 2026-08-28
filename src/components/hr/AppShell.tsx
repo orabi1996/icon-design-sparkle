@@ -1,10 +1,52 @@
-import { type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { MegaMenu } from "@/components/MegaMenu";
 import { nav } from "@/components/hr/nav-data";
+import { supabase } from "@/integrations/supabase/client";
+
+function useSession() {
+  const [state, setState] = useState<{ ready: boolean; email: string | null }>({
+    ready: false,
+    email: null,
+  });
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) =>
+      setState({ ready: true, email: data.session?.user.email ?? null }),
+    );
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
+      setState({ ready: true, email: session?.user.email ?? null }),
+    );
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  return state;
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { ready, email } = useSession();
+
+  useEffect(() => {
+    if (ready && !email) navigate({ to: "/auth", replace: true });
+  }, [ready, email, navigate]);
+
+  async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+
+  if (!ready || !email) {
+    return (
+      <div dir="rtl" className="grid min-h-screen place-items-center bg-secondary">
+        <MaterialIcon name="progress_activity" size={34} className="animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div dir="rtl" className="min-h-screen bg-background text-foreground">
 
@@ -44,11 +86,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
               <span className="hidden text-right leading-tight sm:block">
                 <span className="block text-xs font-bold">مرحباً بك</span>
-                <span className="block text-[11px] font-semibold text-topbar-muted">
-                  مدير الموارد البشرية
+                <span className="block max-w-[160px] truncate text-[11px] font-semibold text-topbar-muted">
+                  {email}
                 </span>
               </span>
             </div>
+            <button
+              onClick={signOut}
+              className="grid size-10 place-items-center rounded-xl text-topbar-muted transition-colors hover:bg-topbar-hover hover:text-topbar-foreground"
+              aria-label="تسجيل الخروج"
+              title="تسجيل الخروج"
+            >
+              <MaterialIcon name="logout" size={22} />
+            </button>
           </div>
         </div>
 

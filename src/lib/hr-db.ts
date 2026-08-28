@@ -23,7 +23,8 @@ export type HrTable =
   | "regulation_rules"
   | "basic_lookups"
   | "inquiries"
-  | "app_settings";
+  | "app_settings"
+  | "employee_permits";
 
 export type RowFilters = Record<string, string | number | boolean>;
 
@@ -140,9 +141,7 @@ export function useSaveSettings(section: string) {
   return useMutation({
     mutationFn: async (values: SettingsMap) => {
       const rows = Object.entries(values).map(([key, value]) => ({ section, key, value }));
-      const { error } = await db
-        .from("app_settings")
-        .upsert(rows, { onConflict: "section,key" });
+      const { error } = await db.from("app_settings").upsert(rows, { onConflict: "section,key" });
       if (error) throw error;
       return rows.length;
     },

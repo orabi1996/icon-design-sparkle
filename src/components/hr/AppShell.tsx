@@ -86,11 +86,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
               <span className="hidden text-right leading-tight sm:block">
                 <span className="block text-xs font-bold">مرحباً بك</span>
-                <span className="block text-[11px] font-semibold text-topbar-muted">
-                  مدير الموارد البشرية
+                <span className="block max-w-[160px] truncate text-[11px] font-semibold text-topbar-muted">
+                  {email}
                 </span>
               </span>
             </div>
+            <button
+              onClick={signOut}
+              className="grid size-10 place-items-center rounded-xl text-topbar-muted transition-colors hover:bg-topbar-hover hover:text-topbar-foreground"
+              aria-label="تسجيل الخروج"
+              title="تسجيل الخروج"
+            >
+              <MaterialIcon name="logout" size={22} />
+            </button>
           </div>
         </div>
 

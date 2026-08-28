@@ -75,11 +75,17 @@ function AuthPage() {
   }
 
   async function forgotPassword() {
-    if (!email) return toast.error("أدخل بريدك الإلكتروني أولاً");
+    if (!email) {
+      toast.error("أدخل بريدك الإلكتروني أولاً");
+      return;
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("تم إرسال رابط استعادة كلمة المرور");
   }
 

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as InquiriesRouteImport } from './routes/inquiries'
 import { Route as LeavesRouteImport } from './routes/leaves'
 import { Route as LoansRouteImport } from './routes/loans'
@@ -44,6 +45,11 @@ import { Route as StaffUpdateRouteImport } from './routes/staff.update'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InquiriesRoute = InquiriesRouteImport.update({
@@ -199,6 +205,7 @@ const StaffUpdateRoute = StaffUpdateRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -264,6 +272,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -397,6 +409,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   InquiriesRoute: typeof InquiriesRoute
   LeavesRoute: typeof LeavesRoute
   LoansRoute: typeof LoansRoute
@@ -416,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inquiries': {
@@ -701,6 +721,7 @@ const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   InquiriesRoute: InquiriesRoute,
   LeavesRoute: LeavesRoute,
   LoansRoute: LoansRoute,

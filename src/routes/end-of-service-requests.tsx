@@ -301,7 +301,7 @@ function EndOfServiceRequestsPage() {
   const serviceYears = selectedEmployee?.["hire_date"]
     ? Math.max(
         0,
-        (new Date(form.serviceEndDate || new Date()).getTime() -
+        ((form.serviceEndDate ? new Date(form.serviceEndDate).getTime() : Date.now()) -
           new Date(String(selectedEmployee["hire_date"])).getTime()) /
           (365.25 * 86_400_000),
       )

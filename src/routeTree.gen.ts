@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CorrespondenceRouteImport } from './routes/correspondence'
 import { Route as EndOfServiceProvisionRouteImport } from './routes/end-of-service-provision'
+import { Route as EndOfServiceRequestsRouteImport } from './routes/end-of-service-requests'
 import { Route as InquiriesRouteImport } from './routes/inquiries'
 import { Route as LeavesRouteImport } from './routes/leaves'
 import { Route as LoansRouteImport } from './routes/loans'
@@ -64,6 +65,11 @@ const CorrespondenceRoute = CorrespondenceRouteImport.update({
 const EndOfServiceProvisionRoute = EndOfServiceProvisionRouteImport.update({
   id: '/end-of-service-provision',
   path: '/end-of-service-provision',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EndOfServiceRequestsRoute = EndOfServiceRequestsRouteImport.update({
+  id: '/end-of-service-requests',
+  path: '/end-of-service-requests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InquiriesRoute = InquiriesRouteImport.update({
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
   '/end-of-service-provision': typeof EndOfServiceProvisionRoute
+  '/end-of-service-requests': typeof EndOfServiceRequestsRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
   '/end-of-service-provision': typeof EndOfServiceProvisionRoute
+  '/end-of-service-requests': typeof EndOfServiceRequestsRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -307,6 +315,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
   '/end-of-service-provision': typeof EndOfServiceProvisionRoute
+  '/end-of-service-requests': typeof EndOfServiceRequestsRoute
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/correspondence'
     | '/end-of-service-provision'
+    | '/end-of-service-requests'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/correspondence'
     | '/end-of-service-provision'
+    | '/end-of-service-requests'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/correspondence'
     | '/end-of-service-provision'
+    | '/end-of-service-requests'
     | '/inquiries'
     | '/leaves'
     | '/loans'
@@ -460,6 +472,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CorrespondenceRoute: typeof CorrespondenceRoute
   EndOfServiceProvisionRoute: typeof EndOfServiceProvisionRoute
+  EndOfServiceRequestsRoute: typeof EndOfServiceRequestsRoute
   InquiriesRoute: typeof InquiriesRoute
   LeavesRoute: typeof LeavesRoute
   LoansRoute: typeof LoansRoute
@@ -502,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/end-of-service-provision'
       fullPath: '/end-of-service-provision'
       preLoaderRoute: typeof EndOfServiceProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/end-of-service-requests': {
+      id: '/end-of-service-requests'
+      path: '/end-of-service-requests'
+      fullPath: '/end-of-service-requests'
+      preLoaderRoute: typeof EndOfServiceRequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inquiries': {
@@ -804,6 +824,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CorrespondenceRoute: CorrespondenceRoute,
   EndOfServiceProvisionRoute: EndOfServiceProvisionRoute,
+  EndOfServiceRequestsRoute: EndOfServiceRequestsRoute,
   InquiriesRoute: InquiriesRoute,
   LeavesRoute: LeavesRoute,
   LoansRoute: LoansRoute,

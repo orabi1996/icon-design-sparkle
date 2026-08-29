@@ -1,7 +1,21 @@
 import type { NavItem } from "@/components/MegaMenu";
 
 export const nav: NavItem[] = [
-  { label: "إدارة المهام", icon: "dashboard_customize" },
+  {
+    label: "إدارة المهام",
+    icon: "dashboard_customize",
+    columns: [
+      {
+        title: "إدارة المهام الإضافية",
+        items: [
+          { label: "المهام", to: "/tasks" },
+          { label: "التهيئة", to: "/tasks/setup" },
+          { label: "إدارة الصلاحيات", to: "/tasks/permissions" },
+          { label: "التقارير", to: "/tasks/reports" },
+        ],
+      },
+    ],
+  },
   { label: "الصلاحيات", icon: "shield_person" },
   { label: "تقييم الأداء", icon: "trending_up" },
   { label: "طلبات الاعتماد", icon: "task_alt" },

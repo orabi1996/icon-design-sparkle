@@ -29,7 +29,13 @@ export type HrTable =
   | "employee_correspondence"
   | "employee_eos_provisions"
   | "eos_provision_postings"
-  | "end_of_service_requests";
+  | "end_of_service_requests"
+  | "task_categories"
+  | "task_priorities"
+  | "task_statuses"
+  | "task_creator_permissions"
+  | "task_receiver_permissions"
+  | "tasks";
 
 export type RowFilters = Record<string, string | number | boolean>;
 

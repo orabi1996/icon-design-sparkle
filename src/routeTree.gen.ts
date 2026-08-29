@@ -48,6 +48,10 @@ import { Route as StaffContractsRouteImport } from './routes/staff.contracts'
 import { Route as StaffManagerRouteImport } from './routes/staff.manager'
 import { Route as StaffTransferRouteImport } from './routes/staff.transfer'
 import { Route as StaffUpdateRouteImport } from './routes/staff.update'
+import { Route as TasksIndexRouteImport } from './routes/tasks.index'
+import { Route as TasksPermissionsRouteImport } from './routes/tasks.permissions'
+import { Route as TasksReportsRouteImport } from './routes/tasks.reports'
+import { Route as TasksSetupRouteImport } from './routes/tasks.setup'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -244,6 +248,26 @@ const StaffUpdateRoute = StaffUpdateRouteImport.update({
   path: '/update',
   getParentRoute: () => StaffRoute,
 } as any)
+const TasksIndexRoute = TasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksPermissionsRoute = TasksPermissionsRouteImport.update({
+  id: '/tasks/permissions',
+  path: '/tasks/permissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksReportsRoute = TasksReportsRouteImport.update({
+  id: '/tasks/reports',
+  path: '/tasks/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksSetupRoute = TasksSetupRouteImport.update({
+  id: '/tasks/setup',
+  path: '/tasks/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -283,8 +307,12 @@ export interface FileRoutesByFullPath {
   '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
+  '/tasks/permissions': typeof TasksPermissionsRoute
+  '/tasks/reports': typeof TasksReportsRoute
+  '/tasks/setup': typeof TasksSetupRoute
   '/regulations/': typeof RegulationsIndexRoute
   '/staff/': typeof StaffIndexRoute
+  '/tasks/': typeof TasksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -322,8 +350,12 @@ export interface FileRoutesByTo {
   '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
+  '/tasks/permissions': typeof TasksPermissionsRoute
+  '/tasks/reports': typeof TasksReportsRoute
+  '/tasks/setup': typeof TasksSetupRoute
   '/regulations': typeof RegulationsIndexRoute
   '/staff': typeof StaffIndexRoute
+  '/tasks': typeof TasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -364,8 +396,12 @@ export interface FileRoutesById {
   '/staff/manager': typeof StaffManagerRoute
   '/staff/transfer': typeof StaffTransferRoute
   '/staff/update': typeof StaffUpdateRoute
+  '/tasks/permissions': typeof TasksPermissionsRoute
+  '/tasks/reports': typeof TasksReportsRoute
+  '/tasks/setup': typeof TasksSetupRoute
   '/regulations/': typeof RegulationsIndexRoute
   '/staff/': typeof StaffIndexRoute
+  '/tasks/': typeof TasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -407,8 +443,12 @@ export interface FileRouteTypes {
     | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
+    | '/tasks/permissions'
+    | '/tasks/reports'
+    | '/tasks/setup'
     | '/regulations/'
     | '/staff/'
+    | '/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -446,8 +486,12 @@ export interface FileRouteTypes {
     | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
+    | '/tasks/permissions'
+    | '/tasks/reports'
+    | '/tasks/setup'
     | '/regulations'
     | '/staff'
+    | '/tasks'
   id:
     | '__root__'
     | '/'
@@ -487,8 +531,12 @@ export interface FileRouteTypes {
     | '/staff/manager'
     | '/staff/transfer'
     | '/staff/update'
+    | '/tasks/permissions'
+    | '/tasks/reports'
+    | '/tasks/setup'
     | '/regulations/'
     | '/staff/'
+    | '/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -509,6 +557,10 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRouteWithChildren
   SurveysRoute: typeof SurveysRoute
   VacationsRoute: typeof VacationsRoute
+  TasksPermissionsRoute: typeof TasksPermissionsRoute
+  TasksReportsRoute: typeof TasksReportsRoute
+  TasksSetupRoute: typeof TasksSetupRoute
+  TasksIndexRoute: typeof TasksIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -786,6 +838,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffUpdateRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/tasks/': {
+      id: '/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof TasksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks/permissions': {
+      id: '/tasks/permissions'
+      path: '/tasks/permissions'
+      fullPath: '/tasks/permissions'
+      preLoaderRoute: typeof TasksPermissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks/reports': {
+      id: '/tasks/reports'
+      path: '/tasks/reports'
+      fullPath: '/tasks/reports'
+      preLoaderRoute: typeof TasksReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks/setup': {
+      id: '/tasks/setup'
+      path: '/tasks/setup'
+      fullPath: '/tasks/setup'
+      preLoaderRoute: typeof TasksSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -879,6 +959,10 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRouteWithChildren,
   SurveysRoute: SurveysRoute,
   VacationsRoute: VacationsRoute,
+  TasksPermissionsRoute: TasksPermissionsRoute,
+  TasksReportsRoute: TasksReportsRoute,
+  TasksSetupRoute: TasksSetupRoute,
+  TasksIndexRoute: TasksIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

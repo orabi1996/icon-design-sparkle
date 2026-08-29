@@ -152,7 +152,7 @@ export const nav: NavItem[] = [
         items: [
           { label: "التهيئة العامة للبرنامج", to: "/settings/general" },
           { label: "تهيئة البيانات الاساسية", to: "/settings/basic" },
-          "تهيئة ربط الحسابات",
+          { label: "تهيئة ربط الحسابات", to: "/settings/account-links" },
         ],
       },
       {

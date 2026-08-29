@@ -13,13 +13,12 @@ import { useRows, useSaveRow, type Row } from "@/lib/hr-db";
 import { supabase } from "@/integrations/supabase/client";
 
 type Value = string | number | boolean;
-type EmployeeForm = Record<string, Value>;
 
 type FieldProps = {
   label: string;
-  required?: boolean;
+  required?: boolean | undefined;
   children: ReactNode;
-  className?: string;
+  className?: string | undefined;
 };
 
 const controlClass =
@@ -52,7 +51,7 @@ const workScopes = ["داخل المملكة", "خارج المملكة", "حس�
 const hourStandards = ["يومي", "أسبوعي", "شهري"];
 const contractTerms = ["العقد القياسي", "عقد إداري", "عقد تشغيلي", "عقد تعليمي"];
 
-const emptyForm: EmployeeForm = {
+const emptyForm = {
   emp_no: "",
   full_name: "",
   employee_name_en: "",
@@ -130,7 +129,9 @@ const emptyForm: EmployeeForm = {
   allowances: 0,
   bank_name: "",
   iban: "",
-};
+} satisfies Record<string, Value>;
+
+type EmployeeForm = typeof emptyForm;
 
 const labels: Record<string, string> = {
   full_name: "اسم الموظف رباعي",
@@ -163,7 +164,7 @@ const labels: Record<string, string> = {
   weekly_rest_days: "عدد أيام الراحة الأسبوعية",
 };
 
-const requiredByStep = [
+const requiredByStep: (keyof EmployeeForm)[][] = [
   ["full_name", "national_id", "nationality", "religion", "gender"],
   [
     "region",
@@ -215,9 +216,9 @@ function InputControl({
   value: Value;
   onChange: (value: string) => void;
   type?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  min?: number;
+  placeholder?: string | undefined;
+  disabled?: boolean | undefined;
+  min?: number | undefined;
 }) {
   return (
     <input
@@ -330,7 +331,7 @@ function DualDate({
   onChange,
 }: {
   label: string;
-  required?: boolean;
+  required?: boolean | undefined;
   value: Value;
   onChange: (value: string) => void;
 }) {
@@ -381,7 +382,7 @@ export function EmployeeWizard() {
     [departments],
   );
 
-  const set = (key: string, value: Value) =>
+  const set = <K extends keyof EmployeeForm>(key: K, value: EmployeeForm[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
   useEffect(() => {
@@ -427,7 +428,7 @@ export function EmployeeWizard() {
   };
 
   const validateStep = (index: number) => {
-    const missing = requiredByStep[index].filter((key) => {
+    const missing = (requiredByStep[index] ?? []).filter((key) => {
       const value = form[key];
       if (typeof value === "number") return value <= 0;
       return !String(value ?? "").trim();

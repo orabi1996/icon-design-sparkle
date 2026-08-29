@@ -134,6 +134,7 @@ const emptyForm = {
 type EmployeeForm = typeof emptyForm;
 
 const labels: Record<string, string> = {
+  emp_no: "الرقم الوظيفي",
   full_name: "اسم الموظف رباعي",
   national_id: "رقم الهوية",
   nationality: "الجنسية",
@@ -165,7 +166,7 @@ const labels: Record<string, string> = {
 };
 
 const requiredByStep: (keyof EmployeeForm)[][] = [
-  ["full_name", "national_id", "nationality", "religion", "gender"],
+  ["emp_no", "full_name", "national_id", "nationality", "religion", "gender"],
   [
     "region",
     "branch",
@@ -402,7 +403,7 @@ export function EmployeeWizard() {
   }, [draftReady, form]);
 
   useEffect(() => {
-    if (form.emp_no || employees.length === 0) return;
+    if (form.emp_no) return;
     const nextNumber =
       Math.max(
         100000,

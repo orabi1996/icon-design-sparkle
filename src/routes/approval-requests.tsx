@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/hr/AppShell";
-import { Breadcrumbs, Btn, Chip, PageBanner } from "@/components/hr/ui";
+import { Breadcrumbs } from "@/components/hr/ui";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { useRows, useSaveRow, useDeleteRow, type Row } from "@/lib/hr-db";
 
@@ -52,33 +52,57 @@ const AWAITING_STAGES = [
   "المدير التنفيذي",
 ];
 
-const STATUS_META: Record<
-  string,
-  { label: string; tone: "amber" | "green" | "muted" | "blue"; icon: string }
-> = {
-  pending:   { label: "بانتظار الاعتماد", tone: "amber",  icon: "hourglass_top" },
-  approved:  { label: "معتمد",            tone: "green",  icon: "check_circle" },
-  rejected:  { label: "مرفوض",            tone: "muted",  icon: "cancel" },
-  cancelled: { label: "ملغى",             tone: "muted",  icon: "block" },
-};
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "pending", label: "بانتظار الاعتماد" },
+  { value: "approved", label: "معتمد" },
+  { value: "rejected", label: "مرفوض" },
+  { value: "cancelled", label: "ملغى" },
+];
 
-function fmtDateTime(v: unknown) {
+/** Format a date exactly like the mockup: "May 21 at 12:00:00 AM" */
+function fmtDateEn(v: unknown) {
   if (!v) return "—";
-  const s = String(v);
   try {
-    const d = new Date(s);
-    if (Number.isNaN(d.getTime())) return s;
-    return new Intl.DateTimeFormat("ar-EG", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
+    const d = new Date(String(v));
+    if (Number.isNaN(d.getTime())) return String(v);
+    const datePart = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
     }).format(d);
+    const timePart = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }).format(d);
+    return `${datePart} at ${timePart}`;
   } catch {
-    return s;
+    return String(v);
   }
 }
+
+type ColKey =
+  | "employee_name"
+  | "request_type"
+  | "branch"
+  | "category"
+  | "request_date"
+  | "entered_at"
+  | "approval_chain"
+  | "direct_manager_name"
+  | "awaiting_approver_name";
+
+const COLUMNS: { key: ColKey; label: string }[] = [
+  { key: "employee_name",          label: "اسم الموظف" },
+  { key: "request_type",           label: "بيانات الطلب" },
+  { key: "branch",                 label: "الفرع" },
+  { key: "category",               label: "التصنيف" },
+  { key: "request_date",           label: "تاريخ الطلب" },
+  { key: "entered_at",             label: "تاريخ الإدخال" },
+  { key: "approval_chain",         label: "سلسلة الموافقة" },
+  { key: "direct_manager_name",    label: "المدير المباشر" },
+  { key: "awaiting_approver_name", label: "في انتظار موافقة" },
+];
 
 function ApprovalRequestsPage() {
   const { data: rows = [], isLoading } = useRows("approval_requests", {
@@ -89,43 +113,38 @@ function ApprovalRequestsPage() {
 
   const [draft, setDraft] = useState<Row | null>(null);
   const [term, setTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [colFilters, setColFilters] = useState<Record<ColKey, string>>({
+    employee_name: "",
+    request_type: "",
+    branch: "",
+    category: "",
+    request_date: "",
+    entered_at: "",
+    approval_chain: "",
+    direct_manager_name: "",
+    awaiting_approver_name: "",
+  });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const t = term.trim();
     return rows.filter((r) => {
-      if (statusFilter && r["status"] !== statusFilter) return false;
-      if (typeFilter && r["request_type"] !== typeFilter) return false;
+      // per-column contains filters
+      for (const c of COLUMNS) {
+        const f = colFilters[c.key];
+        if (!f) continue;
+        if (!String(r[c.key] ?? "").includes(f)) return false;
+      }
       if (!t) return true;
-      return [
-        "employee_name",
-        "emp_no",
-        "request_type",
-        "request_subject",
-        "branch",
-        "department",
-        "direct_manager_name",
-        "awaiting_approver_name",
-      ].some((k) => String(r[k] ?? "").includes(t));
+      return COLUMNS.some((c) => String(r[c.key] ?? "").includes(t));
     });
-  }, [rows, term, statusFilter, typeFilter]);
+  }, [rows, term, colFilters]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const stats = useMemo(() => {
-    const by = (s: string) => rows.filter((r) => r["status"] === s).length;
-    return {
-      total: rows.length,
-      pending: by("pending"),
-      approved: by("approved"),
-      rejected: by("rejected"),
-    };
-  }, [rows]);
 
   const openNew = () =>
     setDraft({
@@ -158,6 +177,7 @@ function ApprovalRequestsPage() {
       status: "approved",
       decision_at: new Date().toISOString(),
     });
+    setOpenMenu(null);
   };
   const reject = async (r: Row) => {
     const reason = prompt("سبب الرفض؟") ?? "";
@@ -167,137 +187,116 @@ function ApprovalRequestsPage() {
       decision_at: new Date().toISOString(),
       decision_reason: reason,
     });
+    setOpenMenu(null);
   };
 
   return (
     <AppShell>
-      <Breadcrumbs trail={["طلبات الاعتماد"]} />
-      <PageBanner
-        icon="task_alt"
-        title="طلبات الاعتماد"
-        subtitle="متابعة طلبات الموظفين وسلسلة الاعتماد والحالة الحالية"
-        actions={
-          <Btn icon="add" variant="onDark" onClick={openNew}>
-            إضافة طلب
-          </Btn>
-        }
-      />
+      <div className="mt-3">
+        <Breadcrumbs trail={["طلبات الاعتماد"]} />
+      </div>
 
-      {/* Stat cards */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="إجمالي الطلبات" value={stats.total} icon="inbox" tone="primary" />
-        <StatCard title="بانتظار الاعتماد" value={stats.pending} icon="hourglass_top" tone="amber" />
-        <StatCard title="معتمد" value={stats.approved} icon="check_circle" tone="emerald" />
-        <StatCard title="مرفوض" value={stats.rejected} icon="cancel" tone="rose" />
+      <h1 className="mt-3 flex items-center gap-2 text-lg font-extrabold text-foreground">
+        <MaterialIcon name="task_alt" size={22} className="text-primary" filled />
+        طلبات الاعتماد
+      </h1>
+
+      {/* Toolbar: search + export buttons + add */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <input
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Search..."
+            dir="ltr"
+            className={`${control} h-10 w-64 pl-9`}
+          />
+          <MaterialIcon
+            name="search"
+            size={17}
+            className="pointer-events-none absolute inset-y-0 left-3 my-auto h-fit text-muted-foreground"
+          />
+        </div>
+
+        {[
+          { icon: "picture_as_pdf", label: "PDF" },
+          { icon: "table_view", label: "Excel" },
+          { icon: "print", label: "طباعة" },
+        ].map((b) => (
+          <button
+            key={b.label}
+            title={b.label}
+            className="grid size-10 place-items-center rounded-lg bg-emerald-600 text-white shadow-sm transition-colors hover:bg-emerald-700"
+          >
+            <MaterialIcon name={b.icon} size={18} />
+          </button>
+        ))}
+
+        <button
+          onClick={openNew}
+          className="ms-auto flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-[13px] font-bold text-primary-foreground shadow-sm hover:opacity-90"
+        >
+          <MaterialIcon name="add" size={18} />
+          إضافة طلب
+        </button>
       </div>
 
       {/* Table */}
       <div
-        className="mt-4 overflow-hidden rounded-2xl border border-border bg-card"
+        className="mt-3 overflow-hidden rounded-2xl border border-border bg-card"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-          <h2 className="me-auto flex items-center gap-2 text-sm font-bold">
-            <MaterialIcon name="pending_actions" size={19} className="text-primary" filled />
-            قائمة الطلبات
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
-              {filtered.length}
-            </span>
-          </h2>
-
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className={`${control} h-9 w-44`}
-          >
-            <option value="">كل الأنواع</option>
-            {REQUEST_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className={`${control} h-9 w-40`}
-          >
-            <option value="">كل الحالات</option>
-            {Object.entries(STATUS_META).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="relative">
-            <input
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              placeholder="ابحث..."
-              className={`${control} h-9 w-56 pe-9`}
-            />
-            <MaterialIcon
-              name="search"
-              size={17}
-              className="pointer-events-none absolute inset-y-0 left-3 my-auto h-fit text-muted-foreground"
-            />
-          </div>
-
-          {[
-            { icon: "picture_as_pdf", label: "PDF" },
-            { icon: "table_view", label: "Excel" },
-            { icon: "print", label: "طباعة" },
-          ].map((b) => (
-            <button
-              key={b.label}
-              title={b.label}
-              className="grid size-9 place-items-center rounded-xl border border-border bg-secondary text-primary transition-colors hover:bg-accent"
-            >
-              <MaterialIcon name={b.icon} size={17} />
-            </button>
-          ))}
-        </div>
-
         <div className="overflow-x-auto">
           <table className="w-full min-w-max border-collapse text-right">
+            {/* Dark-blue header + per-column filter row */}
             <thead>
-              <tr className="bg-secondary">
-                {[
-                  "اسم الموظف",
-                  "بيانات الطلب",
-                  "الفرع",
-                  "التصنيف",
-                  "تاريخ الطلب",
-                  "تاريخ الإدخال",
-                  "سلسلة الموافقة",
-                  "المدير المباشر",
-                  "في انتظار موافقة",
-                  "الحالة",
-                  "إجراءات",
-                ].map((c) => (
+              <tr className="bg-topbar text-topbar-foreground">
+                {COLUMNS.map((c) => (
                   <th
-                    key={c}
-                    className="whitespace-nowrap border-b border-border px-4 py-3 text-[12px] font-extrabold text-secondary-foreground"
+                    key={c.key}
+                    className="whitespace-nowrap px-4 py-3 text-[12.5px] font-extrabold"
                   >
                     <span className="flex items-center gap-1.5">
-                      {c}
+                      {c.label}
                       <MaterialIcon
-                        name="filter_list"
-                        size={14}
-                        className="text-primary/40"
+                        name="expand_more"
+                        size={16}
+                        className="text-white/85"
                       />
                     </span>
                   </th>
                 ))}
+                <th className="w-12 px-2" />
+              </tr>
+              <tr className="bg-secondary/60">
+                {COLUMNS.map((c) => (
+                  <th key={c.key} className="px-2 py-1.5">
+                    <div className="relative">
+                      <input
+                        value={colFilters[c.key]}
+                        onChange={(e) =>
+                          setColFilters({ ...colFilters, [c.key]: e.target.value })
+                        }
+                        placeholder=""
+                        className="h-8 w-full rounded-md border border-border bg-background px-2 pe-7 text-[12px] font-semibold outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/20"
+                      />
+                      <MaterialIcon
+                        name="search"
+                        size={14}
+                        className="pointer-events-none absolute inset-y-0 left-2 my-auto h-fit text-muted-foreground"
+                      />
+                    </div>
+                  </th>
+                ))}
+                <th className="px-2" />
               </tr>
             </thead>
+
             <tbody>
               {(isLoading || pageRows.length === 0) && (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={COLUMNS.length + 1}
                     className="px-4 py-14 text-center text-sm font-semibold text-muted-foreground"
                   >
                     {isLoading ? "جارٍ تحميل الطلبات..." : "لا توجد طلبات مطابقة"}
@@ -305,163 +304,116 @@ function ApprovalRequestsPage() {
                 </tr>
               )}
 
-              {pageRows.map((r) => {
-                const meta =
-                  STATUS_META[String(r["status"] ?? "pending")] ??
-                  ({ label: "بانتظار الاعتماد", tone: "amber", icon: "hourglass_top" } as const);
-                return (
-                  <tr
-                    key={String(r["id"])}
-                    className="border-b border-border transition-colors last:border-0 odd:bg-secondary/35 hover:bg-accent/50"
-                  >
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="flex items-center gap-2">
-                        <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary">
-                          <MaterialIcon name="person" size={17} filled />
-                        </span>
-                        <span>
-                          <span className="block text-[13px] font-bold">
-                            {String(r["employee_name"] ?? "—")}
-                          </span>
-                          {r["emp_no"] && (
-                            <span className="block text-[10px] font-semibold text-muted-foreground">
-                              #{String(r["emp_no"])}
-                            </span>
+              {pageRows.map((r) => (
+                <tr
+                  key={String(r["id"])}
+                  className={`border-b border-border transition-colors last:border-0 hover:bg-accent/40 ${
+                    r["status"] === "approved"
+                      ? "bg-emerald-50/40 dark:bg-emerald-500/[.04]"
+                      : r["status"] === "rejected"
+                        ? "bg-rose-50/40 dark:bg-rose-500/[.04]"
+                        : "odd:bg-secondary/30"
+                  }`}
+                >
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] font-bold">
+                    {String(r["employee_name"] ?? "—")}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                    {String(r["request_type"] ?? "—")}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                    {String(r["branch"] ?? "—")}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                    {String(r["category"] ?? "—")}
+                  </td>
+                  <td dir="ltr" className="whitespace-nowrap px-4 py-3 text-left text-[12.5px]">
+                    {fmtDateEn(r["request_date"])}
+                  </td>
+                  <td dir="ltr" className="whitespace-nowrap px-4 py-3 text-left text-[12.5px]">
+                    {fmtDateEn(r["entered_at"])}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                    {String(r["approval_chain"] ?? "—")}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                    {String(r["direct_manager_name"] ?? "—")}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                    {r["awaiting_approver_name"] ? (
+                      String(r["awaiting_approver_name"])
+                    ) : (
+                      <span className="text-[12px] font-semibold text-amber-600 dark:text-amber-400">
+                        بانتظار اعتماد {String(r["awaiting_stage"] ?? "المدير المباشر")}
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-3">
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setOpenMenu(openMenu === String(r["id"]) ? null : String(r["id"]))
+                        }
+                        className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      >
+                        <MaterialIcon name="more_vert" size={18} />
+                      </button>
+                      {openMenu === String(r["id"]) && (
+                        <div
+                          className="absolute left-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+                          onMouseLeave={() => setOpenMenu(null)}
+                        >
+                          {r["status"] === "pending" && (
+                            <>
+                              <MenuItem
+                                icon="check"
+                                label="اعتماد الطلب"
+                                tone="emerald"
+                                onClick={() => approve(r)}
+                              />
+                              <MenuItem
+                                icon="close"
+                                label="رفض الطلب"
+                                tone="rose"
+                                onClick={() => reject(r)}
+                              />
+                              <div className="h-px bg-border" />
+                            </>
                           )}
-                        </span>
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="flex items-center gap-2">
-                        <MaterialIcon
-                          name="description"
-                          size={16}
-                          className="text-primary/70"
-                        />
-                        <span className="text-[13px] font-semibold">
-                          {String(r["request_type"] ?? "—")}
-                        </span>
-                      </span>
-                      {r["request_subject"] && (
-                        <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                          {String(r["request_subject"])}
-                        </span>
+                          <MenuItem
+                            icon="edit"
+                            label="تعديل"
+                            onClick={() => {
+                              setDraft({ ...r });
+                              setOpenMenu(null);
+                            }}
+                          />
+                          <MenuItem
+                            icon="delete"
+                            label="حذف"
+                            tone="rose"
+                            onClick={() => {
+                              if (confirm("هل تريد حذف هذا الطلب نهائياً؟"))
+                                del.mutate(String(r["id"]));
+                              setOpenMenu(null);
+                            }}
+                          />
+                        </div>
                       )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[13px]">
-                      {String(r["branch"] ?? "—")}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[13px]">
-                      {r["category"] ? (
-                        <Chip label={String(r["category"])} tone="teal" />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[12px] font-semibold text-muted-foreground">
-                      {fmtDateTime(r["request_date"])}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[12px] font-semibold text-muted-foreground">
-                      {fmtDateTime(r["entered_at"])}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[13px]">
-                      {r["approval_chain"] ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-bold text-primary">
-                          <MaterialIcon name="account_tree" size={13} />
-                          {String(r["approval_chain"])}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[13px]">
-                      {String(r["direct_manager_name"] ?? "—")}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[13px]">
-                      {r["awaiting_approver_name"] ? (
-                        String(r["awaiting_approver_name"])
-                      ) : (
-                        <span className="text-[12px] font-semibold text-amber-600 dark:text-amber-400">
-                          بانتظار {String(r["awaiting_stage"] ?? "المدير المباشر")}
-                        </span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Chip label={meta.label} tone={meta.tone} />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="flex items-center gap-1">
-                        {r["status"] === "pending" && (
-                          <>
-                            <button
-                              title="اعتماد"
-                              onClick={() => approve(r)}
-                              className="grid size-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700 transition-colors hover:bg-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300"
-                            >
-                              <MaterialIcon name="check" size={17} />
-                            </button>
-                            <button
-                              title="رفض"
-                              onClick={() => reject(r)}
-                              className="grid size-8 place-items-center rounded-lg bg-rose-100 text-rose-700 transition-colors hover:bg-rose-200 dark:bg-rose-500/15 dark:text-rose-300"
-                            >
-                              <MaterialIcon name="close" size={17} />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          title="تعديل"
-                          onClick={() => setDraft({ ...r })}
-                          className="grid size-8 place-items-center rounded-lg bg-secondary text-primary transition-colors hover:bg-accent"
-                        >
-                          <MaterialIcon name="edit" size={17} />
-                        </button>
-                        <button
-                          title="حذف"
-                          onClick={() => {
-                            if (confirm("هل تريد حذف هذا الطلب نهائياً؟"))
-                              del.mutate(String(r["id"]));
-                          }}
-                          className="grid size-8 place-items-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                        >
-                          <MaterialIcon name="delete" size={17} />
-                        </button>
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
 
-        {/* Pager */}
+        {/* Pager (matches mockup: left=info+arrows+page numbers, right=page-size 20/10/5) */}
         <div className="flex flex-wrap items-center gap-3 border-t border-border px-4 py-3 text-[12px] font-bold">
           <div className="flex items-center gap-1">
-            {[5, 10, 20].map((n) => (
-              <button
-                key={n}
-                onClick={() => {
-                  setPageSize(n);
-                  setPage(1);
-                }}
-                className={`grid size-8 place-items-center rounded-lg transition-colors ${
-                  n === pageSize
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-          <div className="ms-auto flex items-center gap-1">
-            <span className="me-2 text-muted-foreground">
-              صفحة {currentPage} من {pages} ({filtered.length} عنصر)
-            </span>
             <button
-              onClick={() => setPage((p) => Math.min(pages, p + 1))}
-              disabled={currentPage >= pages}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
               className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-40"
             >
               <MaterialIcon name="chevron_right" size={18} />
@@ -480,12 +432,34 @@ function ApprovalRequestsPage() {
               </button>
             ))}
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.min(pages, p + 1))}
+              disabled={currentPage >= pages}
               className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-40"
             >
               <MaterialIcon name="chevron_left" size={18} />
             </button>
+            <span className="ms-2 text-muted-foreground">
+              صفحة {currentPage} من {pages} ({filtered.length} عنصر)
+            </span>
+          </div>
+
+          <div className="ms-auto flex items-center gap-1">
+            {[20, 10, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => {
+                  setPageSize(n);
+                  setPage(1);
+                }}
+                className={`grid size-8 place-items-center rounded-lg transition-colors ${
+                  n === pageSize
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -637,10 +611,7 @@ function ApprovalRequestsPage() {
                   <FieldSelect
                     label="الحالة"
                     value={String(draft["status"] ?? "pending")}
-                    options={Object.entries(STATUS_META).map(([k, v]) => ({
-                      value: k,
-                      label: v.label,
-                    }))}
+                    options={STATUS_OPTIONS}
                     onChange={(v) => setDraft({ ...draft, status: v })}
                   />
                 </div>
@@ -670,38 +641,31 @@ function ApprovalRequestsPage() {
   );
 }
 
-function StatCard({
-  title,
-  value,
+function MenuItem({
   icon,
+  label,
   tone,
+  onClick,
 }: {
-  title: string;
-  value: number;
   icon: string;
-  tone: "primary" | "amber" | "emerald" | "rose";
+  label: string;
+  tone?: "emerald" | "rose";
+  onClick: () => void;
 }) {
-  const tones: Record<string, string> = {
-    primary: "bg-primary/10 text-primary",
-    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-  };
+  const toneCls =
+    tone === "emerald"
+      ? "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
+      : tone === "rose"
+        ? "text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
+        : "text-foreground hover:bg-secondary";
   return (
-    <div
-      className="rounded-2xl border border-border bg-card p-4"
-      style={{ boxShadow: "var(--shadow-card)" }}
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 px-3 py-2 text-right text-[12.5px] font-bold transition-colors ${toneCls}`}
     >
-      <div className="flex items-center justify-between">
-        <span className={`grid size-11 place-items-center rounded-xl ${tones[tone]}`}>
-          <MaterialIcon name={icon} size={22} filled />
-        </span>
-        <span className="text-2xl font-black tracking-tight">
-          {new Intl.NumberFormat("ar-SA").format(value)}
-        </span>
-      </div>
-      <p className="mt-2 text-[12px] font-bold text-muted-foreground">{title}</p>
-    </div>
+      <MaterialIcon name={icon} size={17} />
+      {label}
+    </button>
   );
 }
 

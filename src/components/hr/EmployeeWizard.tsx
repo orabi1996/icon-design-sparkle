@@ -131,7 +131,7 @@ const emptyForm = {
   iban: "",
 } satisfies Record<string, Value>;
 
-type EmployeeForm = typeof emptyForm;
+type EmployeeForm = { [K in keyof typeof emptyForm]: Value };
 
 const labels: Record<string, string> = {
   emp_no: "الرقم الوظيفي",

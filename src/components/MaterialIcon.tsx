@@ -1,9 +1,9 @@
 type Props = {
   name: string;
-  className?: string;
+  className?: string | undefined;
   filled?: boolean | undefined;
-  size?: number;
-  weight?: number;
+  size?: number | undefined;
+  weight?: number | undefined;
 };
 
 export function MaterialIcon({ name, className = "", filled = false, size = 20, weight = 400 }: Props) {

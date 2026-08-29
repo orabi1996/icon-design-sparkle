@@ -24,6 +24,7 @@ export type HrTable =
   | "basic_lookups"
   | "inquiries"
   | "app_settings"
+  | "account_links"
   | "employee_permits"
   | "employee_correspondence"
   | "employee_eos_provisions"

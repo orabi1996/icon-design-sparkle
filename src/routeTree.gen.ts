@@ -37,6 +37,7 @@ import { Route as RegulationsOtherRouteImport } from './routes/regulations.other
 import { Route as RegulationsPermitsRouteImport } from './routes/regulations.permits'
 import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shifts'
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
+import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
 import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
@@ -187,6 +188,11 @@ const RegulationsVacationsRoute = RegulationsVacationsRouteImport.update({
   path: '/vacations',
   getParentRoute: () => RegulationsRoute,
 } as any)
+const SettingsAccountLinksRoute = SettingsAccountLinksRouteImport.update({
+  id: '/account-links',
+  path: '/account-links',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsBasicRoute = SettingsBasicRouteImport.update({
   id: '/basic',
   path: '/basic',
@@ -261,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
@@ -298,6 +305,7 @@ export interface FileRoutesByTo {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
@@ -338,6 +346,7 @@ export interface FileRoutesById {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/settings/account-links'
     | '/settings/basic'
     | '/settings/general'
     | '/staff/add'
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/settings/account-links'
     | '/settings/basic'
     | '/settings/general'
     | '/staff/add'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/settings/account-links'
     | '/settings/basic'
     | '/settings/general'
     | '/staff/add'
@@ -685,6 +697,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegulationsVacationsRouteImport
       parentRoute: typeof RegulationsRoute
     }
+    '/settings/account-links': {
+      id: '/settings/account-links'
+      path: '/account-links'
+      fullPath: '/settings/account-links'
+      preLoaderRoute: typeof SettingsAccountLinksRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/basic': {
       id: '/settings/basic'
       path: '/basic'
@@ -784,11 +803,13 @@ const RegulationsRouteWithChildren = RegulationsRoute._addFileChildren(
 )
 
 interface SettingsRouteChildren {
+  SettingsAccountLinksRoute: typeof SettingsAccountLinksRoute
   SettingsBasicRoute: typeof SettingsBasicRoute
   SettingsGeneralRoute: typeof SettingsGeneralRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAccountLinksRoute: SettingsAccountLinksRoute,
   SettingsBasicRoute: SettingsBasicRoute,
   SettingsGeneralRoute: SettingsGeneralRoute,
 }

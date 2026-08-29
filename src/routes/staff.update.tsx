@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { EmployeeExcelImport } from "@/components/hr/EmployeeExcelImport";
 import {
   Breadcrumbs,
   Btn,
@@ -23,7 +24,10 @@ export const Route = createFileRoute("/staff/update")({
           "تحديث بيانات الموظفين والرواتب والمستندات والحسابات البنكية عبر رفع ملفات Excel وتحميل النماذج الجاهزة.",
       },
       { property: "og:title", content: "تحديث البيانات | رفع وتحديث بيانات الموظفين" },
-      { property: "og:description", content: "رفع نماذج التحديث الجماعي لبيانات الموظفين والرواتب والاستحقاقات." },
+      {
+        property: "og:description",
+        content: "رفع نماذج التحديث الجماعي لبيانات الموظفين والرواتب والاستحقاقات.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -109,7 +113,9 @@ const sections: Section[] = [
     key: "documents",
     label: "تحديث مستندات الموظفين",
     icon: "description",
-    filters: [{ label: "اسم المستند", options: ["Select ...", "الهوية الوطنية", "جواز السفر", "الشهادة"] }],
+    filters: [
+      { label: "اسم المستند", options: ["Select ...", "الهوية الوطنية", "جواز السفر", "الشهادة"] },
+    ],
   },
   {
     key: "entitlement",
@@ -154,13 +160,7 @@ const sections: Section[] = [
   },
 ];
 
-const salaryRows = [
-  { "اسم الموظف": "سارة العتيبي", "الرقم الوظيفي": "١٠٢٤", "رقم الهوية": "١٠٢٣٤٥٦٧٨٩", الحالة: "نشط", "الراتب الأساسي": "١٢,٠٠٠" },
-  { "اسم الموظف": "محمد الحربي", "الرقم الوظيفي": "١٠٣١", "رقم الهوية": "١٠٢٣٤٥٦٧٩٠", الحالة: "نشط", "الراتب الأساسي": "١٤,٥٠٠" },
-  { "اسم الموظف": "نورة القحطاني", "الرقم الوظيفي": "١٠٤٥", "رقم الهوية": "١٠٢٣٤٥٦٧٩١", الحالة: "إجازة", "الراتب الأساسي": "٩,٨٠٠" },
-  { "اسم الموظف": "خالد الزهراني", "الرقم الوظيفي": "١٠٥٢", "رقم الهوية": "١٠٢٣٤٥٦٧٩٢", الحالة: "نشط", "الراتب الأساسي": "١١,٢٠٠" },
-  { "اسم الموظف": "ريم السالم", "الرقم الوظيفي": "١٠٦٠", "رقم الهوية": "١٠٢٣٤٥٦٧٩٣", الحالة: "موقوف", "الراتب الأساسي": "٨,٤٠٠" },
-];
+const salaryRows: Record<string, string>[] = [];
 
 function UploadZone({ title }: { title: string }) {
   return (
@@ -215,7 +215,11 @@ function StaffUpdate() {
                 {s.filters.map((f) =>
                   f.kind === "check" ? (
                     <label key={f.label} className="flex items-center gap-2 self-end pb-2.5">
-                      <input type="checkbox" defaultChecked className="size-4 accent-[var(--primary)]" />
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="size-4 accent-[var(--primary)]"
+                      />
                       <span className="text-[12px] font-bold">{f.label}</span>
                     </label>
                   ) : (
@@ -231,10 +235,11 @@ function StaffUpdate() {
                 )}
               </div>
             )}
-            {!s.searchOnly && <UploadZone title={s.label} />}
+            {!s.searchOnly &&
+              (s.key === "employees" ? <EmployeeExcelImport /> : <UploadZone title={s.label} />)}
           </Card>
 
-          {s.columns && (
+          {s.columns && s.key !== "employees" && (
             <div
               className="overflow-hidden rounded-2xl border border-border bg-card"
               style={{ boxShadow: "var(--shadow-card)" }}
@@ -267,7 +272,12 @@ function StaffUpdate() {
                       : "text-foreground/80 hover:bg-secondary"
                   }`}
                 >
-                  <MaterialIcon name={item.icon} size={18} filled={on} className={on ? "" : "text-primary"} />
+                  <MaterialIcon
+                    name={item.icon}
+                    size={18}
+                    filled={on}
+                    className={on ? "" : "text-primary"}
+                  />
                   <span className="text-start">{item.label}</span>
                 </button>
               );

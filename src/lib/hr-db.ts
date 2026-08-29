@@ -112,6 +112,24 @@ export function useSaveRow(table: HrTable) {
   });
 }
 
+/** Insert a validated batch in a single request. */
+export function useInsertRows(table: HrTable) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Row[]) => {
+      if (rows.length === 0) throw new Error("لا توجد بيانات صالحة للإضافة");
+      const { data, error } = await db.from(table).insert(rows).select();
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    },
+    onSuccess: (rows) => {
+      invalidate(qc, table);
+      toast.success(`تمت إضافة ${rows.length} موظف بنجاح`);
+    },
+    onError: (e: Error) => toast.error(`تعذر استيراد الموظفين: ${e.message}`),
+  });
+}
+
 export function useDeleteRow(table: HrTable) {
   const qc = useQueryClient();
   return useMutation({

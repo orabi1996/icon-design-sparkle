@@ -39,6 +39,7 @@ import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shif
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
+import { Route as SettingsCalendarRouteImport } from './routes/settings.calendar'
 import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
@@ -198,6 +199,11 @@ const SettingsBasicRoute = SettingsBasicRouteImport.update({
   path: '/basic',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsCalendarRoute = SettingsCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
   id: '/general',
   path: '/general',
@@ -269,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/calendar': typeof SettingsCalendarRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
@@ -307,6 +314,7 @@ export interface FileRoutesByTo {
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/calendar': typeof SettingsCalendarRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
@@ -348,6 +356,7 @@ export interface FileRoutesById {
   '/regulations/vacations': typeof RegulationsVacationsRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/calendar': typeof SettingsCalendarRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
@@ -390,6 +399,7 @@ export interface FileRouteTypes {
     | '/regulations/vacations'
     | '/settings/account-links'
     | '/settings/basic'
+    | '/settings/calendar'
     | '/settings/general'
     | '/staff/add'
     | '/staff/bank-block'
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/regulations/vacations'
     | '/settings/account-links'
     | '/settings/basic'
+    | '/settings/calendar'
     | '/settings/general'
     | '/staff/add'
     | '/staff/bank-block'
@@ -468,6 +479,7 @@ export interface FileRouteTypes {
     | '/regulations/vacations'
     | '/settings/account-links'
     | '/settings/basic'
+    | '/settings/calendar'
     | '/settings/general'
     | '/staff/add'
     | '/staff/bank-block'
@@ -711,6 +723,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsBasicRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/calendar': {
+      id: '/settings/calendar'
+      path: '/calendar'
+      fullPath: '/settings/calendar'
+      preLoaderRoute: typeof SettingsCalendarRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/general': {
       id: '/settings/general'
       path: '/general'
@@ -805,12 +824,14 @@ const RegulationsRouteWithChildren = RegulationsRoute._addFileChildren(
 interface SettingsRouteChildren {
   SettingsAccountLinksRoute: typeof SettingsAccountLinksRoute
   SettingsBasicRoute: typeof SettingsBasicRoute
+  SettingsCalendarRoute: typeof SettingsCalendarRoute
   SettingsGeneralRoute: typeof SettingsGeneralRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountLinksRoute: SettingsAccountLinksRoute,
   SettingsBasicRoute: SettingsBasicRoute,
+  SettingsCalendarRoute: SettingsCalendarRoute,
   SettingsGeneralRoute: SettingsGeneralRoute,
 }
 

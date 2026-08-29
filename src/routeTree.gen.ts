@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApprovalRequestsRouteImport } from './routes/approval-requests'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CorrespondenceRouteImport } from './routes/correspondence'
 import { Route as EndOfServiceProvisionRouteImport } from './routes/end-of-service-provision'
@@ -56,6 +57,11 @@ import { Route as TasksSetupRouteImport } from './routes/tasks.setup'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApprovalRequestsRoute = ApprovalRequestsRouteImport.update({
+  id: '/approval-requests',
+  path: '/approval-requests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -271,6 +277,7 @@ const TasksSetupRoute = TasksSetupRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/approval-requests': typeof ApprovalRequestsRoute
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
   '/end-of-service-provision': typeof EndOfServiceProvisionRoute
@@ -316,6 +323,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/approval-requests': typeof ApprovalRequestsRoute
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
   '/end-of-service-provision': typeof EndOfServiceProvisionRoute
@@ -360,6 +368,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/approval-requests': typeof ApprovalRequestsRoute
   '/auth': typeof AuthRoute
   '/correspondence': typeof CorrespondenceRoute
   '/end-of-service-provision': typeof EndOfServiceProvisionRoute
@@ -407,6 +416,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/approval-requests'
     | '/auth'
     | '/correspondence'
     | '/end-of-service-provision'
@@ -452,6 +462,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/approval-requests'
     | '/auth'
     | '/correspondence'
     | '/end-of-service-provision'
@@ -495,6 +506,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/approval-requests'
     | '/auth'
     | '/correspondence'
     | '/end-of-service-provision'
@@ -541,6 +553,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApprovalRequestsRoute: typeof ApprovalRequestsRoute
   AuthRoute: typeof AuthRoute
   CorrespondenceRoute: typeof CorrespondenceRoute
   EndOfServiceProvisionRoute: typeof EndOfServiceProvisionRoute
@@ -570,6 +583,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/approval-requests': {
+      id: '/approval-requests'
+      path: '/approval-requests'
+      fullPath: '/approval-requests'
+      preLoaderRoute: typeof ApprovalRequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -943,6 +963,7 @@ const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApprovalRequestsRoute: ApprovalRequestsRoute,
   AuthRoute: AuthRoute,
   CorrespondenceRoute: CorrespondenceRoute,
   EndOfServiceProvisionRoute: EndOfServiceProvisionRoute,

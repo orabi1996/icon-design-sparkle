@@ -18,7 +18,16 @@ export const nav: NavItem[] = [
   },
   { label: "الصلاحيات", icon: "shield_person" },
   { label: "تقييم الأداء", icon: "trending_up" },
-  { label: "طلبات الاعتماد", icon: "task_alt" },
+  {
+    label: "طلبات الاعتماد",
+    icon: "task_alt",
+    columns: [
+      {
+        title: "متابعة الطلبات",
+        items: [{ label: "طلبات الاعتماد", to: "/approval-requests" }],
+      },
+    ],
+  },
   {
     label: "التقارير",
     icon: "lab_profile",

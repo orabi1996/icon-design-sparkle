@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_links: {
+        Row: {
+          active: boolean
+          admin_unit: string | null
+          branch: string | null
+          cost_center: string | null
+          created_at: string
+          credit_account: string | null
+          current_job: string | null
+          debit_account: string | null
+          department: string | null
+          entitlement_account: string | null
+          expense_account: string | null
+          id: string
+          item_name: string | null
+          job_level: string | null
+          job_title: string | null
+          link_type: string
+          main_department: string | null
+          notes: string | null
+          operation_type: string | null
+          path: string | null
+          provision_account: string | null
+          sector: string | null
+          specialty: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          admin_unit?: string | null
+          branch?: string | null
+          cost_center?: string | null
+          created_at?: string
+          credit_account?: string | null
+          current_job?: string | null
+          debit_account?: string | null
+          department?: string | null
+          entitlement_account?: string | null
+          expense_account?: string | null
+          id?: string
+          item_name?: string | null
+          job_level?: string | null
+          job_title?: string | null
+          link_type?: string
+          main_department?: string | null
+          notes?: string | null
+          operation_type?: string | null
+          path?: string | null
+          provision_account?: string | null
+          sector?: string | null
+          specialty?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          admin_unit?: string | null
+          branch?: string | null
+          cost_center?: string | null
+          created_at?: string
+          credit_account?: string | null
+          current_job?: string | null
+          debit_account?: string | null
+          department?: string | null
+          entitlement_account?: string | null
+          expense_account?: string | null
+          id?: string
+          item_name?: string | null
+          job_level?: string | null
+          job_title?: string | null
+          link_type?: string
+          main_department?: string | null
+          notes?: string | null
+          operation_type?: string | null
+          path?: string | null
+          provision_account?: string | null
+          sector?: string | null
+          specialty?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
           body: string | null

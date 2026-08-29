@@ -70,6 +70,14 @@ const selectClass = inputClass + " appearance-none pe-8";
 
 const normalize = (value: unknown) => String(value ?? "").trim().toLocaleLowerCase("ar");
 
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll(String.fromCharCode(34), "&quot;")
+    .replaceAll(String.fromCharCode(39), "&#039;");
+
 const uniqueValues = (rows: Row[], key: string) =>
   [...new Set(rows.map((row) => String(row[key] ?? "").trim()).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, "ar"),
@@ -328,12 +336,12 @@ function StaffList() {
     const exportColumns = tableColumns.filter((column) => column.type !== "action");
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
-    const header = exportColumns.map((column) => "<th>" + column.label + "</th>").join("");
+    const header = exportColumns.map((column) => "<th>" + escapeHtml(column.label) + "</th>").join("");
     const body = visibleRows
       .map(
         (row) =>
           "<tr>" +
-          exportColumns.map((column) => "<td>" + column.value(row) + "</td>").join("") +
+          exportColumns.map((column) => "<td>" + escapeHtml(column.value(row)) + "</td>").join("") +
           "</tr>",
       )
       .join("");

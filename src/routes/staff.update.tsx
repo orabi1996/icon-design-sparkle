@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { EmployeeExcelImport } from "@/components/hr/EmployeeExcelImport";
 import { EmployeeExcelUpdate } from "@/components/hr/EmployeeExcelUpdate";
+import { FacilityDataImport } from "@/components/hr/FacilityDataImport";
 import {
   Breadcrumbs,
   Btn,
@@ -241,12 +242,14 @@ function StaffUpdate() {
                 <EmployeeExcelImport />
               ) : s.key === "employee" ? (
                 <EmployeeExcelUpdate />
+              ) : s.key === "facility" ? (
+                <FacilityDataImport />
               ) : (
                 <UploadZone title={s.label} />
               ))}
           </Card>
 
-          {s.columns && !["employees", "employee"].includes(s.key) && (
+          {s.columns && !["employees", "employee", "facility"].includes(s.key) && (
             <div
               className="overflow-hidden rounded-2xl border border-border bg-card"
               style={{ boxShadow: "var(--shadow-card)" }}

@@ -130,6 +130,24 @@ export function useInsertRows(table: HrTable) {
   });
 }
 
+/** Atomically update a validated batch by its unique conflict key. */
+export function useUpsertRows(table: HrTable, onConflict: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Row[]) => {
+      if (rows.length === 0) throw new Error("لا توجد بيانات صالحة للتحديث");
+      const { data, error } = await db.from(table).upsert(rows, { onConflict }).select();
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    },
+    onSuccess: (rows) => {
+      invalidate(qc, table);
+      toast.success(`تم تحديث بيانات ${rows.length} موظف بنجاح`);
+    },
+    onError: (e: Error) => toast.error(`تعذر تحديث بيانات الموظفين: ${e.message}`),
+  });
+}
+
 export function useDeleteRow(table: HrTable) {
   const qc = useQueryClient();
   return useMutation({

@@ -81,7 +81,7 @@ type ZipEntry = {
 
 const textDecoder = new TextDecoder("utf-8");
 
-function columnLetter(index: number) {
+export function excelColumnLetter(index: number) {
   let value = index + 1;
   let result = "";
   while (value > 0) {
@@ -99,7 +99,7 @@ function columnIndex(reference: string) {
   return Math.max(0, result - 1);
 }
 
-function normalize(value: string) {
+export function normalizeExcelText(value: string) {
   return value
     .trim()
     .toLocaleLowerCase("ar")
@@ -173,8 +173,8 @@ async function readZipText(bytes: Uint8Array, entries: Map<string, ZipEntry>, pa
 
 function parseSharedStrings(xml: string) {
   const values: string[] = [];
-  for (const match of xml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)) {
-    const text = [...match[1]!.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)]
+  for (const match of xml.matchAll(/<(?:\w+:)?si\b[^>]*>([\s\S]*?)<\/(?:\w+:)?si>/g)) {
+    const text = [...match[1]!.matchAll(/<(?:\w+:)?t\b[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/g)]
       .map((part) => decodeXml(part[1] ?? ""))
       .join("");
     values.push(text);
@@ -184,17 +184,21 @@ function parseSharedStrings(xml: string) {
 
 function parseWorksheet(xml: string, sharedStrings: string[]) {
   const rows: string[][] = [];
-  for (const rowMatch of xml.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+  for (const rowMatch of xml.matchAll(/<(?:\w+:)?row\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?row>/g)) {
     const rowNumber = Number(rowMatch[1]!.match(/\br="(\d+)"/)?.[1] ?? rows.length + 1);
     const row: string[] = [];
-    for (const cellMatch of rowMatch[2]!.matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
+    for (const cellMatch of rowMatch[2]!.matchAll(
+      /<(?:\w+:)?c\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?c>/g,
+    )) {
       const attributes = cellMatch[1] ?? "";
       const contents = cellMatch[2] ?? "";
       const reference = attributes.match(/\br="([^"]+)"/)?.[1] ?? "A1";
       const type = attributes.match(/\bt="([^"]+)"/)?.[1] ?? "";
       const rawValue =
-        contents.match(/<v\b[^>]*>([\s\S]*?)<\/v>/)?.[1] ??
-        [...contents.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((part) => part[1] ?? "").join("");
+        contents.match(/<(?:\w+:)?v\b[^>]*>([\s\S]*?)<\/(?:\w+:)?v>/)?.[1] ??
+        [...contents.matchAll(/<(?:\w+:)?t\b[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/g)]
+          .map((part) => part[1] ?? "")
+          .join("");
       let value = decodeXml(rawValue);
       if (type === "s") value = sharedStrings[Number(rawValue)] ?? "";
       if (type === "b") value = rawValue === "1" ? "TRUE" : "FALSE";
@@ -205,14 +209,28 @@ function parseWorksheet(xml: string, sharedStrings: string[]) {
   return rows;
 }
 
+export async function readXlsxMatrix(file: File) {
+  if (!file.name.toLocaleLowerCase().endsWith(".xlsx")) {
+    throw new Error("الصيغة المدعومة لهذا النموذج هي XLSX فقط");
+  }
+  if (file.size > 10 * 1024 * 1024) throw new Error("حجم الملف يتجاوز 10 ميجابايت");
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const entries = unzipDirectory(bytes);
+  const sharedXml = await readZipText(bytes, entries, "xl/sharedStrings.xml");
+  const sheetXml = await readZipText(bytes, entries, "xl/worksheets/sheet1.xml");
+  if (!sheetXml) throw new Error("لم يتم العثور على ورقة البيانات الأولى داخل الملف");
+  return parseWorksheet(sheetXml, parseSharedStrings(sharedXml));
+}
+
 function parseBoolean(value: string) {
-  const normalized = normalize(value);
+  const normalized = normalizeExcelText(value);
   if (["true", "1", "yes", "y", "نعم", "صح"].includes(normalized)) return true;
   if (["false", "0", "no", "n", "لا", "خطا", "خطأ"].includes(normalized)) return false;
   return null;
 }
 
-function parseDate(value: string) {
+export function parseExcelDate(value: string) {
   const clean = value.trim();
   if (!clean) return null;
   if (/^\d+(\.\d+)?$/.test(clean)) {
@@ -249,11 +267,11 @@ function parseDate(value: string) {
 }
 
 function valueSet(values: string[]) {
-  return new Set(values.filter(Boolean).map(normalize));
+  return new Set(values.filter(Boolean).map(normalizeExcelText));
 }
 
 function paymentMethod(value: string) {
-  const normalized = normalize(value);
+  const normalized = normalizeExcelText(value);
   if (["a", "cash", "نقدي"].includes(normalized)) return "نقدي";
   if (["b", "bank", "تحويل بنكي", "تحويل"].includes(normalized)) return "تحويل بنكي";
   if (["c", "check", "cheque", "شيك"].includes(normalized)) return "شيك";
@@ -261,7 +279,7 @@ function paymentMethod(value: string) {
 }
 
 function genderValue(value: string) {
-  const normalized = normalize(value);
+  const normalized = normalizeExcelText(value);
   if (["ذكر", "male", "m"].includes(normalized)) return "ذكر";
   if (["انثي", "انثى", "female", "f"].includes(normalized)) return "أنثى";
   return null;
@@ -277,7 +295,7 @@ function addError(
   const spec = EMPLOYEE_EXCEL_COLUMNS[columnIndexValue];
   errors.push({
     row,
-    column: `${columnLetter(columnIndexValue)} - ${spec?.label ?? "غير معروف"}`,
+    column: `${excelColumnLetter(columnIndexValue)} - ${spec?.label ?? "غير معروف"}`,
     key: spec?.key ?? "",
     value,
     message,
@@ -288,17 +306,7 @@ export async function parseEmployeeImportFile(
   file: File,
   references: EmployeeImportReferences,
 ): Promise<EmployeeImportResult> {
-  if (!file.name.toLocaleLowerCase().endsWith(".xlsx")) {
-    throw new Error("الصيغة المدعومة لهذا النموذج هي XLSX فقط");
-  }
-  if (file.size > 10 * 1024 * 1024) throw new Error("حجم الملف يتجاوز 10 ميجابايت");
-
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const entries = unzipDirectory(bytes);
-  const sharedXml = await readZipText(bytes, entries, "xl/sharedStrings.xml");
-  const sheetXml = await readZipText(bytes, entries, "xl/worksheets/sheet1.xml");
-  if (!sheetXml) throw new Error("لم يتم العثور على ورقة البيانات الأولى داخل الملف");
-  const matrix = parseWorksheet(sheetXml, parseSharedStrings(sharedXml));
+  const matrix = await readXlsxMatrix(file);
   const errors: EmployeeImportError[] = [];
 
   EMPLOYEE_EXCEL_COLUMNS.forEach((column, index) => {
@@ -307,7 +315,7 @@ export async function parseEmployeeImportFile(
     if (keyValue !== column.key) {
       addError(errors, 1, index, keyValue, `العنوان التقني يجب أن يكون: ${column.key}`);
     }
-    if (normalize(labelValue) !== normalize(column.label)) {
+    if (normalizeExcelText(labelValue) !== normalizeExcelText(column.label)) {
       addError(errors, 2, index, labelValue, `العنوان العربي يجب أن يكون: ${column.label}`);
     }
   });
@@ -345,10 +353,10 @@ export async function parseEmployeeImportFile(
       }
     });
 
-    const birthDate = parseDate(raw.DateOfBirth);
-    const startDate = parseDate(raw.StartDate);
-    const employmentDate = parseDate(raw.EmploymentDate);
-    const placementDate = parseDate(raw.PlacementDate);
+    const birthDate = parseExcelDate(raw.DateOfBirth);
+    const startDate = parseExcelDate(raw.StartDate);
+    const employmentDate = parseExcelDate(raw.EmploymentDate);
+    const placementDate = parseExcelDate(raw.PlacementDate);
     (
       [
         ["DateOfBirth", birthDate],
@@ -424,7 +432,7 @@ export async function parseEmployeeImportFile(
       ["MaritalStatusName", socialStatuses, "الحالة الاجتماعية غير موجودة في التهيئة"],
     ];
     lookupChecks.forEach(([key, allowed, message]) => {
-      if (raw[key] && allowed.size > 0 && !allowed.has(normalize(raw[key]))) {
+      if (raw[key] && allowed.size > 0 && !allowed.has(normalizeExcelText(raw[key]))) {
         const index = EMPLOYEE_EXCEL_COLUMNS.findIndex((column) => column.key === key);
         addError(errors, rowNumber, index, raw[key], message);
       }
@@ -437,7 +445,7 @@ export async function parseEmployeeImportFile(
     ];
     uniqueChecks.forEach(([key, existing, seen, databaseMessage]) => {
       if (!raw[key]) return;
-      const normalizedValue = normalize(raw[key]);
+      const normalizedValue = normalizeExcelText(raw[key]);
       const index = EMPLOYEE_EXCEL_COLUMNS.findIndex((column) => column.key === key);
       if (existing.has(normalizedValue)) {
         addError(errors, rowNumber, index, raw[key], databaseMessage);

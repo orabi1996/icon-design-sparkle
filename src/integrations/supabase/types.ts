@@ -784,29 +784,226 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_features: {
+        Row: {
+          created_at: string
+          feature_category: string
+          feature_key: string
+          feature_name: string
+          group_id: string
+          id: string
+          is_allowed: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature_category: string
+          feature_key: string
+          feature_name: string
+          group_id: string
+          id?: string
+          is_allowed?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature_category?: string
+          feature_key?: string
+          feature_name?: string
+          group_id?: string
+          id?: string
+          is_allowed?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_features_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "permission_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "permission_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      permission_rules: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_read: boolean
+          can_update: boolean
+          created_at: string
+          group_id: string
+          id: string
+          is_enabled: boolean
+          resource_key: string
+          resource_name: string
+          resource_section: string
+          updated_at: string
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          created_at?: string
+          group_id: string
+          id?: string
+          is_enabled?: boolean
+          resource_key: string
+          resource_name: string
+          resource_section?: string
+          updated_at?: string
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_enabled?: boolean
+          resource_key?: string
+          resource_name?: string
+          resource_section?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_rules_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "permission_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_scopes: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          scope_type: string
+          scope_value: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          scope_type: string
+          scope_value: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          scope_type?: string
+          scope_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_scopes_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "permission_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_type: string
           created_at: string
+          email: string | null
           emp_no: string | null
           full_name: string | null
           id: string
+          is_active: boolean
+          last_login_at: string | null
+          national_id: string | null
           updated_at: string
         }
         Insert: {
           account_type?: string
           created_at?: string
+          email?: string | null
           emp_no?: string | null
           full_name?: string | null
           id: string
+          is_active?: boolean
+          last_login_at?: string | null
+          national_id?: string | null
           updated_at?: string
         }
         Update: {
           account_type?: string
           created_at?: string
+          email?: string | null
           emp_no?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          national_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -965,6 +1162,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_resource: {
+        Args: { p_action?: string; p_resource_key: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -972,6 +1173,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_permissions_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "manager" | "employee"

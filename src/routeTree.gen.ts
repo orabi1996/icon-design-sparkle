@@ -47,6 +47,7 @@ import { Route as ReportsAbsenceMonthlyRouteImport } from './routes/reports.abse
 import { Route as ReportsAbsenceValueRouteImport } from './routes/reports.absence-value'
 import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendance'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
+import { Route as ReportsEmployeeDataRouteImport } from './routes/reports.employee-data'
 import { Route as ReportsExceptionsRouteImport } from './routes/reports.exceptions'
 import { Route as ReportsFingerprintRouteImport } from './routes/reports.fingerprint'
 import { Route as ReportsLateDaysListRouteImport } from './routes/reports.late-days-list'
@@ -259,6 +260,11 @@ const ReportsEarlyCheckoutDaysRoute =
     path: '/reports/early-checkout-days',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ReportsEmployeeDataRoute = ReportsEmployeeDataRouteImport.update({
+  id: '/reports/employee-data',
+  path: '/reports/employee-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsExceptionsRoute = ReportsExceptionsRouteImport.update({
   id: '/reports/exceptions',
   path: '/reports/exceptions',
@@ -393,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
@@ -450,6 +457,7 @@ export interface FileRoutesByTo {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
@@ -510,6 +518,7 @@ export interface FileRoutesById {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
@@ -571,6 +580,7 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/attendance'
     | '/reports/early-checkout-days'
+    | '/reports/employee-data'
     | '/reports/exceptions'
     | '/reports/fingerprint'
     | '/reports/late-days-list'
@@ -628,6 +638,7 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/attendance'
     | '/reports/early-checkout-days'
+    | '/reports/employee-data'
     | '/reports/exceptions'
     | '/reports/fingerprint'
     | '/reports/late-days-list'
@@ -687,6 +698,7 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/attendance'
     | '/reports/early-checkout-days'
+    | '/reports/employee-data'
     | '/reports/exceptions'
     | '/reports/fingerprint'
     | '/reports/late-days-list'
@@ -737,6 +749,7 @@ export interface RootRouteChildren {
   ReportsAbsenceValueRoute: typeof ReportsAbsenceValueRoute
   ReportsAttendanceRoute: typeof ReportsAttendanceRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
+  ReportsEmployeeDataRoute: typeof ReportsEmployeeDataRoute
   ReportsExceptionsRoute: typeof ReportsExceptionsRoute
   ReportsFingerprintRoute: typeof ReportsFingerprintRoute
   ReportsLateDaysListRoute: typeof ReportsLateDaysListRoute
@@ -1015,6 +1028,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsEarlyCheckoutDaysRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/employee-data': {
+      id: '/reports/employee-data'
+      path: '/reports/employee-data'
+      fullPath: '/reports/employee-data'
+      preLoaderRoute: typeof ReportsEmployeeDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/exceptions': {
       id: '/reports/exceptions'
       path: '/reports/exceptions'
@@ -1251,6 +1271,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsAbsenceValueRoute: ReportsAbsenceValueRoute,
   ReportsAttendanceRoute: ReportsAttendanceRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
+  ReportsEmployeeDataRoute: ReportsEmployeeDataRoute,
   ReportsExceptionsRoute: ReportsExceptionsRoute,
   ReportsFingerprintRoute: ReportsFingerprintRoute,
   ReportsLateDaysListRoute: ReportsLateDaysListRoute,

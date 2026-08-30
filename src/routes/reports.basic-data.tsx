@@ -169,7 +169,7 @@ function BasicDataReport() {
 
   // Enhanced employees rows with calculated hijri dates and defaults
   const normalizedRows = useMemo(() => {
-    return employees.map((e, index) => {
+    return employees.map((e, index): Record<string, unknown> => {
       const birth = String(e["birth_date"] ?? "");
       const hire = String(e["hire_date"] ?? "");
       const start = String(e["start_date"] ?? "");

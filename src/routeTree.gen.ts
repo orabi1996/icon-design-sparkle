@@ -57,6 +57,7 @@ import { Route as ReportsFingerprintRouteImport } from './routes/reports.fingerp
 import { Route as ReportsHireAndTerminationRouteImport } from './routes/reports.hire-and-termination'
 import { Route as ReportsLateDaysListRouteImport } from './routes/reports.late-days-list'
 import { Route as ReportsLateMinutesRouteImport } from './routes/reports.late-minutes'
+import { Route as ReportsMedicalInsuranceRouteImport } from './routes/reports.medical-insurance'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
 import { Route as SettingsCalendarRouteImport } from './routes/settings.calendar'
@@ -316,6 +317,11 @@ const ReportsLateMinutesRoute = ReportsLateMinutesRouteImport.update({
   path: '/reports/late-minutes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsMedicalInsuranceRoute = ReportsMedicalInsuranceRouteImport.update({
+  id: '/reports/medical-insurance',
+  path: '/reports/medical-insurance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsAccountLinksRoute = SettingsAccountLinksRouteImport.update({
   id: '/account-links',
   path: '/account-links',
@@ -440,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
+  '/reports/medical-insurance': typeof ReportsMedicalInsuranceRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByTo {
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
+  '/reports/medical-insurance': typeof ReportsMedicalInsuranceRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -569,6 +577,7 @@ export interface FileRoutesById {
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
+  '/reports/medical-insurance': typeof ReportsMedicalInsuranceRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -636,6 +645,7 @@ export interface FileRouteTypes {
     | '/reports/hire-and-termination'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
+    | '/reports/medical-insurance'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -699,6 +709,7 @@ export interface FileRouteTypes {
     | '/reports/hire-and-termination'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
+    | '/reports/medical-insurance'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -764,6 +775,7 @@ export interface FileRouteTypes {
     | '/reports/hire-and-termination'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
+    | '/reports/medical-insurance'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -820,6 +832,7 @@ export interface RootRouteChildren {
   ReportsHireAndTerminationRoute: typeof ReportsHireAndTerminationRoute
   ReportsLateDaysListRoute: typeof ReportsLateDaysListRoute
   ReportsLateMinutesRoute: typeof ReportsLateMinutesRoute
+  ReportsMedicalInsuranceRoute: typeof ReportsMedicalInsuranceRoute
   TasksPermissionsRoute: typeof TasksPermissionsRoute
   TasksReportsRoute: typeof TasksReportsRoute
   TasksSetupRoute: typeof TasksSetupRoute
@@ -1164,6 +1177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsLateMinutesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/medical-insurance': {
+      id: '/reports/medical-insurance'
+      path: '/reports/medical-insurance'
+      fullPath: '/reports/medical-insurance'
+      preLoaderRoute: typeof ReportsMedicalInsuranceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/account-links': {
       id: '/settings/account-links'
       path: '/account-links'
@@ -1382,6 +1402,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsHireAndTerminationRoute: ReportsHireAndTerminationRoute,
   ReportsLateDaysListRoute: ReportsLateDaysListRoute,
   ReportsLateMinutesRoute: ReportsLateMinutesRoute,
+  ReportsMedicalInsuranceRoute: ReportsMedicalInsuranceRoute,
   TasksPermissionsRoute: TasksPermissionsRoute,
   TasksReportsRoute: TasksReportsRoute,
   TasksSetupRoute: TasksSetupRoute,

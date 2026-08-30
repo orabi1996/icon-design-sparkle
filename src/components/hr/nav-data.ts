@@ -63,7 +63,7 @@ export const nav: NavItem[] = [
           { label: "تقرير ملفات الموظفين", to: "/reports/employee-files" },
           { label: "تقرير التقييم", to: "/reports/evaluation" },
           { label: "طباعة النماذج الإدارية", to: "/reports/admin-forms" },
-          "تقرير التأمين الطبي للموظفين",
+          { label: "تقرير التأمين الطبي للموظفين", to: "/reports/medical-insurance" },
           "تقرير البيانات المالية",
           "تقرير اجازات الموظفين",
           "تقرير المرافقين",

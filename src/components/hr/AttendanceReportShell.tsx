@@ -31,9 +31,12 @@ export type FilterKey =
   | "year"
   | "month"
   | "absenceType"
+  | "exceptionType"
   | "showInFingerprint"
   | "excludedFromFingerprint"
   | "groupBy";
+
+const EXCEPTION_TYPES = ["الكل", "غياب", "بدون انصراف", "تأخير", "استثناء"];
 
 export type FilterState = Partial<Record<FilterKey, string | boolean>>;
 
@@ -250,6 +253,14 @@ export function FilterCard({ fields, values, onChange, onSearch, onReset }: Filt
             value={String(values["absenceType"] ?? "")}
             options={ABSENCE_TYPES}
             onChange={(v) => onChange({ absenceType: v })}
+          />
+        )}
+        {isActive("exceptionType") && (
+          <SelectField
+            label="نوع الاستثناء"
+            value={String(values["exceptionType"] ?? "")}
+            options={EXCEPTION_TYPES}
+            onChange={(v) => onChange({ exceptionType: v })}
           />
         )}
         {isActive("year") && (

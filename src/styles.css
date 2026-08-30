@@ -218,3 +218,42 @@
   -webkit-font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
 }
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  header,
+  nav,
+  aside,
+  .report-viewer-toolbar,
+  .breadcrumbs,
+  button,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .report-document-viewer {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .report-paper-container {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .report-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    transform: none !important;
+  }
+}
+

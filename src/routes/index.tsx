@@ -42,25 +42,19 @@ export const Route = createFileRoute("/")({
 });
 
 const palette = [
-  "var(--sky)",
-  "var(--cyan)",
-  "var(--teal)",
-  "var(--indigo)",
-  "var(--gblue)",
-  "var(--violet)",
+  "#0b57d0",
+  "#00639b",
+  "#137333",
+  "#b06000",
+  "#6750a4",
+  "#ba1a1a",
 ];
 
-const tones: Record<string, string> = {
-  sky: "bg-sky/12 text-sky",
-  teal: "bg-teal/12 text-teal",
-  cyan: "bg-cyan/12 text-cyan",
-  indigo: "bg-indigo/12 text-indigo",
-};
-const bars: Record<string, string> = {
-  sky: "bg-sky",
-  teal: "bg-teal",
-  cyan: "bg-cyan",
-  indigo: "bg-indigo",
+const tones: Record<string, { bg: string; text: string; bar: string }> = {
+  sky: { bg: "bg-[#e8f0fe]", text: "text-[#0b57d0]", bar: "bg-[#0b57d0]" },
+  teal: { bg: "bg-[#e6f4ea]", text: "text-[#137333]", bar: "bg-[#137333]" },
+  cyan: { bg: "bg-[#fef7e0]", text: "text-[#b06000]", bar: "bg-[#b06000]" },
+  indigo: { bg: "bg-[#f3e8fd]", text: "text-[#6750a4]", bar: "bg-[#6750a4]" },
 };
 
 function StatCard({
@@ -78,18 +72,18 @@ function StatCard({
   tone: keyof typeof tones;
   to?: string;
 }) {
+  const currentTone = tones[tone] ?? tones.sky;
   const body = (
     <article
-      className="group relative h-full overflow-hidden rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-lg"
-      style={{ boxShadow: "var(--shadow-card)" }}
+      className="group relative h-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_3px_0_rgba(60,64,67,0.08),0_4px_12px_0_rgba(60,64,67,0.06)] transition-all hover:shadow-[0_4px_16px_0_rgba(60,64,67,0.12)] hover:-translate-y-0.5"
     >
-      <span className={`absolute inset-x-0 top-0 h-1 ${bars[tone]}`} />
-      <span className={`grid size-11 place-items-center rounded-2xl ${tones[tone]}`}>
-        <MaterialIcon name={icon} size={22} filled />
+      <span className={`absolute inset-x-0 top-0 h-1.5 ${currentTone.bar}`} />
+      <span className={`grid size-12 place-items-center rounded-2xl ${currentTone.bg} ${currentTone.text} shadow-2xs`}>
+        <MaterialIcon name={icon} size={24} filled />
       </span>
-      <p className="mt-4 text-sm font-semibold text-muted-foreground">{label}</p>
-      <p className="mt-1 text-3xl font-extrabold tracking-tight">{value}</p>
-      <p className="mt-1 text-xs font-semibold text-muted-foreground">{hint}</p>
+      <p className="mt-4 text-xs font-bold text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-black tracking-tight text-slate-900 font-mono">{value}</p>
+      <p className="mt-1.5 text-[11px] font-medium text-slate-400">{hint}</p>
     </article>
   );
   return to ? (
@@ -116,16 +110,17 @@ function Panel({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-border bg-card p-5 ${className}`}
-      style={{ boxShadow: "var(--shadow-card)" }}
+      className={`rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_3px_0_rgba(60,64,67,0.08),0_4px_12px_0_rgba(60,64,67,0.06)] ${className}`}
     >
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-base font-bold">
-          <MaterialIcon name={icon} size={20} className="text-primary" filled />
+      <div className="mb-4 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <h3 className="flex items-center gap-2.5 text-sm font-bold text-slate-800">
+          <span className="grid size-8 place-items-center rounded-full bg-[#e8f0fe] text-[#0b57d0]">
+            <MaterialIcon name={icon} size={18} filled />
+          </span>
           {title}
         </h3>
         {badge && (
-          <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary">
+          <span className="rounded-full bg-[#e8f0fe] px-3 py-1 text-[11px] font-bold text-[#0b57d0]">
             {badge}
           </span>
         )}
@@ -137,9 +132,10 @@ function Panel({
 
 const tooltipStyle = {
   contentStyle: {
-    borderRadius: 12,
-    border: "1px solid var(--border)",
-    background: "var(--card)",
+    borderRadius: 16,
+    border: "1px solid #c4c7c5",
+    background: "#ffffff",
+    boxShadow: "0 4px 16px 0 rgba(0,0,0,0.12)",
     fontFamily: "inherit",
     fontSize: 12,
     fontWeight: 700,
@@ -177,25 +173,24 @@ function RangeFilter({
   onTo: (v: string) => void;
 }) {
   const input =
-    "h-9 rounded-xl border border-input bg-background px-2.5 text-[12px] font-bold outline-none focus:border-primary";
+    "h-8.5 rounded-full border border-slate-300 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none focus:border-[#0b57d0]";
   return (
     <section
-      className="mt-6 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3"
-      style={{ boxShadow: "var(--shadow-card)" }}
+      className="mt-4 flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200/80 bg-white p-3.5 shadow-[0_1px_3px_0_rgba(60,64,67,0.08)]"
     >
-      <span className="flex items-center gap-2 text-[12.5px] font-extrabold">
-        <MaterialIcon name="date_range" size={18} className="text-primary" filled />
-        نطاق التاريخ
+      <span className="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">
+        <MaterialIcon name="date_range" size={18} className="text-[#0b57d0]" filled />
+        نطاق الفترة
       </span>
       <div className="flex flex-wrap gap-1.5">
         {presets.map((p) => (
           <button
             key={p.key}
             onClick={() => onPreset(p.key)}
-            className={`rounded-xl px-3 py-1.5 text-[12px] font-bold transition-colors ${
+            className={`rounded-full px-3.5 py-1 text-[11px] font-bold transition-all ${
               preset === p.key
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:bg-accent"
+                ? "bg-[#0b57d0] text-white shadow-2xs"
+                : "bg-slate-100 text-slate-600 hover:bg-[#e8f0fe] hover:text-[#0b57d0]"
             }`}
           >
             {p.label}
@@ -203,17 +198,17 @@ function RangeFilter({
         ))}
         <button
           onClick={() => onPreset("custom")}
-          className={`rounded-xl px-3 py-1.5 text-[12px] font-bold transition-colors ${
+          className={`rounded-full px-3.5 py-1 text-[11px] font-bold transition-all ${
             preset === "custom"
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-muted-foreground hover:bg-accent"
+              ? "bg-[#0b57d0] text-white shadow-2xs"
+              : "bg-slate-100 text-slate-600 hover:bg-[#e8f0fe] hover:text-[#0b57d0]"
           }`}
         >
           مخصص
         </button>
       </div>
       <div className="ms-auto flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1.5 text-[11.5px] font-bold text-muted-foreground">
+        <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
           من
           <input
             type="date"
@@ -222,7 +217,7 @@ function RangeFilter({
             onChange={(e) => onFrom(e.target.value)}
           />
         </label>
-        <label className="flex items-center gap-1.5 text-[11.5px] font-bold text-muted-foreground">
+        <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
           إلى
           <input type="date" className={input} value={to} onChange={(e) => onTo(e.target.value)} />
         </label>
@@ -367,20 +362,20 @@ function Dashboard() {
             لوحة معلومات الموارد البشرية
           </h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Link
             to="/staff/add"
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 rounded-full bg-[#0b57d0] px-5 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#0842a0] hover:shadow-md active:scale-95"
           >
             <MaterialIcon name="person_add" size={18} />
-            إضافة موظف
+            <span>إضافة موظف جديد</span>
           </Link>
           <Link
             to="/surveys"
-            className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
+            className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:text-[#0b57d0] active:scale-95"
           >
             <MaterialIcon name="campaign" size={18} />
-            تعميم جديد
+            <span>إنشاء تعميم إداري</span>
           </Link>
         </div>
       </div>

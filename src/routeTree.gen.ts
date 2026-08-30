@@ -28,6 +28,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SurveysRouteImport } from './routes/surveys'
 import { Route as VacationsRouteImport } from './routes/vacations'
+import { Route as PayrollBankFileRouteImport } from './routes/payroll.bank-file'
 import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
 import { Route as RegulationsApprovalsRouteImport } from './routes/regulations.approvals'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
@@ -84,10 +85,18 @@ import { Route as ReportsPayrollSheetRouteImport } from './routes/reports.payrol
 import { Route as ReportsPettyCashRouteImport } from './routes/reports.petty-cash'
 import { Route as ReportsRequestsSummaryRouteImport } from './routes/reports.requests-summary'
 import { Route as ReportsSurveysReportRouteImport } from './routes/reports.surveys-report'
+import { Route as RequestsPurchaseBudgetRouteImport } from './routes/requests.purchase-budget'
+import { Route as RequestsSetupRouteImport } from './routes/requests.setup'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
+import { Route as SettingsBranchQuotasRouteImport } from './routes/settings.branch-quotas'
+import { Route as SettingsBranchesRouteImport } from './routes/settings.branches'
 import { Route as SettingsCalendarRouteImport } from './routes/settings.calendar'
+import { Route as SettingsCompanyRouteImport } from './routes/settings.company'
+import { Route as SettingsCompanyDocumentsRouteImport } from './routes/settings.company-documents'
 import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
+import { Route as SettingsSponsorsRouteImport } from './routes/settings.sponsors'
+import { Route as SettingsSuspensionReasonsRouteImport } from './routes/settings.suspension-reasons'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
 import { Route as StaffBankBlockRouteImport } from './routes/staff.bank-block'
@@ -194,6 +203,11 @@ const VacationsRoute = VacationsRouteImport.update({
   id: '/vacations',
   path: '/vacations',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PayrollBankFileRoute = PayrollBankFileRouteImport.update({
+  id: '/bank-file',
+  path: '/bank-file',
+  getParentRoute: () => PayrollRoute,
 } as any)
 const RegulationsIndexRoute = RegulationsIndexRouteImport.update({
   id: '/',
@@ -489,6 +503,16 @@ const ReportsSurveysReportRoute = ReportsSurveysReportRouteImport.update({
   path: '/reports/surveys-report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RequestsPurchaseBudgetRoute = RequestsPurchaseBudgetRouteImport.update({
+  id: '/requests/purchase-budget',
+  path: '/requests/purchase-budget',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsSetupRoute = RequestsSetupRouteImport.update({
+  id: '/requests/setup',
+  path: '/requests/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsAccountLinksRoute = SettingsAccountLinksRouteImport.update({
   id: '/account-links',
   path: '/account-links',
@@ -499,16 +523,48 @@ const SettingsBasicRoute = SettingsBasicRouteImport.update({
   path: '/basic',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsBranchQuotasRoute = SettingsBranchQuotasRouteImport.update({
+  id: '/branch-quotas',
+  path: '/branch-quotas',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsBranchesRoute = SettingsBranchesRouteImport.update({
+  id: '/branches',
+  path: '/branches',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsCalendarRoute = SettingsCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsCompanyRoute = SettingsCompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsCompanyDocumentsRoute =
+  SettingsCompanyDocumentsRouteImport.update({
+    id: '/company-documents',
+    path: '/company-documents',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
   id: '/general',
   path: '/general',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSponsorsRoute = SettingsSponsorsRouteImport.update({
+  id: '/sponsors',
+  path: '/sponsors',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSuspensionReasonsRoute =
+  SettingsSuspensionReasonsRouteImport.update({
+    id: '/suspension-reasons',
+    path: '/suspension-reasons',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -575,7 +631,7 @@ export interface FileRoutesByFullPath {
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
-  '/payroll': typeof PayrollRoute
+  '/payroll': typeof PayrollRouteWithChildren
   '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/regulations': typeof RegulationsRouteWithChildren
@@ -585,6 +641,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRouteWithChildren
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
+  '/payroll/bank-file': typeof PayrollBankFileRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
@@ -640,10 +697,18 @@ export interface FileRoutesByFullPath {
   '/reports/petty-cash': typeof ReportsPettyCashRoute
   '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
   '/reports/surveys-report': typeof ReportsSurveysReportRoute
+  '/requests/purchase-budget': typeof RequestsPurchaseBudgetRoute
+  '/requests/setup': typeof RequestsSetupRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/branch-quotas': typeof SettingsBranchQuotasRoute
+  '/settings/branches': typeof SettingsBranchesRoute
   '/settings/calendar': typeof SettingsCalendarRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/company-documents': typeof SettingsCompanyDocumentsRoute
   '/settings/general': typeof SettingsGeneralRoute
+  '/settings/sponsors': typeof SettingsSponsorsRoute
+  '/settings/suspension-reasons': typeof SettingsSuspensionReasonsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -667,7 +732,7 @@ export interface FileRoutesByTo {
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
-  '/payroll': typeof PayrollRoute
+  '/payroll': typeof PayrollRouteWithChildren
   '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/request-notifications': typeof RequestNotificationsRoute
@@ -675,6 +740,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
+  '/payroll/bank-file': typeof PayrollBankFileRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
@@ -730,10 +796,18 @@ export interface FileRoutesByTo {
   '/reports/petty-cash': typeof ReportsPettyCashRoute
   '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
   '/reports/surveys-report': typeof ReportsSurveysReportRoute
+  '/requests/purchase-budget': typeof RequestsPurchaseBudgetRoute
+  '/requests/setup': typeof RequestsSetupRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/branch-quotas': typeof SettingsBranchQuotasRoute
+  '/settings/branches': typeof SettingsBranchesRoute
   '/settings/calendar': typeof SettingsCalendarRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/company-documents': typeof SettingsCompanyDocumentsRoute
   '/settings/general': typeof SettingsGeneralRoute
+  '/settings/sponsors': typeof SettingsSponsorsRoute
+  '/settings/suspension-reasons': typeof SettingsSuspensionReasonsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -758,7 +832,7 @@ export interface FileRoutesById {
   '/inquiries': typeof InquiriesRoute
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
-  '/payroll': typeof PayrollRoute
+  '/payroll': typeof PayrollRouteWithChildren
   '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/regulations': typeof RegulationsRouteWithChildren
@@ -768,6 +842,7 @@ export interface FileRoutesById {
   '/staff': typeof StaffRouteWithChildren
   '/surveys': typeof SurveysRoute
   '/vacations': typeof VacationsRoute
+  '/payroll/bank-file': typeof PayrollBankFileRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
@@ -823,10 +898,18 @@ export interface FileRoutesById {
   '/reports/petty-cash': typeof ReportsPettyCashRoute
   '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
   '/reports/surveys-report': typeof ReportsSurveysReportRoute
+  '/requests/purchase-budget': typeof RequestsPurchaseBudgetRoute
+  '/requests/setup': typeof RequestsSetupRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
+  '/settings/branch-quotas': typeof SettingsBranchQuotasRoute
+  '/settings/branches': typeof SettingsBranchesRoute
   '/settings/calendar': typeof SettingsCalendarRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/company-documents': typeof SettingsCompanyDocumentsRoute
   '/settings/general': typeof SettingsGeneralRoute
+  '/settings/sponsors': typeof SettingsSponsorsRoute
+  '/settings/suspension-reasons': typeof SettingsSuspensionReasonsRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -862,6 +945,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/surveys'
     | '/vacations'
+    | '/payroll/bank-file'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
@@ -917,10 +1001,18 @@ export interface FileRouteTypes {
     | '/reports/petty-cash'
     | '/reports/requests-summary'
     | '/reports/surveys-report'
+    | '/requests/purchase-budget'
+    | '/requests/setup'
     | '/settings/account-links'
     | '/settings/basic'
+    | '/settings/branch-quotas'
+    | '/settings/branches'
     | '/settings/calendar'
+    | '/settings/company'
+    | '/settings/company-documents'
     | '/settings/general'
+    | '/settings/sponsors'
+    | '/settings/suspension-reasons'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -952,6 +1044,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/surveys'
     | '/vacations'
+    | '/payroll/bank-file'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
@@ -1007,10 +1100,18 @@ export interface FileRouteTypes {
     | '/reports/petty-cash'
     | '/reports/requests-summary'
     | '/reports/surveys-report'
+    | '/requests/purchase-budget'
+    | '/requests/setup'
     | '/settings/account-links'
     | '/settings/basic'
+    | '/settings/branch-quotas'
+    | '/settings/branches'
     | '/settings/calendar'
+    | '/settings/company'
+    | '/settings/company-documents'
     | '/settings/general'
+    | '/settings/sponsors'
+    | '/settings/suspension-reasons'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -1044,6 +1145,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/surveys'
     | '/vacations'
+    | '/payroll/bank-file'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
     | '/regulations/deductions'
@@ -1099,10 +1201,18 @@ export interface FileRouteTypes {
     | '/reports/petty-cash'
     | '/reports/requests-summary'
     | '/reports/surveys-report'
+    | '/requests/purchase-budget'
+    | '/requests/setup'
     | '/settings/account-links'
     | '/settings/basic'
+    | '/settings/branch-quotas'
+    | '/settings/branches'
     | '/settings/calendar'
+    | '/settings/company'
+    | '/settings/company-documents'
     | '/settings/general'
+    | '/settings/sponsors'
+    | '/settings/suspension-reasons'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -1127,7 +1237,7 @@ export interface RootRouteChildren {
   InquiriesRoute: typeof InquiriesRoute
   LeavesRoute: typeof LeavesRoute
   LoansRoute: typeof LoansRoute
-  PayrollRoute: typeof PayrollRoute
+  PayrollRoute: typeof PayrollRouteWithChildren
   PermissionsRoute: typeof PermissionsRoute
   PermitsRoute: typeof PermitsRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
@@ -1182,6 +1292,8 @@ export interface RootRouteChildren {
   ReportsPettyCashRoute: typeof ReportsPettyCashRoute
   ReportsRequestsSummaryRoute: typeof ReportsRequestsSummaryRoute
   ReportsSurveysReportRoute: typeof ReportsSurveysReportRoute
+  RequestsPurchaseBudgetRoute: typeof RequestsPurchaseBudgetRoute
+  RequestsSetupRoute: typeof RequestsSetupRoute
   TasksPermissionsRoute: typeof TasksPermissionsRoute
   TasksReportsRoute: typeof TasksReportsRoute
   TasksSetupRoute: typeof TasksSetupRoute
@@ -1322,6 +1434,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/vacations'
       preLoaderRoute: typeof VacationsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/payroll/bank-file': {
+      id: '/payroll/bank-file'
+      path: '/bank-file'
+      fullPath: '/payroll/bank-file'
+      preLoaderRoute: typeof PayrollBankFileRouteImport
+      parentRoute: typeof PayrollRoute
     }
     '/regulations/': {
       id: '/regulations/'
@@ -1715,6 +1834,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsSurveysReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/requests/purchase-budget': {
+      id: '/requests/purchase-budget'
+      path: '/requests/purchase-budget'
+      fullPath: '/requests/purchase-budget'
+      preLoaderRoute: typeof RequestsPurchaseBudgetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests/setup': {
+      id: '/requests/setup'
+      path: '/requests/setup'
+      fullPath: '/requests/setup'
+      preLoaderRoute: typeof RequestsSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/account-links': {
       id: '/settings/account-links'
       path: '/account-links'
@@ -1729,6 +1862,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsBasicRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/branch-quotas': {
+      id: '/settings/branch-quotas'
+      path: '/branch-quotas'
+      fullPath: '/settings/branch-quotas'
+      preLoaderRoute: typeof SettingsBranchQuotasRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/branches': {
+      id: '/settings/branches'
+      path: '/branches'
+      fullPath: '/settings/branches'
+      preLoaderRoute: typeof SettingsBranchesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/calendar': {
       id: '/settings/calendar'
       path: '/calendar'
@@ -1736,11 +1883,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsCalendarRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/company': {
+      id: '/settings/company'
+      path: '/company'
+      fullPath: '/settings/company'
+      preLoaderRoute: typeof SettingsCompanyRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/company-documents': {
+      id: '/settings/company-documents'
+      path: '/company-documents'
+      fullPath: '/settings/company-documents'
+      preLoaderRoute: typeof SettingsCompanyDocumentsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/general': {
       id: '/settings/general'
       path: '/general'
       fullPath: '/settings/general'
       preLoaderRoute: typeof SettingsGeneralRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/sponsors': {
+      id: '/settings/sponsors'
+      path: '/sponsors'
+      fullPath: '/settings/sponsors'
+      preLoaderRoute: typeof SettingsSponsorsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/suspension-reasons': {
+      id: '/settings/suspension-reasons'
+      path: '/suspension-reasons'
+      fullPath: '/settings/suspension-reasons'
+      preLoaderRoute: typeof SettingsSuspensionReasonsRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/staff/': {
@@ -1823,6 +1998,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface PayrollRouteChildren {
+  PayrollBankFileRoute: typeof PayrollBankFileRoute
+}
+
+const PayrollRouteChildren: PayrollRouteChildren = {
+  PayrollBankFileRoute: PayrollBankFileRoute,
+}
+
+const PayrollRouteWithChildren =
+  PayrollRoute._addFileChildren(PayrollRouteChildren)
+
 interface RegulationsRouteChildren {
   RegulationsApprovalsRoute: typeof RegulationsApprovalsRoute
   RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
@@ -1858,15 +2044,27 @@ const RegulationsRouteWithChildren = RegulationsRoute._addFileChildren(
 interface SettingsRouteChildren {
   SettingsAccountLinksRoute: typeof SettingsAccountLinksRoute
   SettingsBasicRoute: typeof SettingsBasicRoute
+  SettingsBranchQuotasRoute: typeof SettingsBranchQuotasRoute
+  SettingsBranchesRoute: typeof SettingsBranchesRoute
   SettingsCalendarRoute: typeof SettingsCalendarRoute
+  SettingsCompanyRoute: typeof SettingsCompanyRoute
+  SettingsCompanyDocumentsRoute: typeof SettingsCompanyDocumentsRoute
   SettingsGeneralRoute: typeof SettingsGeneralRoute
+  SettingsSponsorsRoute: typeof SettingsSponsorsRoute
+  SettingsSuspensionReasonsRoute: typeof SettingsSuspensionReasonsRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountLinksRoute: SettingsAccountLinksRoute,
   SettingsBasicRoute: SettingsBasicRoute,
+  SettingsBranchQuotasRoute: SettingsBranchQuotasRoute,
+  SettingsBranchesRoute: SettingsBranchesRoute,
   SettingsCalendarRoute: SettingsCalendarRoute,
+  SettingsCompanyRoute: SettingsCompanyRoute,
+  SettingsCompanyDocumentsRoute: SettingsCompanyDocumentsRoute,
   SettingsGeneralRoute: SettingsGeneralRoute,
+  SettingsSponsorsRoute: SettingsSponsorsRoute,
+  SettingsSuspensionReasonsRoute: SettingsSuspensionReasonsRoute,
 }
 
 const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
@@ -1905,7 +2103,7 @@ const rootRouteChildren: RootRouteChildren = {
   InquiriesRoute: InquiriesRoute,
   LeavesRoute: LeavesRoute,
   LoansRoute: LoansRoute,
-  PayrollRoute: PayrollRoute,
+  PayrollRoute: PayrollRouteWithChildren,
   PermissionsRoute: PermissionsRoute,
   PermitsRoute: PermitsRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
@@ -1960,6 +2158,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsPettyCashRoute: ReportsPettyCashRoute,
   ReportsRequestsSummaryRoute: ReportsRequestsSummaryRoute,
   ReportsSurveysReportRoute: ReportsSurveysReportRoute,
+  RequestsPurchaseBudgetRoute: RequestsPurchaseBudgetRoute,
+  RequestsSetupRoute: RequestsSetupRoute,
   TasksPermissionsRoute: TasksPermissionsRoute,
   TasksReportsRoute: TasksReportsRoute,
   TasksSetupRoute: TasksSetupRoute,

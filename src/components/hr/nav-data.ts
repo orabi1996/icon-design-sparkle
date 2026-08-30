@@ -120,7 +120,14 @@ export const nav: NavItem[] = [
     label: "الطلبات",
     icon: "campaign",
     columns: [
-      { title: "الموافقة على الطلبات", items: ["الطلبات", "ميزانية الشراء", "تهيئة الطلبات"] },
+      {
+        title: "الموافقة على الطلبات",
+        items: [
+          { label: "الطلبات", to: "/approval-requests" },
+          { label: "ميزانية الشراء", to: "/requests/purchase-budget" },
+          { label: "تهيئة الطلبات", to: "/requests/setup" },
+        ],
+      },
     ],
   },
   {
@@ -183,7 +190,10 @@ export const nav: NavItem[] = [
       { title: "ماليات الموظفين", items: [{ label: "السلف", to: "/loans" }] },
       {
         title: "رواتب الموظفين",
-        items: [{ label: "تجهيز مسودة المسير", to: "/payroll" }, "ملف البنك"],
+        items: [
+          { label: "تجهيز مسودة المسير", to: "/payroll" },
+          { label: "ملف البنك", to: "/payroll/bank-file" },
+        ],
       },
     ],
   },
@@ -201,15 +211,19 @@ export const nav: NavItem[] = [
       },
       {
         title: "تهيئة بيانات الشركات والفروع",
-        items: ["تهيئة بيانات الشركة", "تهيئة بيانات الفروع", "مستندات الشركة والافرع"],
+        items: [
+          { label: "تهيئة بيانات الشركة", to: "/settings/company" },
+          { label: "تهيئة بيانات الفروع", to: "/settings/branches" },
+          { label: "مستندات الشركة والافرع", to: "/settings/company-documents" },
+        ],
       },
       {
         title: "إعدادات أخرى",
         items: [
           { label: "تهيئة السنوات والشهور", to: "/settings/calendar" },
-          "تهيئة الكفلاء",
-          "تهيئة أسباب الايقاف",
-          "تحديد اعداد الموظفين في الفروع",
+          { label: "تهيئة الكفلاء", to: "/settings/sponsors" },
+          { label: "تهيئة أسباب الايقاف", to: "/settings/suspension-reasons" },
+          { label: "تحديد اعداد الموظفين في الفروع", to: "/settings/branch-quotas" },
         ],
       },
     ],

@@ -19,6 +19,7 @@ import { Route as InquiriesRouteImport } from './routes/inquiries'
 import { Route as LeavesRouteImport } from './routes/leaves'
 import { Route as LoansRouteImport } from './routes/loans'
 import { Route as PayrollRouteImport } from './routes/payroll'
+import { Route as PermissionsRouteImport } from './routes/permissions'
 import { Route as PermitsRouteImport } from './routes/permits'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
@@ -126,6 +127,11 @@ const LoansRoute = LoansRouteImport.update({
 const PayrollRoute = PayrollRouteImport.update({
   id: '/payroll',
   path: '/payroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PermissionsRoute = PermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PermitsRoute = PermitsRouteImport.update({
@@ -436,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
+  '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
@@ -506,6 +513,7 @@ export interface FileRoutesByTo {
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
+  '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/request-notifications': typeof RequestNotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -575,6 +583,7 @@ export interface FileRoutesById {
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
+  '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
@@ -647,6 +656,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/loans'
     | '/payroll'
+    | '/permissions'
     | '/permits'
     | '/regulations'
     | '/request-notifications'
@@ -717,6 +727,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/loans'
     | '/payroll'
+    | '/permissions'
     | '/permits'
     | '/request-notifications'
     | '/reset-password'
@@ -785,6 +796,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/loans'
     | '/payroll'
+    | '/permissions'
     | '/permits'
     | '/regulations'
     | '/request-notifications'
@@ -856,6 +868,7 @@ export interface RootRouteChildren {
   LeavesRoute: typeof LeavesRoute
   LoansRoute: typeof LoansRoute
   PayrollRoute: typeof PayrollRoute
+  PermissionsRoute: typeof PermissionsRoute
   PermitsRoute: typeof PermitsRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
@@ -964,6 +977,13 @@ declare module '@tanstack/react-router' {
       path: '/payroll'
       fullPath: '/payroll'
       preLoaderRoute: typeof PayrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/permissions': {
+      id: '/permissions'
+      path: '/permissions'
+      fullPath: '/permissions'
+      preLoaderRoute: typeof PermissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/permits': {
@@ -1458,6 +1478,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeavesRoute: LeavesRoute,
   LoansRoute: LoansRoute,
   PayrollRoute: PayrollRoute,
+  PermissionsRoute: PermissionsRoute,
   PermitsRoute: PermitsRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,

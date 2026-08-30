@@ -16,7 +16,7 @@ export const nav: NavItem[] = [
       },
     ],
   },
-  { label: "الصلاحيات", icon: "shield_person" },
+  { label: "الصلاحيات", icon: "shield_person", to: "/permissions" },
   { label: "تقييم الأداء", icon: "trending_up" },
   {
     label: "طلبات الاعتماد",

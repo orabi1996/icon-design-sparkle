@@ -46,6 +46,7 @@ import { Route as ReportsAbsenceLateComparisonRouteImport } from './routes/repor
 import { Route as ReportsAbsenceMonthlyRouteImport } from './routes/reports.absence-monthly'
 import { Route as ReportsAbsenceValueRouteImport } from './routes/reports.absence-value'
 import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendance'
+import { Route as ReportsBasicDataRouteImport } from './routes/reports.basic-data'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
 import { Route as ReportsEmployeeDataRouteImport } from './routes/reports.employee-data'
 import { Route as ReportsExceptionsRouteImport } from './routes/reports.exceptions'
@@ -254,6 +255,11 @@ const ReportsAttendanceRoute = ReportsAttendanceRouteImport.update({
   path: '/reports/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsBasicDataRoute = ReportsBasicDataRouteImport.update({
+  id: '/reports/basic-data',
+  path: '/reports/basic-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsEarlyCheckoutDaysRoute =
   ReportsEarlyCheckoutDaysRouteImport.update({
     id: '/reports/early-checkout-days',
@@ -398,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
@@ -456,6 +463,7 @@ export interface FileRoutesByTo {
   '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
@@ -517,6 +525,7 @@ export interface FileRoutesById {
   '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
@@ -579,6 +588,7 @@ export interface FileRouteTypes {
     | '/reports/absence-monthly'
     | '/reports/absence-value'
     | '/reports/attendance'
+    | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/exceptions'
@@ -637,6 +647,7 @@ export interface FileRouteTypes {
     | '/reports/absence-monthly'
     | '/reports/absence-value'
     | '/reports/attendance'
+    | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/exceptions'
@@ -697,6 +708,7 @@ export interface FileRouteTypes {
     | '/reports/absence-monthly'
     | '/reports/absence-value'
     | '/reports/attendance'
+    | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/exceptions'
@@ -748,6 +760,7 @@ export interface RootRouteChildren {
   ReportsAbsenceMonthlyRoute: typeof ReportsAbsenceMonthlyRoute
   ReportsAbsenceValueRoute: typeof ReportsAbsenceValueRoute
   ReportsAttendanceRoute: typeof ReportsAttendanceRoute
+  ReportsBasicDataRoute: typeof ReportsBasicDataRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
   ReportsEmployeeDataRoute: typeof ReportsEmployeeDataRoute
   ReportsExceptionsRoute: typeof ReportsExceptionsRoute
@@ -1021,6 +1034,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsAttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/basic-data': {
+      id: '/reports/basic-data'
+      path: '/reports/basic-data'
+      fullPath: '/reports/basic-data'
+      preLoaderRoute: typeof ReportsBasicDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/early-checkout-days': {
       id: '/reports/early-checkout-days'
       path: '/reports/early-checkout-days'
@@ -1270,6 +1290,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsAbsenceMonthlyRoute: ReportsAbsenceMonthlyRoute,
   ReportsAbsenceValueRoute: ReportsAbsenceValueRoute,
   ReportsAttendanceRoute: ReportsAttendanceRoute,
+  ReportsBasicDataRoute: ReportsBasicDataRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
   ReportsEmployeeDataRoute: ReportsEmployeeDataRoute,
   ReportsExceptionsRoute: ReportsExceptionsRoute,

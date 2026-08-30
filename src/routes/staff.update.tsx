@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { EmployeeExcelImport } from "@/components/hr/EmployeeExcelImport";
 import { EmployeeExcelUpdate } from "@/components/hr/EmployeeExcelUpdate";
+import { RelativeExcelImport } from "@/components/hr/RelativeExcelImport";
 import { FacilityDataImport } from "@/components/hr/FacilityDataImport";
 import {
   Breadcrumbs,
@@ -242,6 +243,8 @@ function StaffUpdate() {
                 <EmployeeExcelImport />
               ) : s.key === "employee" ? (
                 <EmployeeExcelUpdate />
+              ) : s.key === "relatives" ? (
+                <RelativeExcelImport />
               ) : s.key === "facility" ? (
                 <FacilityDataImport />
               ) : (

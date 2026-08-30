@@ -10,6 +10,7 @@ export type Row = Record<string, any>; // eslint-disable-line @typescript-eslint
 
 export type HrTable =
   | "employees"
+  | "employee_relatives"
   | "departments"
   | "entitlements"
   | "deductions"
@@ -131,20 +132,35 @@ export function useInsertRows(table: HrTable) {
 }
 
 /** Atomically update a validated batch by its unique conflict key. */
-export function useUpsertRows(table: HrTable, onConflict: string) {
+export type BatchMutationMessages = {
+  empty?: string;
+  success?: (count: number) => string;
+  error?: (message: string) => string;
+};
+
+export function useUpsertRows(
+  table: HrTable,
+  onConflict: string,
+  messages?: BatchMutationMessages,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (rows: Row[]) => {
-      if (rows.length === 0) throw new Error("لا توجد بيانات صالحة للتحديث");
+      if (rows.length === 0) {
+        throw new Error(messages?.empty ?? "لا توجد بيانات صالحة للتحديث");
+      }
       const { data, error } = await db.from(table).upsert(rows, { onConflict }).select();
       if (error) throw error;
       return (data ?? []) as Row[];
     },
     onSuccess: (rows) => {
       invalidate(qc, table);
-      toast.success(`تم تحديث بيانات ${rows.length} موظف بنجاح`);
+      toast.success(
+        messages?.success?.(rows.length) ?? `تم تحديث بيانات ${rows.length} موظف بنجاح`,
+      );
     },
-    onError: (e: Error) => toast.error(`تعذر تحديث بيانات الموظفين: ${e.message}`),
+    onError: (e: Error) =>
+      toast.error(messages?.error?.(e.message) ?? `تعذر تحديث بيانات الموظفين: ${e.message}`),
   });
 }
 

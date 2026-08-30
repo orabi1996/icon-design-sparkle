@@ -47,17 +47,22 @@ import { Route as ReportsAbsenceLateComparisonRouteImport } from './routes/repor
 import { Route as ReportsAbsenceMonthlyRouteImport } from './routes/reports.absence-monthly'
 import { Route as ReportsAbsenceValueRouteImport } from './routes/reports.absence-value'
 import { Route as ReportsAdminFormsRouteImport } from './routes/reports.admin-forms'
+import { Route as ReportsArchiveRouteImport } from './routes/reports.archive'
 import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendance'
 import { Route as ReportsAttendanceComprehensiveRouteImport } from './routes/reports.attendance-comprehensive'
 import { Route as ReportsAttendanceDetailedRouteImport } from './routes/reports.attendance-detailed'
 import { Route as ReportsAttendanceStatisticsRouteImport } from './routes/reports.attendance-statistics'
+import { Route as ReportsBankStatementRouteImport } from './routes/reports.bank-statement'
 import { Route as ReportsBasicDataRouteImport } from './routes/reports.basic-data'
 import { Route as ReportsDailyLateRouteImport } from './routes/reports.daily-late'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
+import { Route as ReportsEmployeeAccountStatementRouteImport } from './routes/reports.employee-account-statement'
 import { Route as ReportsEmployeeCertificatesRouteImport } from './routes/reports.employee-certificates'
+import { Route as ReportsEmployeeContractsReportRouteImport } from './routes/reports.employee-contracts-report'
 import { Route as ReportsEmployeeDataRouteImport } from './routes/reports.employee-data'
 import { Route as ReportsEmployeeDependentsRouteImport } from './routes/reports.employee-dependents'
 import { Route as ReportsEmployeeFilesRouteImport } from './routes/reports.employee-files'
+import { Route as ReportsEmployeeHeadcountRouteImport } from './routes/reports.employee-headcount'
 import { Route as ReportsEmployeeLeavesRouteImport } from './routes/reports.employee-leaves'
 import { Route as ReportsEmployeeTrainingRouteImport } from './routes/reports.employee-training'
 import { Route as ReportsEntitlementsDeductionsRouteImport } from './routes/reports.entitlements-deductions'
@@ -66,13 +71,19 @@ import { Route as ReportsExceptionsRouteImport } from './routes/reports.exceptio
 import { Route as ReportsFinancialDataRouteImport } from './routes/reports.financial-data'
 import { Route as ReportsFingerprintRouteImport } from './routes/reports.fingerprint'
 import { Route as ReportsHireAndTerminationRouteImport } from './routes/reports.hire-and-termination'
+import { Route as ReportsHistoricalLeavesRouteImport } from './routes/reports.historical-leaves'
 import { Route as ReportsLateDaysListRouteImport } from './routes/reports.late-days-list'
 import { Route as ReportsLateMinutesRouteImport } from './routes/reports.late-minutes'
 import { Route as ReportsLoansBalanceRouteImport } from './routes/reports.loans-balance'
 import { Route as ReportsLoansDataRouteImport } from './routes/reports.loans-data'
+import { Route as ReportsManpowerBudgetRouteImport } from './routes/reports.manpower-budget'
 import { Route as ReportsMedicalInsuranceRouteImport } from './routes/reports.medical-insurance'
+import { Route as ReportsPayrollAdjustmentsRouteImport } from './routes/reports.payroll-adjustments'
 import { Route as ReportsPayrollComparisonRouteImport } from './routes/reports.payroll-comparison'
 import { Route as ReportsPayrollSheetRouteImport } from './routes/reports.payroll-sheet'
+import { Route as ReportsPettyCashRouteImport } from './routes/reports.petty-cash'
+import { Route as ReportsRequestsSummaryRouteImport } from './routes/reports.requests-summary'
+import { Route as ReportsSurveysReportRouteImport } from './routes/reports.surveys-report'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
 import { Route as SettingsCalendarRouteImport } from './routes/settings.calendar'
@@ -280,6 +291,11 @@ const ReportsAdminFormsRoute = ReportsAdminFormsRouteImport.update({
   path: '/reports/admin-forms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsArchiveRoute = ReportsArchiveRouteImport.update({
+  id: '/reports/archive',
+  path: '/reports/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsAttendanceRoute = ReportsAttendanceRouteImport.update({
   id: '/reports/attendance',
   path: '/reports/attendance',
@@ -303,6 +319,11 @@ const ReportsAttendanceStatisticsRoute =
     path: '/reports/attendance-statistics',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ReportsBankStatementRoute = ReportsBankStatementRouteImport.update({
+  id: '/reports/bank-statement',
+  path: '/reports/bank-statement',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsBasicDataRoute = ReportsBasicDataRouteImport.update({
   id: '/reports/basic-data',
   path: '/reports/basic-data',
@@ -319,10 +340,22 @@ const ReportsEarlyCheckoutDaysRoute =
     path: '/reports/early-checkout-days',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ReportsEmployeeAccountStatementRoute =
+  ReportsEmployeeAccountStatementRouteImport.update({
+    id: '/reports/employee-account-statement',
+    path: '/reports/employee-account-statement',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsEmployeeCertificatesRoute =
   ReportsEmployeeCertificatesRouteImport.update({
     id: '/reports/employee-certificates',
     path: '/reports/employee-certificates',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ReportsEmployeeContractsReportRoute =
+  ReportsEmployeeContractsReportRouteImport.update({
+    id: '/reports/employee-contracts-report',
+    path: '/reports/employee-contracts-report',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ReportsEmployeeDataRoute = ReportsEmployeeDataRouteImport.update({
@@ -341,6 +374,12 @@ const ReportsEmployeeFilesRoute = ReportsEmployeeFilesRouteImport.update({
   path: '/reports/employee-files',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsEmployeeHeadcountRoute =
+  ReportsEmployeeHeadcountRouteImport.update({
+    id: '/reports/employee-headcount',
+    path: '/reports/employee-headcount',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsEmployeeLeavesRoute = ReportsEmployeeLeavesRouteImport.update({
   id: '/reports/employee-leaves',
   path: '/reports/employee-leaves',
@@ -383,6 +422,11 @@ const ReportsHireAndTerminationRoute =
     path: '/reports/hire-and-termination',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ReportsHistoricalLeavesRoute = ReportsHistoricalLeavesRouteImport.update({
+  id: '/reports/historical-leaves',
+  path: '/reports/historical-leaves',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsLateDaysListRoute = ReportsLateDaysListRouteImport.update({
   id: '/reports/late-days-list',
   path: '/reports/late-days-list',
@@ -403,11 +447,22 @@ const ReportsLoansDataRoute = ReportsLoansDataRouteImport.update({
   path: '/reports/loans-data',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsManpowerBudgetRoute = ReportsManpowerBudgetRouteImport.update({
+  id: '/reports/manpower-budget',
+  path: '/reports/manpower-budget',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsMedicalInsuranceRoute = ReportsMedicalInsuranceRouteImport.update({
   id: '/reports/medical-insurance',
   path: '/reports/medical-insurance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsPayrollAdjustmentsRoute =
+  ReportsPayrollAdjustmentsRouteImport.update({
+    id: '/reports/payroll-adjustments',
+    path: '/reports/payroll-adjustments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsPayrollComparisonRoute =
   ReportsPayrollComparisonRouteImport.update({
     id: '/reports/payroll-comparison',
@@ -417,6 +472,21 @@ const ReportsPayrollComparisonRoute =
 const ReportsPayrollSheetRoute = ReportsPayrollSheetRouteImport.update({
   id: '/reports/payroll-sheet',
   path: '/reports/payroll-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsPettyCashRoute = ReportsPettyCashRouteImport.update({
+  id: '/reports/petty-cash',
+  path: '/reports/petty-cash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRequestsSummaryRoute = ReportsRequestsSummaryRouteImport.update({
+  id: '/reports/requests-summary',
+  path: '/reports/requests-summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsSurveysReportRoute = ReportsSurveysReportRouteImport.update({
+  id: '/reports/surveys-report',
+  path: '/reports/surveys-report',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsAccountLinksRoute = SettingsAccountLinksRouteImport.update({
@@ -533,17 +603,22 @@ export interface FileRoutesByFullPath {
   '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
+  '/reports/archive': typeof ReportsArchiveRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
   '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
   '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
+  '/reports/bank-statement': typeof ReportsBankStatementRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/employee-account-statement': typeof ReportsEmployeeAccountStatementRoute
   '/reports/employee-certificates': typeof ReportsEmployeeCertificatesRoute
+  '/reports/employee-contracts-report': typeof ReportsEmployeeContractsReportRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/employee-headcount': typeof ReportsEmployeeHeadcountRoute
   '/reports/employee-leaves': typeof ReportsEmployeeLeavesRoute
   '/reports/employee-training': typeof ReportsEmployeeTrainingRoute
   '/reports/entitlements-deductions': typeof ReportsEntitlementsDeductionsRoute
@@ -552,13 +627,19 @@ export interface FileRoutesByFullPath {
   '/reports/financial-data': typeof ReportsFinancialDataRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
+  '/reports/historical-leaves': typeof ReportsHistoricalLeavesRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/reports/loans-balance': typeof ReportsLoansBalanceRoute
   '/reports/loans-data': typeof ReportsLoansDataRoute
+  '/reports/manpower-budget': typeof ReportsManpowerBudgetRoute
   '/reports/medical-insurance': typeof ReportsMedicalInsuranceRoute
+  '/reports/payroll-adjustments': typeof ReportsPayrollAdjustmentsRoute
   '/reports/payroll-comparison': typeof ReportsPayrollComparisonRoute
   '/reports/payroll-sheet': typeof ReportsPayrollSheetRoute
+  '/reports/petty-cash': typeof ReportsPettyCashRoute
+  '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
+  '/reports/surveys-report': typeof ReportsSurveysReportRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -612,17 +693,22 @@ export interface FileRoutesByTo {
   '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
+  '/reports/archive': typeof ReportsArchiveRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
   '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
   '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
+  '/reports/bank-statement': typeof ReportsBankStatementRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/employee-account-statement': typeof ReportsEmployeeAccountStatementRoute
   '/reports/employee-certificates': typeof ReportsEmployeeCertificatesRoute
+  '/reports/employee-contracts-report': typeof ReportsEmployeeContractsReportRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/employee-headcount': typeof ReportsEmployeeHeadcountRoute
   '/reports/employee-leaves': typeof ReportsEmployeeLeavesRoute
   '/reports/employee-training': typeof ReportsEmployeeTrainingRoute
   '/reports/entitlements-deductions': typeof ReportsEntitlementsDeductionsRoute
@@ -631,13 +717,19 @@ export interface FileRoutesByTo {
   '/reports/financial-data': typeof ReportsFinancialDataRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
+  '/reports/historical-leaves': typeof ReportsHistoricalLeavesRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/reports/loans-balance': typeof ReportsLoansBalanceRoute
   '/reports/loans-data': typeof ReportsLoansDataRoute
+  '/reports/manpower-budget': typeof ReportsManpowerBudgetRoute
   '/reports/medical-insurance': typeof ReportsMedicalInsuranceRoute
+  '/reports/payroll-adjustments': typeof ReportsPayrollAdjustmentsRoute
   '/reports/payroll-comparison': typeof ReportsPayrollComparisonRoute
   '/reports/payroll-sheet': typeof ReportsPayrollSheetRoute
+  '/reports/petty-cash': typeof ReportsPettyCashRoute
+  '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
+  '/reports/surveys-report': typeof ReportsSurveysReportRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -694,17 +786,22 @@ export interface FileRoutesById {
   '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
+  '/reports/archive': typeof ReportsArchiveRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
   '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
   '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
+  '/reports/bank-statement': typeof ReportsBankStatementRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/employee-account-statement': typeof ReportsEmployeeAccountStatementRoute
   '/reports/employee-certificates': typeof ReportsEmployeeCertificatesRoute
+  '/reports/employee-contracts-report': typeof ReportsEmployeeContractsReportRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/employee-headcount': typeof ReportsEmployeeHeadcountRoute
   '/reports/employee-leaves': typeof ReportsEmployeeLeavesRoute
   '/reports/employee-training': typeof ReportsEmployeeTrainingRoute
   '/reports/entitlements-deductions': typeof ReportsEntitlementsDeductionsRoute
@@ -713,13 +810,19 @@ export interface FileRoutesById {
   '/reports/financial-data': typeof ReportsFinancialDataRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
+  '/reports/historical-leaves': typeof ReportsHistoricalLeavesRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/reports/loans-balance': typeof ReportsLoansBalanceRoute
   '/reports/loans-data': typeof ReportsLoansDataRoute
+  '/reports/manpower-budget': typeof ReportsManpowerBudgetRoute
   '/reports/medical-insurance': typeof ReportsMedicalInsuranceRoute
+  '/reports/payroll-adjustments': typeof ReportsPayrollAdjustmentsRoute
   '/reports/payroll-comparison': typeof ReportsPayrollComparisonRoute
   '/reports/payroll-sheet': typeof ReportsPayrollSheetRoute
+  '/reports/petty-cash': typeof ReportsPettyCashRoute
+  '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
+  '/reports/surveys-report': typeof ReportsSurveysReportRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -777,17 +880,22 @@ export interface FileRouteTypes {
     | '/reports/absence-monthly'
     | '/reports/absence-value'
     | '/reports/admin-forms'
+    | '/reports/archive'
     | '/reports/attendance'
     | '/reports/attendance-comprehensive'
     | '/reports/attendance-detailed'
     | '/reports/attendance-statistics'
+    | '/reports/bank-statement'
     | '/reports/basic-data'
     | '/reports/daily-late'
     | '/reports/early-checkout-days'
+    | '/reports/employee-account-statement'
     | '/reports/employee-certificates'
+    | '/reports/employee-contracts-report'
     | '/reports/employee-data'
     | '/reports/employee-dependents'
     | '/reports/employee-files'
+    | '/reports/employee-headcount'
     | '/reports/employee-leaves'
     | '/reports/employee-training'
     | '/reports/entitlements-deductions'
@@ -796,13 +904,19 @@ export interface FileRouteTypes {
     | '/reports/financial-data'
     | '/reports/fingerprint'
     | '/reports/hire-and-termination'
+    | '/reports/historical-leaves'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
     | '/reports/loans-balance'
     | '/reports/loans-data'
+    | '/reports/manpower-budget'
     | '/reports/medical-insurance'
+    | '/reports/payroll-adjustments'
     | '/reports/payroll-comparison'
     | '/reports/payroll-sheet'
+    | '/reports/petty-cash'
+    | '/reports/requests-summary'
+    | '/reports/surveys-report'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -856,17 +970,22 @@ export interface FileRouteTypes {
     | '/reports/absence-monthly'
     | '/reports/absence-value'
     | '/reports/admin-forms'
+    | '/reports/archive'
     | '/reports/attendance'
     | '/reports/attendance-comprehensive'
     | '/reports/attendance-detailed'
     | '/reports/attendance-statistics'
+    | '/reports/bank-statement'
     | '/reports/basic-data'
     | '/reports/daily-late'
     | '/reports/early-checkout-days'
+    | '/reports/employee-account-statement'
     | '/reports/employee-certificates'
+    | '/reports/employee-contracts-report'
     | '/reports/employee-data'
     | '/reports/employee-dependents'
     | '/reports/employee-files'
+    | '/reports/employee-headcount'
     | '/reports/employee-leaves'
     | '/reports/employee-training'
     | '/reports/entitlements-deductions'
@@ -875,13 +994,19 @@ export interface FileRouteTypes {
     | '/reports/financial-data'
     | '/reports/fingerprint'
     | '/reports/hire-and-termination'
+    | '/reports/historical-leaves'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
     | '/reports/loans-balance'
     | '/reports/loans-data'
+    | '/reports/manpower-budget'
     | '/reports/medical-insurance'
+    | '/reports/payroll-adjustments'
     | '/reports/payroll-comparison'
     | '/reports/payroll-sheet'
+    | '/reports/petty-cash'
+    | '/reports/requests-summary'
+    | '/reports/surveys-report'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -937,17 +1062,22 @@ export interface FileRouteTypes {
     | '/reports/absence-monthly'
     | '/reports/absence-value'
     | '/reports/admin-forms'
+    | '/reports/archive'
     | '/reports/attendance'
     | '/reports/attendance-comprehensive'
     | '/reports/attendance-detailed'
     | '/reports/attendance-statistics'
+    | '/reports/bank-statement'
     | '/reports/basic-data'
     | '/reports/daily-late'
     | '/reports/early-checkout-days'
+    | '/reports/employee-account-statement'
     | '/reports/employee-certificates'
+    | '/reports/employee-contracts-report'
     | '/reports/employee-data'
     | '/reports/employee-dependents'
     | '/reports/employee-files'
+    | '/reports/employee-headcount'
     | '/reports/employee-leaves'
     | '/reports/employee-training'
     | '/reports/entitlements-deductions'
@@ -956,13 +1086,19 @@ export interface FileRouteTypes {
     | '/reports/financial-data'
     | '/reports/fingerprint'
     | '/reports/hire-and-termination'
+    | '/reports/historical-leaves'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
     | '/reports/loans-balance'
     | '/reports/loans-data'
+    | '/reports/manpower-budget'
     | '/reports/medical-insurance'
+    | '/reports/payroll-adjustments'
     | '/reports/payroll-comparison'
     | '/reports/payroll-sheet'
+    | '/reports/petty-cash'
+    | '/reports/requests-summary'
+    | '/reports/surveys-report'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -1009,17 +1145,22 @@ export interface RootRouteChildren {
   ReportsAbsenceMonthlyRoute: typeof ReportsAbsenceMonthlyRoute
   ReportsAbsenceValueRoute: typeof ReportsAbsenceValueRoute
   ReportsAdminFormsRoute: typeof ReportsAdminFormsRoute
+  ReportsArchiveRoute: typeof ReportsArchiveRoute
   ReportsAttendanceRoute: typeof ReportsAttendanceRoute
   ReportsAttendanceComprehensiveRoute: typeof ReportsAttendanceComprehensiveRoute
   ReportsAttendanceDetailedRoute: typeof ReportsAttendanceDetailedRoute
   ReportsAttendanceStatisticsRoute: typeof ReportsAttendanceStatisticsRoute
+  ReportsBankStatementRoute: typeof ReportsBankStatementRoute
   ReportsBasicDataRoute: typeof ReportsBasicDataRoute
   ReportsDailyLateRoute: typeof ReportsDailyLateRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
+  ReportsEmployeeAccountStatementRoute: typeof ReportsEmployeeAccountStatementRoute
   ReportsEmployeeCertificatesRoute: typeof ReportsEmployeeCertificatesRoute
+  ReportsEmployeeContractsReportRoute: typeof ReportsEmployeeContractsReportRoute
   ReportsEmployeeDataRoute: typeof ReportsEmployeeDataRoute
   ReportsEmployeeDependentsRoute: typeof ReportsEmployeeDependentsRoute
   ReportsEmployeeFilesRoute: typeof ReportsEmployeeFilesRoute
+  ReportsEmployeeHeadcountRoute: typeof ReportsEmployeeHeadcountRoute
   ReportsEmployeeLeavesRoute: typeof ReportsEmployeeLeavesRoute
   ReportsEmployeeTrainingRoute: typeof ReportsEmployeeTrainingRoute
   ReportsEntitlementsDeductionsRoute: typeof ReportsEntitlementsDeductionsRoute
@@ -1028,13 +1169,19 @@ export interface RootRouteChildren {
   ReportsFinancialDataRoute: typeof ReportsFinancialDataRoute
   ReportsFingerprintRoute: typeof ReportsFingerprintRoute
   ReportsHireAndTerminationRoute: typeof ReportsHireAndTerminationRoute
+  ReportsHistoricalLeavesRoute: typeof ReportsHistoricalLeavesRoute
   ReportsLateDaysListRoute: typeof ReportsLateDaysListRoute
   ReportsLateMinutesRoute: typeof ReportsLateMinutesRoute
   ReportsLoansBalanceRoute: typeof ReportsLoansBalanceRoute
   ReportsLoansDataRoute: typeof ReportsLoansDataRoute
+  ReportsManpowerBudgetRoute: typeof ReportsManpowerBudgetRoute
   ReportsMedicalInsuranceRoute: typeof ReportsMedicalInsuranceRoute
+  ReportsPayrollAdjustmentsRoute: typeof ReportsPayrollAdjustmentsRoute
   ReportsPayrollComparisonRoute: typeof ReportsPayrollComparisonRoute
   ReportsPayrollSheetRoute: typeof ReportsPayrollSheetRoute
+  ReportsPettyCashRoute: typeof ReportsPettyCashRoute
+  ReportsRequestsSummaryRoute: typeof ReportsRequestsSummaryRoute
+  ReportsSurveysReportRoute: typeof ReportsSurveysReportRoute
   TasksPermissionsRoute: typeof TasksPermissionsRoute
   TasksReportsRoute: typeof TasksReportsRoute
   TasksSetupRoute: typeof TasksSetupRoute
@@ -1309,6 +1456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsAdminFormsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/archive': {
+      id: '/reports/archive'
+      path: '/reports/archive'
+      fullPath: '/reports/archive'
+      preLoaderRoute: typeof ReportsArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/attendance': {
       id: '/reports/attendance'
       path: '/reports/attendance'
@@ -1337,6 +1491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsAttendanceStatisticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/bank-statement': {
+      id: '/reports/bank-statement'
+      path: '/reports/bank-statement'
+      fullPath: '/reports/bank-statement'
+      preLoaderRoute: typeof ReportsBankStatementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/basic-data': {
       id: '/reports/basic-data'
       path: '/reports/basic-data'
@@ -1358,11 +1519,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsEarlyCheckoutDaysRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/employee-account-statement': {
+      id: '/reports/employee-account-statement'
+      path: '/reports/employee-account-statement'
+      fullPath: '/reports/employee-account-statement'
+      preLoaderRoute: typeof ReportsEmployeeAccountStatementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/employee-certificates': {
       id: '/reports/employee-certificates'
       path: '/reports/employee-certificates'
       fullPath: '/reports/employee-certificates'
       preLoaderRoute: typeof ReportsEmployeeCertificatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/employee-contracts-report': {
+      id: '/reports/employee-contracts-report'
+      path: '/reports/employee-contracts-report'
+      fullPath: '/reports/employee-contracts-report'
+      preLoaderRoute: typeof ReportsEmployeeContractsReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/employee-data': {
@@ -1384,6 +1559,13 @@ declare module '@tanstack/react-router' {
       path: '/reports/employee-files'
       fullPath: '/reports/employee-files'
       preLoaderRoute: typeof ReportsEmployeeFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/employee-headcount': {
+      id: '/reports/employee-headcount'
+      path: '/reports/employee-headcount'
+      fullPath: '/reports/employee-headcount'
+      preLoaderRoute: typeof ReportsEmployeeHeadcountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/employee-leaves': {
@@ -1442,6 +1624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsHireAndTerminationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/historical-leaves': {
+      id: '/reports/historical-leaves'
+      path: '/reports/historical-leaves'
+      fullPath: '/reports/historical-leaves'
+      preLoaderRoute: typeof ReportsHistoricalLeavesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/late-days-list': {
       id: '/reports/late-days-list'
       path: '/reports/late-days-list'
@@ -1470,11 +1659,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsLoansDataRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/manpower-budget': {
+      id: '/reports/manpower-budget'
+      path: '/reports/manpower-budget'
+      fullPath: '/reports/manpower-budget'
+      preLoaderRoute: typeof ReportsManpowerBudgetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/medical-insurance': {
       id: '/reports/medical-insurance'
       path: '/reports/medical-insurance'
       fullPath: '/reports/medical-insurance'
       preLoaderRoute: typeof ReportsMedicalInsuranceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/payroll-adjustments': {
+      id: '/reports/payroll-adjustments'
+      path: '/reports/payroll-adjustments'
+      fullPath: '/reports/payroll-adjustments'
+      preLoaderRoute: typeof ReportsPayrollAdjustmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/payroll-comparison': {
@@ -1489,6 +1692,27 @@ declare module '@tanstack/react-router' {
       path: '/reports/payroll-sheet'
       fullPath: '/reports/payroll-sheet'
       preLoaderRoute: typeof ReportsPayrollSheetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/petty-cash': {
+      id: '/reports/petty-cash'
+      path: '/reports/petty-cash'
+      fullPath: '/reports/petty-cash'
+      preLoaderRoute: typeof ReportsPettyCashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/requests-summary': {
+      id: '/reports/requests-summary'
+      path: '/reports/requests-summary'
+      fullPath: '/reports/requests-summary'
+      preLoaderRoute: typeof ReportsRequestsSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/surveys-report': {
+      id: '/reports/surveys-report'
+      path: '/reports/surveys-report'
+      fullPath: '/reports/surveys-report'
+      preLoaderRoute: typeof ReportsSurveysReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/account-links': {
@@ -1699,17 +1923,22 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsAbsenceMonthlyRoute: ReportsAbsenceMonthlyRoute,
   ReportsAbsenceValueRoute: ReportsAbsenceValueRoute,
   ReportsAdminFormsRoute: ReportsAdminFormsRoute,
+  ReportsArchiveRoute: ReportsArchiveRoute,
   ReportsAttendanceRoute: ReportsAttendanceRoute,
   ReportsAttendanceComprehensiveRoute: ReportsAttendanceComprehensiveRoute,
   ReportsAttendanceDetailedRoute: ReportsAttendanceDetailedRoute,
   ReportsAttendanceStatisticsRoute: ReportsAttendanceStatisticsRoute,
+  ReportsBankStatementRoute: ReportsBankStatementRoute,
   ReportsBasicDataRoute: ReportsBasicDataRoute,
   ReportsDailyLateRoute: ReportsDailyLateRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
+  ReportsEmployeeAccountStatementRoute: ReportsEmployeeAccountStatementRoute,
   ReportsEmployeeCertificatesRoute: ReportsEmployeeCertificatesRoute,
+  ReportsEmployeeContractsReportRoute: ReportsEmployeeContractsReportRoute,
   ReportsEmployeeDataRoute: ReportsEmployeeDataRoute,
   ReportsEmployeeDependentsRoute: ReportsEmployeeDependentsRoute,
   ReportsEmployeeFilesRoute: ReportsEmployeeFilesRoute,
+  ReportsEmployeeHeadcountRoute: ReportsEmployeeHeadcountRoute,
   ReportsEmployeeLeavesRoute: ReportsEmployeeLeavesRoute,
   ReportsEmployeeTrainingRoute: ReportsEmployeeTrainingRoute,
   ReportsEntitlementsDeductionsRoute: ReportsEntitlementsDeductionsRoute,
@@ -1718,13 +1947,19 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsFinancialDataRoute: ReportsFinancialDataRoute,
   ReportsFingerprintRoute: ReportsFingerprintRoute,
   ReportsHireAndTerminationRoute: ReportsHireAndTerminationRoute,
+  ReportsHistoricalLeavesRoute: ReportsHistoricalLeavesRoute,
   ReportsLateDaysListRoute: ReportsLateDaysListRoute,
   ReportsLateMinutesRoute: ReportsLateMinutesRoute,
   ReportsLoansBalanceRoute: ReportsLoansBalanceRoute,
   ReportsLoansDataRoute: ReportsLoansDataRoute,
+  ReportsManpowerBudgetRoute: ReportsManpowerBudgetRoute,
   ReportsMedicalInsuranceRoute: ReportsMedicalInsuranceRoute,
+  ReportsPayrollAdjustmentsRoute: ReportsPayrollAdjustmentsRoute,
   ReportsPayrollComparisonRoute: ReportsPayrollComparisonRoute,
   ReportsPayrollSheetRoute: ReportsPayrollSheetRoute,
+  ReportsPettyCashRoute: ReportsPettyCashRoute,
+  ReportsRequestsSummaryRoute: ReportsRequestsSummaryRoute,
+  ReportsSurveysReportRoute: ReportsSurveysReportRoute,
   TasksPermissionsRoute: TasksPermissionsRoute,
   TasksReportsRoute: TasksReportsRoute,
   TasksSetupRoute: TasksSetupRoute,

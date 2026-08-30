@@ -4,18 +4,9 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 import { EmployeeExcelImport } from "@/components/hr/EmployeeExcelImport";
 import { EmployeeExcelUpdate } from "@/components/hr/EmployeeExcelUpdate";
 import { RelativeExcelImport } from "@/components/hr/RelativeExcelImport";
-import { FacilityDataImport } from "@/components/hr/FacilityDataImport";
-import {
-  Breadcrumbs,
-  Btn,
-  Card,
-  DataTable,
-  Field,
-  PageBanner,
-  Pager,
-  Select,
-  TableToolbar,
-} from "@/components/hr/ui";
+import { StaffBulkExcelImport } from "@/components/hr/StaffBulkExcelImport";
+import type { StaffBulkTemplateKey } from "@/lib/staff-bulk-templates";
+import { Breadcrumbs, Btn, Card, Field, PageBanner, Select } from "@/components/hr/ui";
 
 export const Route = createFileRoute("/staff/update")({
   head: () => ({
@@ -163,38 +154,18 @@ const sections: Section[] = [
   },
 ];
 
-const salaryRows: Record<string, string>[] = [];
-
-function UploadZone({ title }: { title: string }) {
-  return (
-    <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-5">
-      <h3 className="text-center text-sm font-extrabold text-foreground">{title}</h3>
-      <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-card/70 px-4 py-8 transition-colors hover:border-primary/60 hover:bg-card">
-        <span className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
-          <MaterialIcon name="cloud_upload" size={24} filled />
-        </span>
-        <span className="text-[13px] font-bold">اسحب الملف هنا أو اضغط للاختيار</span>
-        <span className="text-[11px] font-semibold text-muted-foreground">
-          الصيغ المدعومة: XLSX · XLS · CSV — حتى ١٠ ميجابايت
-        </span>
-        <input type="file" className="hidden" />
-      </label>
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
-        <Btn icon="upload" variant="teal">
-          رفع
-        </Btn>
-        <Btn icon="download" variant="ghost">
-          تحميل نموذج
-        </Btn>
-      </div>
-    </div>
-  );
-}
+const bulkImportKeys = new Set<StaffBulkTemplateKey>([
+  "facility",
+  "salaries",
+  "documents",
+  "entitlement",
+  "deduction",
+  "bank",
+]);
 
 function StaffUpdate() {
   const [active, setActive] = useState(sections[0]!.key);
   const s = sections.find((x) => x.key === active)!;
-  const rows = s.key === "salaries" ? salaryRows : [];
 
   return (
     <div className="mt-4">
@@ -213,7 +184,7 @@ function StaffUpdate() {
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_18rem]">
         <div className="min-w-0 space-y-4">
           <Card>
-            {s.filters && s.filters.length > 0 && (
+            {s.key === "custom" && s.filters && s.filters.length > 0 && (
               <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {s.filters.map((f) =>
                   f.kind === "check" ? (
@@ -245,23 +216,16 @@ function StaffUpdate() {
                 <EmployeeExcelUpdate />
               ) : s.key === "relatives" ? (
                 <RelativeExcelImport />
-              ) : s.key === "facility" ? (
-                <FacilityDataImport />
+              ) : bulkImportKeys.has(s.key as StaffBulkTemplateKey) ? (
+                <StaffBulkExcelImport
+                  kind={s.key as StaffBulkTemplateKey}
+                  title={s.label}
+                  icon={s.icon}
+                />
               ) : (
-                <UploadZone title={s.label} />
+                <></>
               ))}
           </Card>
-
-          {s.columns && !["employees", "employee", "facility"].includes(s.key) && (
-            <div
-              className="overflow-hidden rounded-2xl border border-border bg-card"
-              style={{ boxShadow: "var(--shadow-card)" }}
-            >
-              <TableToolbar title={s.label} />
-              <DataTable columns={s.columns} rows={rows} empty="لا توجد بيانات" />
-              <Pager page={1} pages={s.total ? 28 : 1} total={s.total ?? 0} />
-            </div>
-          )}
         </div>
 
         <aside

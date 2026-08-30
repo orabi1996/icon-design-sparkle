@@ -2,15 +2,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-/** Loose client wrapper: keeps generated types out of the hot type path. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as unknown as { from: (t: string) => any };
+type LooseTableClient = any;
+
+/** Loose client wrapper: keeps generated types out of the hot type path. */
+const db = supabase as unknown as {
+  from: (t: string) => LooseTableClient;
+  rpc: (
+    name: string,
+    args?: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+};
 
 export type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export type HrTable =
   | "employees"
   | "employee_relatives"
+  | "employee_documents"
+  | "employee_entitlements"
+  | "employee_deductions"
   | "departments"
   | "entitlements"
   | "deductions"
@@ -165,6 +176,35 @@ export function useUpsertRows(
   });
 }
 
+export type StaffBulkImportType =
+  "facility" | "salaries" | "documents" | "entitlement" | "deduction" | "bank";
+
+/** Apply a fully validated spreadsheet in one database transaction. */
+export function useApplyStaffBulkImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ importType, rows }: { importType: StaffBulkImportType; rows: Row[] }) => {
+      if (rows.length === 0) throw new Error("لا توجد بيانات صالحة للحفظ");
+      const { data, error } = await db.rpc("apply_staff_bulk_import", {
+        p_import_type: importType,
+        p_rows: rows,
+      });
+      if (error) throw new Error(error.message);
+      return data as { processed: number; import_type: StaffBulkImportType };
+    },
+    onSuccess: () => {
+      for (const table of [
+        "employees",
+        "employee_documents",
+        "employee_entitlements",
+        "employee_deductions",
+      ] satisfies HrTable[]) {
+        invalidate(qc, table);
+      }
+    },
+  });
+}
+
 export function useDeleteRow(table: HrTable) {
   const qc = useQueryClient();
   return useMutation({
@@ -255,7 +295,7 @@ export function useMatchFacilityRows() {
         .in("national_id", ids);
       if (error) throw error;
       const byId = new Map<string, Row>();
-      for (const e of ((data ?? []) as Row[])) {
+      for (const e of (data ?? []) as Row[]) {
         byId.set(String(e["national_id"]), e);
       }
       return rows.map((r) => {
@@ -287,7 +327,7 @@ export function useUpdateFacilityRows() {
         .in("national_id", ids);
       if (lookupErr) throw lookupErr;
       const byId = new Map<string, Row>();
-      for (const e of ((existing ?? []) as Row[])) {
+      for (const e of (existing ?? []) as Row[]) {
         byId.set(String(e["national_id"]), e);
       }
 

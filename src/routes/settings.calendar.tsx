@@ -109,8 +109,8 @@ function CalendarSetup() {
   const [newYearValue, setNewYearValue] = useState(currentYear + 1);
 
   useEffect(() => {
-    if (!isLoading) setYears(parseYears(settings.years));
-  }, [isLoading, settings.years]);
+    if (!isLoading) setYears(parseYears(settings["years"]));
+  }, [isLoading, settings["years"]]);
 
   useEffect(() => {
     setPage(1);
@@ -289,13 +289,13 @@ function CalendarSetup() {
           <table className="w-full min-w-[880px] border-collapse text-center text-[13px]">
             <thead>
               <tr className="bg-[#064b73] text-white">
-                {[
+                {([
                   ["السنة", "calendar_today"],
                   ["تاريخ البداية", "event"],
                   ["تاريخ النهاية", "event_available"],
                   ["فتح السنة", "toggle_on"],
                   ["الشهور", "date_range"],
-                ].map(([label, icon]) => (
+                ] as const).map(([label, icon]) => (
                   <th key={label} className="border-e border-white/20 px-4 py-3 font-extrabold">
                     <span className="flex items-center justify-center gap-2">
                       <MaterialIcon name={icon} size={17} />

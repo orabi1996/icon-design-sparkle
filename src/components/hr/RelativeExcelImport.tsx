@@ -375,7 +375,7 @@ export function RelativeExcelImport() {
                           {record.rowNumber}
                         </td>
                         <td className="border-b border-border px-4 py-3 font-bold">
-                          {text(record.payload.employee_name)}
+                          {text(record.payload["employee_name"])}
                         </td>
                         <td className="border-b border-border px-4 py-3">
                           {record.raw.EmpIDNumber}
@@ -391,7 +391,7 @@ export function RelativeExcelImport() {
                           {record.raw.Nationality}
                         </td>
                         <td className="border-b border-border px-4 py-3">
-                          {text(record.payload.date_of_birth)}
+                          {text(record.payload["date_of_birth"])}
                         </td>
                       </tr>
                     ))}

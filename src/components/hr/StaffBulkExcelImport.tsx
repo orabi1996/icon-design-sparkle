@@ -201,10 +201,10 @@ export function StaffBulkExcelImport({
     const definition = definitions.find((item) => item.id === definitionId);
     return {
       documentType,
-      year: year ? Number(year) : undefined,
-      month: month ? Number(month) : undefined,
-      definitionId: definition?.id,
-      definitionName: definition?.name,
+      ...(year ? { year: Number(year) } : {}),
+      ...(month ? { month: Number(month) } : {}),
+      ...(definition?.id ? { definitionId: definition.id } : {}),
+      ...(definition?.name ? { definitionName: definition.name } : {}),
       isDefault,
     };
   }, [definitionId, definitions, documentType, isDefault, month, year]);

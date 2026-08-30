@@ -403,7 +403,7 @@ export function EmployeeExcelImport() {
                           {record.raw.SpecializationName}
                         </td>
                         <td className="border-b border-border px-4 py-3">
-                          {text(record.payload.status)}
+                          {text(record.payload["status"])}
                         </td>
                       </tr>
                     ))}

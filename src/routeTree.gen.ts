@@ -38,8 +38,19 @@ import { Route as RegulationsOtherRouteImport } from './routes/regulations.other
 import { Route as RegulationsPermitsRouteImport } from './routes/regulations.permits'
 import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shifts'
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
+import { Route as ReportsAbsenceDailyRouteImport } from './routes/reports.absence-daily'
+import { Route as ReportsAbsenceDaysCountRouteImport } from './routes/reports.absence-days-count'
+import { Route as ReportsAbsenceDaysListRouteImport } from './routes/reports.absence-days-list'
+import { Route as ReportsAbsenceEmployeeRouteImport } from './routes/reports.absence-employee'
+import { Route as ReportsAbsenceLateComparisonRouteImport } from './routes/reports.absence-late-comparison'
+import { Route as ReportsAbsenceMonthlyRouteImport } from './routes/reports.absence-monthly'
+import { Route as ReportsAbsenceValueRouteImport } from './routes/reports.absence-value'
 import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendance'
+import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
+import { Route as ReportsExceptionsRouteImport } from './routes/reports.exceptions'
 import { Route as ReportsFingerprintRouteImport } from './routes/reports.fingerprint'
+import { Route as ReportsLateDaysListRouteImport } from './routes/reports.late-days-list'
+import { Route as ReportsLateMinutesRouteImport } from './routes/reports.late-minutes'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
 import { Route as SettingsCalendarRouteImport } from './routes/settings.calendar'
@@ -201,14 +212,71 @@ const RegulationsVacationsRoute = RegulationsVacationsRouteImport.update({
   path: '/vacations',
   getParentRoute: () => RegulationsRoute,
 } as any)
+const ReportsAbsenceDailyRoute = ReportsAbsenceDailyRouteImport.update({
+  id: '/reports/absence-daily',
+  path: '/reports/absence-daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsAbsenceDaysCountRoute = ReportsAbsenceDaysCountRouteImport.update({
+  id: '/reports/absence-days-count',
+  path: '/reports/absence-days-count',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsAbsenceDaysListRoute = ReportsAbsenceDaysListRouteImport.update({
+  id: '/reports/absence-days-list',
+  path: '/reports/absence-days-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsAbsenceEmployeeRoute = ReportsAbsenceEmployeeRouteImport.update({
+  id: '/reports/absence-employee',
+  path: '/reports/absence-employee',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsAbsenceLateComparisonRoute =
+  ReportsAbsenceLateComparisonRouteImport.update({
+    id: '/reports/absence-late-comparison',
+    path: '/reports/absence-late-comparison',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ReportsAbsenceMonthlyRoute = ReportsAbsenceMonthlyRouteImport.update({
+  id: '/reports/absence-monthly',
+  path: '/reports/absence-monthly',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsAbsenceValueRoute = ReportsAbsenceValueRouteImport.update({
+  id: '/reports/absence-value',
+  path: '/reports/absence-value',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsAttendanceRoute = ReportsAttendanceRouteImport.update({
   id: '/reports/attendance',
   path: '/reports/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsEarlyCheckoutDaysRoute =
+  ReportsEarlyCheckoutDaysRouteImport.update({
+    id: '/reports/early-checkout-days',
+    path: '/reports/early-checkout-days',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ReportsExceptionsRoute = ReportsExceptionsRouteImport.update({
+  id: '/reports/exceptions',
+  path: '/reports/exceptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsFingerprintRoute = ReportsFingerprintRouteImport.update({
   id: '/reports/fingerprint',
   path: '/reports/fingerprint',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsLateDaysListRoute = ReportsLateDaysListRouteImport.update({
+  id: '/reports/late-days-list',
+  path: '/reports/late-days-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsLateMinutesRoute = ReportsLateMinutesRouteImport.update({
+  id: '/reports/late-minutes',
+  path: '/reports/late-minutes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsAccountLinksRoute = SettingsAccountLinksRouteImport.update({
@@ -316,8 +384,19 @@ export interface FileRoutesByFullPath {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/reports/absence-daily': typeof ReportsAbsenceDailyRoute
+  '/reports/absence-days-count': typeof ReportsAbsenceDaysCountRoute
+  '/reports/absence-days-list': typeof ReportsAbsenceDaysListRoute
+  '/reports/absence-employee': typeof ReportsAbsenceEmployeeRoute
+  '/reports/absence-late-comparison': typeof ReportsAbsenceLateComparisonRoute
+  '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
+  '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
+  '/reports/late-days-list': typeof ReportsLateDaysListRoute
+  '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -362,8 +441,19 @@ export interface FileRoutesByTo {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/reports/absence-daily': typeof ReportsAbsenceDailyRoute
+  '/reports/absence-days-count': typeof ReportsAbsenceDaysCountRoute
+  '/reports/absence-days-list': typeof ReportsAbsenceDaysListRoute
+  '/reports/absence-employee': typeof ReportsAbsenceEmployeeRoute
+  '/reports/absence-late-comparison': typeof ReportsAbsenceLateComparisonRoute
+  '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
+  '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
+  '/reports/late-days-list': typeof ReportsLateDaysListRoute
+  '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -411,8 +501,19 @@ export interface FileRoutesById {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/reports/absence-daily': typeof ReportsAbsenceDailyRoute
+  '/reports/absence-days-count': typeof ReportsAbsenceDaysCountRoute
+  '/reports/absence-days-list': typeof ReportsAbsenceDaysListRoute
+  '/reports/absence-employee': typeof ReportsAbsenceEmployeeRoute
+  '/reports/absence-late-comparison': typeof ReportsAbsenceLateComparisonRoute
+  '/reports/absence-monthly': typeof ReportsAbsenceMonthlyRoute
+  '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
+  '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
+  '/reports/late-days-list': typeof ReportsLateDaysListRoute
+  '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
   '/settings/calendar': typeof SettingsCalendarRoute
@@ -461,8 +562,19 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/reports/absence-daily'
+    | '/reports/absence-days-count'
+    | '/reports/absence-days-list'
+    | '/reports/absence-employee'
+    | '/reports/absence-late-comparison'
+    | '/reports/absence-monthly'
+    | '/reports/absence-value'
     | '/reports/attendance'
+    | '/reports/early-checkout-days'
+    | '/reports/exceptions'
     | '/reports/fingerprint'
+    | '/reports/late-days-list'
+    | '/reports/late-minutes'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -507,8 +619,19 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/reports/absence-daily'
+    | '/reports/absence-days-count'
+    | '/reports/absence-days-list'
+    | '/reports/absence-employee'
+    | '/reports/absence-late-comparison'
+    | '/reports/absence-monthly'
+    | '/reports/absence-value'
     | '/reports/attendance'
+    | '/reports/early-checkout-days'
+    | '/reports/exceptions'
     | '/reports/fingerprint'
+    | '/reports/late-days-list'
+    | '/reports/late-minutes'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -555,8 +678,19 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/reports/absence-daily'
+    | '/reports/absence-days-count'
+    | '/reports/absence-days-list'
+    | '/reports/absence-employee'
+    | '/reports/absence-late-comparison'
+    | '/reports/absence-monthly'
+    | '/reports/absence-value'
     | '/reports/attendance'
+    | '/reports/early-checkout-days'
+    | '/reports/exceptions'
     | '/reports/fingerprint'
+    | '/reports/late-days-list'
+    | '/reports/late-minutes'
     | '/settings/account-links'
     | '/settings/basic'
     | '/settings/calendar'
@@ -594,8 +728,19 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRouteWithChildren
   SurveysRoute: typeof SurveysRoute
   VacationsRoute: typeof VacationsRoute
+  ReportsAbsenceDailyRoute: typeof ReportsAbsenceDailyRoute
+  ReportsAbsenceDaysCountRoute: typeof ReportsAbsenceDaysCountRoute
+  ReportsAbsenceDaysListRoute: typeof ReportsAbsenceDaysListRoute
+  ReportsAbsenceEmployeeRoute: typeof ReportsAbsenceEmployeeRoute
+  ReportsAbsenceLateComparisonRoute: typeof ReportsAbsenceLateComparisonRoute
+  ReportsAbsenceMonthlyRoute: typeof ReportsAbsenceMonthlyRoute
+  ReportsAbsenceValueRoute: typeof ReportsAbsenceValueRoute
   ReportsAttendanceRoute: typeof ReportsAttendanceRoute
+  ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
+  ReportsExceptionsRoute: typeof ReportsExceptionsRoute
   ReportsFingerprintRoute: typeof ReportsFingerprintRoute
+  ReportsLateDaysListRoute: typeof ReportsLateDaysListRoute
+  ReportsLateMinutesRoute: typeof ReportsLateMinutesRoute
   TasksPermissionsRoute: typeof TasksPermissionsRoute
   TasksReportsRoute: typeof TasksReportsRoute
   TasksSetupRoute: typeof TasksSetupRoute
@@ -807,6 +952,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegulationsVacationsRouteImport
       parentRoute: typeof RegulationsRoute
     }
+    '/reports/absence-daily': {
+      id: '/reports/absence-daily'
+      path: '/reports/absence-daily'
+      fullPath: '/reports/absence-daily'
+      preLoaderRoute: typeof ReportsAbsenceDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/absence-days-count': {
+      id: '/reports/absence-days-count'
+      path: '/reports/absence-days-count'
+      fullPath: '/reports/absence-days-count'
+      preLoaderRoute: typeof ReportsAbsenceDaysCountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/absence-days-list': {
+      id: '/reports/absence-days-list'
+      path: '/reports/absence-days-list'
+      fullPath: '/reports/absence-days-list'
+      preLoaderRoute: typeof ReportsAbsenceDaysListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/absence-employee': {
+      id: '/reports/absence-employee'
+      path: '/reports/absence-employee'
+      fullPath: '/reports/absence-employee'
+      preLoaderRoute: typeof ReportsAbsenceEmployeeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/absence-late-comparison': {
+      id: '/reports/absence-late-comparison'
+      path: '/reports/absence-late-comparison'
+      fullPath: '/reports/absence-late-comparison'
+      preLoaderRoute: typeof ReportsAbsenceLateComparisonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/absence-monthly': {
+      id: '/reports/absence-monthly'
+      path: '/reports/absence-monthly'
+      fullPath: '/reports/absence-monthly'
+      preLoaderRoute: typeof ReportsAbsenceMonthlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/absence-value': {
+      id: '/reports/absence-value'
+      path: '/reports/absence-value'
+      fullPath: '/reports/absence-value'
+      preLoaderRoute: typeof ReportsAbsenceValueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/attendance': {
       id: '/reports/attendance'
       path: '/reports/attendance'
@@ -814,11 +1008,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsAttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/early-checkout-days': {
+      id: '/reports/early-checkout-days'
+      path: '/reports/early-checkout-days'
+      fullPath: '/reports/early-checkout-days'
+      preLoaderRoute: typeof ReportsEarlyCheckoutDaysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/exceptions': {
+      id: '/reports/exceptions'
+      path: '/reports/exceptions'
+      fullPath: '/reports/exceptions'
+      preLoaderRoute: typeof ReportsExceptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/fingerprint': {
       id: '/reports/fingerprint'
       path: '/reports/fingerprint'
       fullPath: '/reports/fingerprint'
       preLoaderRoute: typeof ReportsFingerprintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/late-days-list': {
+      id: '/reports/late-days-list'
+      path: '/reports/late-days-list'
+      fullPath: '/reports/late-days-list'
+      preLoaderRoute: typeof ReportsLateDaysListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/late-minutes': {
+      id: '/reports/late-minutes'
+      path: '/reports/late-minutes'
+      fullPath: '/reports/late-minutes'
+      preLoaderRoute: typeof ReportsLateMinutesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/account-links': {
@@ -1020,8 +1242,19 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRouteWithChildren,
   SurveysRoute: SurveysRoute,
   VacationsRoute: VacationsRoute,
+  ReportsAbsenceDailyRoute: ReportsAbsenceDailyRoute,
+  ReportsAbsenceDaysCountRoute: ReportsAbsenceDaysCountRoute,
+  ReportsAbsenceDaysListRoute: ReportsAbsenceDaysListRoute,
+  ReportsAbsenceEmployeeRoute: ReportsAbsenceEmployeeRoute,
+  ReportsAbsenceLateComparisonRoute: ReportsAbsenceLateComparisonRoute,
+  ReportsAbsenceMonthlyRoute: ReportsAbsenceMonthlyRoute,
+  ReportsAbsenceValueRoute: ReportsAbsenceValueRoute,
   ReportsAttendanceRoute: ReportsAttendanceRoute,
+  ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
+  ReportsExceptionsRoute: ReportsExceptionsRoute,
   ReportsFingerprintRoute: ReportsFingerprintRoute,
+  ReportsLateDaysListRoute: ReportsLateDaysListRoute,
+  ReportsLateMinutesRoute: ReportsLateMinutesRoute,
   TasksPermissionsRoute: TasksPermissionsRoute,
   TasksReportsRoute: TasksReportsRoute,
   TasksSetupRoute: TasksSetupRoute,

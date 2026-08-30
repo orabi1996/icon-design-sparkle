@@ -59,9 +59,9 @@ export const nav: NavItem[] = [
         items: [
           { label: "تقرير بيانات الموظفين", to: "/reports/employee-data" },
           { label: "تقرير البيانات الاساسية", to: "/reports/basic-data" },
-          "تقرير التعيينات وإنهاء الخدمة",
-          "تقرير ملفات الموظفين",
-          "تقرير التقييم",
+          { label: "تقرير التعيينات وإنهاء الخدمة", to: "/reports/hire-and-termination" },
+          { label: "تقرير ملفات الموظفين", to: "/reports/employee-files" },
+          { label: "تقرير التقييم", to: "/reports/evaluation" },
           "طباعة النماذج الإدارية",
           "تقرير التأمين الطبي للموظفين",
           "تقرير البيانات المالية",

@@ -49,8 +49,11 @@ import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendan
 import { Route as ReportsBasicDataRouteImport } from './routes/reports.basic-data'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
 import { Route as ReportsEmployeeDataRouteImport } from './routes/reports.employee-data'
+import { Route as ReportsEmployeeFilesRouteImport } from './routes/reports.employee-files'
+import { Route as ReportsEvaluationRouteImport } from './routes/reports.evaluation'
 import { Route as ReportsExceptionsRouteImport } from './routes/reports.exceptions'
 import { Route as ReportsFingerprintRouteImport } from './routes/reports.fingerprint'
+import { Route as ReportsHireAndTerminationRouteImport } from './routes/reports.hire-and-termination'
 import { Route as ReportsLateDaysListRouteImport } from './routes/reports.late-days-list'
 import { Route as ReportsLateMinutesRouteImport } from './routes/reports.late-minutes'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
@@ -271,6 +274,16 @@ const ReportsEmployeeDataRoute = ReportsEmployeeDataRouteImport.update({
   path: '/reports/employee-data',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsEmployeeFilesRoute = ReportsEmployeeFilesRouteImport.update({
+  id: '/reports/employee-files',
+  path: '/reports/employee-files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsEvaluationRoute = ReportsEvaluationRouteImport.update({
+  id: '/reports/evaluation',
+  path: '/reports/evaluation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsExceptionsRoute = ReportsExceptionsRouteImport.update({
   id: '/reports/exceptions',
   path: '/reports/exceptions',
@@ -281,6 +294,12 @@ const ReportsFingerprintRoute = ReportsFingerprintRouteImport.update({
   path: '/reports/fingerprint',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsHireAndTerminationRoute =
+  ReportsHireAndTerminationRouteImport.update({
+    id: '/reports/hire-and-termination',
+    path: '/reports/hire-and-termination',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsLateDaysListRoute = ReportsLateDaysListRouteImport.update({
   id: '/reports/late-days-list',
   path: '/reports/late-days-list',
@@ -407,8 +426,11 @@ export interface FileRoutesByFullPath {
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
+  '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/evaluation': typeof ReportsEvaluationRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
+  '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
@@ -466,8 +488,11 @@ export interface FileRoutesByTo {
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
+  '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/evaluation': typeof ReportsEvaluationRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
+  '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
@@ -528,8 +553,11 @@ export interface FileRoutesById {
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
+  '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/evaluation': typeof ReportsEvaluationRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
+  '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
   '/reports/late-minutes': typeof ReportsLateMinutesRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
@@ -591,8 +619,11 @@ export interface FileRouteTypes {
     | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
+    | '/reports/employee-files'
+    | '/reports/evaluation'
     | '/reports/exceptions'
     | '/reports/fingerprint'
+    | '/reports/hire-and-termination'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
     | '/settings/account-links'
@@ -650,8 +681,11 @@ export interface FileRouteTypes {
     | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
+    | '/reports/employee-files'
+    | '/reports/evaluation'
     | '/reports/exceptions'
     | '/reports/fingerprint'
+    | '/reports/hire-and-termination'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
     | '/settings/account-links'
@@ -711,8 +745,11 @@ export interface FileRouteTypes {
     | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
+    | '/reports/employee-files'
+    | '/reports/evaluation'
     | '/reports/exceptions'
     | '/reports/fingerprint'
+    | '/reports/hire-and-termination'
     | '/reports/late-days-list'
     | '/reports/late-minutes'
     | '/settings/account-links'
@@ -763,8 +800,11 @@ export interface RootRouteChildren {
   ReportsBasicDataRoute: typeof ReportsBasicDataRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
   ReportsEmployeeDataRoute: typeof ReportsEmployeeDataRoute
+  ReportsEmployeeFilesRoute: typeof ReportsEmployeeFilesRoute
+  ReportsEvaluationRoute: typeof ReportsEvaluationRoute
   ReportsExceptionsRoute: typeof ReportsExceptionsRoute
   ReportsFingerprintRoute: typeof ReportsFingerprintRoute
+  ReportsHireAndTerminationRoute: typeof ReportsHireAndTerminationRoute
   ReportsLateDaysListRoute: typeof ReportsLateDaysListRoute
   ReportsLateMinutesRoute: typeof ReportsLateMinutesRoute
   TasksPermissionsRoute: typeof TasksPermissionsRoute
@@ -1055,6 +1095,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsEmployeeDataRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/employee-files': {
+      id: '/reports/employee-files'
+      path: '/reports/employee-files'
+      fullPath: '/reports/employee-files'
+      preLoaderRoute: typeof ReportsEmployeeFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/evaluation': {
+      id: '/reports/evaluation'
+      path: '/reports/evaluation'
+      fullPath: '/reports/evaluation'
+      preLoaderRoute: typeof ReportsEvaluationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/exceptions': {
       id: '/reports/exceptions'
       path: '/reports/exceptions'
@@ -1067,6 +1121,13 @@ declare module '@tanstack/react-router' {
       path: '/reports/fingerprint'
       fullPath: '/reports/fingerprint'
       preLoaderRoute: typeof ReportsFingerprintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/hire-and-termination': {
+      id: '/reports/hire-and-termination'
+      path: '/reports/hire-and-termination'
+      fullPath: '/reports/hire-and-termination'
+      preLoaderRoute: typeof ReportsHireAndTerminationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/late-days-list': {
@@ -1293,8 +1354,11 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsBasicDataRoute: ReportsBasicDataRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
   ReportsEmployeeDataRoute: ReportsEmployeeDataRoute,
+  ReportsEmployeeFilesRoute: ReportsEmployeeFilesRoute,
+  ReportsEvaluationRoute: ReportsEvaluationRoute,
   ReportsExceptionsRoute: ReportsExceptionsRoute,
   ReportsFingerprintRoute: ReportsFingerprintRoute,
+  ReportsHireAndTerminationRoute: ReportsHireAndTerminationRoute,
   ReportsLateDaysListRoute: ReportsLateDaysListRoute,
   ReportsLateMinutesRoute: ReportsLateMinutesRoute,
   TasksPermissionsRoute: TasksPermissionsRoute,

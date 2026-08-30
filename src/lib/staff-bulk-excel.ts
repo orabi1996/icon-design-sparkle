@@ -587,13 +587,14 @@ export function parseStaffBulkMatrix(
     const row = index + 1;
     const errorsBeforeRow = errors.length;
     for (let columnIndex = spec.headers.length; columnIndex < raw.length; columnIndex += 1) {
-      if (raw[columnIndex]) {
+      const extraValue = raw[columnIndex];
+      if (extraValue) {
         addError(
           errors,
           row,
           columnIndex,
           spec,
-          raw[columnIndex],
+          extraValue,
           "توجد قيمة في عمود زائد غير موجود في النموذج المعتمد",
         );
       }
@@ -643,6 +644,7 @@ export async function parseStaffBulkFile(
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) throw new Error("لم يتم العثور على ورقة بيانات داخل الملف");
   const worksheet = workbook.Sheets[firstSheetName];
+  if (!worksheet) throw new Error("لم يتم العثور على ورقة بيانات داخل الملف");
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
     header: 1,
     raw: true,

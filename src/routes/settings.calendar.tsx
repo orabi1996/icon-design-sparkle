@@ -109,8 +109,8 @@ function CalendarSetup() {
   const [newYearValue, setNewYearValue] = useState(currentYear + 1);
 
   useEffect(() => {
-    if (!isLoading) setYears(parseYears(settings.years));
-  }, [isLoading, settings.years]);
+    if (!isLoading) setYears(parseYears(settings["years"]));
+  }, [isLoading, settings["years"]]);
 
   useEffect(() => {
     setPage(1);

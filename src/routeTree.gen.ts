@@ -47,7 +47,11 @@ import { Route as ReportsAbsenceMonthlyRouteImport } from './routes/reports.abse
 import { Route as ReportsAbsenceValueRouteImport } from './routes/reports.absence-value'
 import { Route as ReportsAdminFormsRouteImport } from './routes/reports.admin-forms'
 import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendance'
+import { Route as ReportsAttendanceComprehensiveRouteImport } from './routes/reports.attendance-comprehensive'
+import { Route as ReportsAttendanceDetailedRouteImport } from './routes/reports.attendance-detailed'
+import { Route as ReportsAttendanceStatisticsRouteImport } from './routes/reports.attendance-statistics'
 import { Route as ReportsBasicDataRouteImport } from './routes/reports.basic-data'
+import { Route as ReportsDailyLateRouteImport } from './routes/reports.daily-late'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
 import { Route as ReportsEmployeeDataRouteImport } from './routes/reports.employee-data'
 import { Route as ReportsEmployeeFilesRouteImport } from './routes/reports.employee-files'
@@ -265,9 +269,32 @@ const ReportsAttendanceRoute = ReportsAttendanceRouteImport.update({
   path: '/reports/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsAttendanceComprehensiveRoute =
+  ReportsAttendanceComprehensiveRouteImport.update({
+    id: '/reports/attendance-comprehensive',
+    path: '/reports/attendance-comprehensive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ReportsAttendanceDetailedRoute =
+  ReportsAttendanceDetailedRouteImport.update({
+    id: '/reports/attendance-detailed',
+    path: '/reports/attendance-detailed',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ReportsAttendanceStatisticsRoute =
+  ReportsAttendanceStatisticsRouteImport.update({
+    id: '/reports/attendance-statistics',
+    path: '/reports/attendance-statistics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsBasicDataRoute = ReportsBasicDataRouteImport.update({
   id: '/reports/basic-data',
   path: '/reports/basic-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsDailyLateRoute = ReportsDailyLateRouteImport.update({
+  id: '/reports/daily-late',
+  path: '/reports/daily-late',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsEarlyCheckoutDaysRoute =
@@ -436,7 +463,11 @@ export interface FileRoutesByFullPath {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
+  '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
+  '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
+  '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
@@ -500,7 +531,11 @@ export interface FileRoutesByTo {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
+  '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
+  '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
+  '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
@@ -567,7 +602,11 @@ export interface FileRoutesById {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
+  '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
+  '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
+  '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
@@ -635,7 +674,11 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/admin-forms'
     | '/reports/attendance'
+    | '/reports/attendance-comprehensive'
+    | '/reports/attendance-detailed'
+    | '/reports/attendance-statistics'
     | '/reports/basic-data'
+    | '/reports/daily-late'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/employee-files'
@@ -699,7 +742,11 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/admin-forms'
     | '/reports/attendance'
+    | '/reports/attendance-comprehensive'
+    | '/reports/attendance-detailed'
+    | '/reports/attendance-statistics'
     | '/reports/basic-data'
+    | '/reports/daily-late'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/employee-files'
@@ -765,7 +812,11 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/admin-forms'
     | '/reports/attendance'
+    | '/reports/attendance-comprehensive'
+    | '/reports/attendance-detailed'
+    | '/reports/attendance-statistics'
     | '/reports/basic-data'
+    | '/reports/daily-late'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/employee-files'
@@ -822,7 +873,11 @@ export interface RootRouteChildren {
   ReportsAbsenceValueRoute: typeof ReportsAbsenceValueRoute
   ReportsAdminFormsRoute: typeof ReportsAdminFormsRoute
   ReportsAttendanceRoute: typeof ReportsAttendanceRoute
+  ReportsAttendanceComprehensiveRoute: typeof ReportsAttendanceComprehensiveRoute
+  ReportsAttendanceDetailedRoute: typeof ReportsAttendanceDetailedRoute
+  ReportsAttendanceStatisticsRoute: typeof ReportsAttendanceStatisticsRoute
   ReportsBasicDataRoute: typeof ReportsBasicDataRoute
+  ReportsDailyLateRoute: typeof ReportsDailyLateRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
   ReportsEmployeeDataRoute: typeof ReportsEmployeeDataRoute
   ReportsEmployeeFilesRoute: typeof ReportsEmployeeFilesRoute
@@ -1107,11 +1162,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsAttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/attendance-comprehensive': {
+      id: '/reports/attendance-comprehensive'
+      path: '/reports/attendance-comprehensive'
+      fullPath: '/reports/attendance-comprehensive'
+      preLoaderRoute: typeof ReportsAttendanceComprehensiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/attendance-detailed': {
+      id: '/reports/attendance-detailed'
+      path: '/reports/attendance-detailed'
+      fullPath: '/reports/attendance-detailed'
+      preLoaderRoute: typeof ReportsAttendanceDetailedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/attendance-statistics': {
+      id: '/reports/attendance-statistics'
+      path: '/reports/attendance-statistics'
+      fullPath: '/reports/attendance-statistics'
+      preLoaderRoute: typeof ReportsAttendanceStatisticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/basic-data': {
       id: '/reports/basic-data'
       path: '/reports/basic-data'
       fullPath: '/reports/basic-data'
       preLoaderRoute: typeof ReportsBasicDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/daily-late': {
+      id: '/reports/daily-late'
+      path: '/reports/daily-late'
+      fullPath: '/reports/daily-late'
+      preLoaderRoute: typeof ReportsDailyLateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/early-checkout-days': {
@@ -1392,7 +1475,11 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsAbsenceValueRoute: ReportsAbsenceValueRoute,
   ReportsAdminFormsRoute: ReportsAdminFormsRoute,
   ReportsAttendanceRoute: ReportsAttendanceRoute,
+  ReportsAttendanceComprehensiveRoute: ReportsAttendanceComprehensiveRoute,
+  ReportsAttendanceDetailedRoute: ReportsAttendanceDetailedRoute,
+  ReportsAttendanceStatisticsRoute: ReportsAttendanceStatisticsRoute,
   ReportsBasicDataRoute: ReportsBasicDataRoute,
+  ReportsDailyLateRoute: ReportsDailyLateRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
   ReportsEmployeeDataRoute: ReportsEmployeeDataRoute,
   ReportsEmployeeFilesRoute: ReportsEmployeeFilesRoute,

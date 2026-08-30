@@ -94,7 +94,7 @@ function HireAndTerminationReport() {
 
   // Enhance data with termination date, labor office no, etc.
   const rows = useMemo(() => {
-    return employees.map((e) => {
+    return employees.map((e): Row => {
       const isTerminated =
         e["status"] === "منتهي الخدمة" ||
         e["status"] === "منتهي خدماته" ||

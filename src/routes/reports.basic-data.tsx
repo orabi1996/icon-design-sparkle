@@ -169,7 +169,7 @@ function BasicDataReport() {
 
   // Enhanced employees rows with calculated hijri dates and defaults
   const normalizedRows = useMemo(() => {
-    return employees.map((e, index) => {
+    return employees.map((e, index): Row => {
       const birth = String(e["birth_date"] ?? "");
       const hire = String(e["hire_date"] ?? "");
       const start = String(e["start_date"] ?? "");
@@ -819,13 +819,13 @@ function BasicDataReport() {
               ) : (
                 paginatedRows.map((row, idx) => (
                   <tr
-                    key={row["id"] || idx}
+                    key={String(row["id"] ?? idx)}
                     className={`border-b border-slate-200 transition hover:bg-blue-50/70 ${
                       idx % 2 === 0 ? "bg-white" : "bg-[#f8fafd]"
                     }`}
                   >
                     {activeColumns.map((col) => {
-                      const val = col.formatter ? col.formatter(row[col.key], row) : row[col.key] ?? "—";
+                      const val = col.formatter ? col.formatter(row[col.key], row) : String(row[col.key] ?? "—");
                       return (
                         <td
                           key={col.key}

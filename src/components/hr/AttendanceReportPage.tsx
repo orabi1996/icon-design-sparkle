@@ -889,7 +889,7 @@ export function AttendanceReportPage({ variant }: { variant: AttendanceReportVar
               {!isLoading &&
                 pageRows.map((row, index) => (
                   <tr
-                    key={text(row["id"]) || `${currentPage}-${index}`}
+                    key={text((row as Record<string, unknown>)["id"]) || `${currentPage}-${index}`}
                     className="border-b border-border odd:bg-secondary/30 hover:bg-accent/40"
                   >
                     {columns.map((column) => (

@@ -72,7 +72,7 @@ function EmployeeTrainingReport() {
     ];
 
     return employees.map((emp, i) => {
-      const c = courses[i % courses.length];
+      const c = courses[i % courses.length]!;
       return {
         id: `train-${emp["emp_no"] || i}`,
         emp_no: emp["emp_no"] || String(i + 1),

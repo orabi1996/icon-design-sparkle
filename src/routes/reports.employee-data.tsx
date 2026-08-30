@@ -227,8 +227,8 @@ function EmployeeCard({
       {/* Financial info */}
       <SectionHeader title="البيانات المالية" />
       <div className="grid grid-cols-2 gap-x-4">
-        <InfoRow label="الراتب الأساسي" value={emp["basic_salary"] ? String(emp["basic_salary"]) : undefined} />
-        <InfoRow label="الراتب الإجمالي" value={emp["total_salary"] ? String(emp["total_salary"]) : undefined} />
+        <InfoRow label="الراتب الأساسي" value={emp["basic_salary"] ? String(emp["basic_salary"]) : null} />
+        <InfoRow label="الراتب الإجمالي" value={emp["total_salary"] ? String(emp["total_salary"]) : null} />
       </div>
 
       {/* Entitlements */}

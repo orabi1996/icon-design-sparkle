@@ -77,7 +77,7 @@ function FinancialDataReport() {
 
   // Normalized financial data per employee
   const rows = useMemo(() => {
-    return employees.map((e, idx) => {
+    return employees.map((e, idx): Row => {
       const basic = Number(e["basic_salary"] || (idx % 2 === 0 ? 6000 : 8500));
       const housing = Number(e["housing_allowance"] || Math.round(basic * 0.25));
       const transport = Number(e["transport_allowance"] || Math.round(basic * 0.1));
@@ -169,13 +169,13 @@ function FinancialDataReport() {
   // Financial KPI totals
   const totals = useMemo(() => {
     return filteredRows.reduce(
-      (acc, r) => {
-        acc.basic += Number(r.basic_salary || 0);
-        acc.housing += Number(r.housing_allowance || 0);
-        acc.transport += Number(r.transport_allowance || 0);
-        acc.total += Number(r.total_salary || 0);
-        acc.gosiEmp += Number(r.gosi_employee || 0);
-        acc.gosiComp += Number(r.gosi_company || 0);
+      (acc: { basic: number; housing: number; transport: number; total: number; gosiEmp: number; gosiComp: number }, r) => {
+        acc.basic += Number(r["basic_salary"] || 0);
+        acc.housing += Number(r["housing_allowance"] || 0);
+        acc.transport += Number(r["transport_allowance"] || 0);
+        acc.total += Number(r["total_salary"] || 0);
+        acc.gosiEmp += Number(r["gosi_employee"] || 0);
+        acc.gosiComp += Number(r["gosi_company"] || 0);
         return acc;
       },
       { basic: 0, housing: 0, transport: 0, total: 0, gosiEmp: 0, gosiComp: 0 }
@@ -237,19 +237,19 @@ function FinancialDataReport() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" dir="rtl">
         <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 shadow-xs">
           <div className="text-[11px] font-bold text-slate-500">إجمالي الرواتب الأساسية</div>
-          <div className="text-lg font-extrabold text-[#0070c0] font-mono mt-1">{totals.basic.toLocaleString()} ريال</div>
+          <div className="text-lg font-extrabold text-[#0070c0] font-mono mt-1">{totals["basic"].toLocaleString()} ريال</div>
         </div>
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 shadow-xs">
           <div className="text-[11px] font-bold text-slate-500">إجمالي البدلات والمزايا</div>
-          <div className="text-lg font-extrabold text-emerald-700 font-mono mt-1">{(totals.housing + totals.transport).toLocaleString()} ريال</div>
+          <div className="text-lg font-extrabold text-emerald-700 font-mono mt-1">{(totals["housing"] + totals["transport"]).toLocaleString()} ريال</div>
         </div>
         <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 shadow-xs">
           <div className="text-[11px] font-bold text-slate-500">إجمالي الرواتب الشهرية</div>
-          <div className="text-lg font-extrabold text-indigo-700 font-mono mt-1">{totals.total.toLocaleString()} ريال</div>
+          <div className="text-lg font-extrabold text-indigo-700 font-mono mt-1">{totals["total"].toLocaleString()} ريال</div>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 shadow-xs">
           <div className="text-[11px] font-bold text-slate-500">إجمالي حصة التأمينات (GOSI)</div>
-          <div className="text-lg font-extrabold text-amber-700 font-mono mt-1">{(totals.gosiEmp + totals.gosiComp).toLocaleString()} ريال</div>
+          <div className="text-lg font-extrabold text-amber-700 font-mono mt-1">{(totals["gosiEmp"] + totals["gosiComp"]).toLocaleString()} ريال</div>
         </div>
       </div>
 

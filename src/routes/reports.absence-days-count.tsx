@@ -99,7 +99,7 @@ function AbsenceDaysCountReport() {
       key: "absence_type",
       align: "center" as const,
       render: (r: Record<string, any>) => {
-        const style = ABSENCE_TYPE_BADGE[String(r["absence_type"])] || ABSENCE_TYPE_BADGE["غياب بدون عذر"];
+        const style = ABSENCE_TYPE_BADGE[String(r["absence_type"])] || ABSENCE_TYPE_BADGE["غياب بدون عذر"]!;
         return (
           <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${style.bg} ${style.text}`}>
             {String(r["absence_type"] ?? "غياب بدون عذر")}

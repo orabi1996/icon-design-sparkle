@@ -90,7 +90,7 @@ function AdminFormsReport() {
   }, [employees, applied.employeeId]);
 
   const selectedFormTemplate = useMemo(() => {
-    return FORM_TEMPLATES.find((t) => t.id === applied.formId) || FORM_TEMPLATES[0];
+    return FORM_TEMPLATES.find((t) => t.id === applied.formId) || FORM_TEMPLATES[0]!;
   }, [applied.formId]);
 
   const handlePrint = () => {

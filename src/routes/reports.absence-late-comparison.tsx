@@ -112,7 +112,7 @@ function AbsenceLateComparisonReport() {
     });
   }, [attendance, applied]);
 
-  const activeColors = PALETTES.find((p) => p.id === selectedPalette) || PALETTES[0];
+  const activeColors = PALETTES.find((p) => p.id === selectedPalette) || PALETTES[0]!;
 
   const handlePrint = () => {
     window.print();

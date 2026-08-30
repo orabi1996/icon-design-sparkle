@@ -50,9 +50,12 @@ import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendan
 import { Route as ReportsBasicDataRouteImport } from './routes/reports.basic-data'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
 import { Route as ReportsEmployeeDataRouteImport } from './routes/reports.employee-data'
+import { Route as ReportsEmployeeDependentsRouteImport } from './routes/reports.employee-dependents'
 import { Route as ReportsEmployeeFilesRouteImport } from './routes/reports.employee-files'
+import { Route as ReportsEmployeeLeavesRouteImport } from './routes/reports.employee-leaves'
 import { Route as ReportsEvaluationRouteImport } from './routes/reports.evaluation'
 import { Route as ReportsExceptionsRouteImport } from './routes/reports.exceptions'
+import { Route as ReportsFinancialDataRouteImport } from './routes/reports.financial-data'
 import { Route as ReportsFingerprintRouteImport } from './routes/reports.fingerprint'
 import { Route as ReportsHireAndTerminationRouteImport } from './routes/reports.hire-and-termination'
 import { Route as ReportsLateDaysListRouteImport } from './routes/reports.late-days-list'
@@ -281,9 +284,20 @@ const ReportsEmployeeDataRoute = ReportsEmployeeDataRouteImport.update({
   path: '/reports/employee-data',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsEmployeeDependentsRoute =
+  ReportsEmployeeDependentsRouteImport.update({
+    id: '/reports/employee-dependents',
+    path: '/reports/employee-dependents',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsEmployeeFilesRoute = ReportsEmployeeFilesRouteImport.update({
   id: '/reports/employee-files',
   path: '/reports/employee-files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsEmployeeLeavesRoute = ReportsEmployeeLeavesRouteImport.update({
+  id: '/reports/employee-leaves',
+  path: '/reports/employee-leaves',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsEvaluationRoute = ReportsEvaluationRouteImport.update({
@@ -294,6 +308,11 @@ const ReportsEvaluationRoute = ReportsEvaluationRouteImport.update({
 const ReportsExceptionsRoute = ReportsExceptionsRouteImport.update({
   id: '/reports/exceptions',
   path: '/reports/exceptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsFinancialDataRoute = ReportsFinancialDataRouteImport.update({
+  id: '/reports/financial-data',
+  path: '/reports/financial-data',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsFingerprintRoute = ReportsFingerprintRouteImport.update({
@@ -439,9 +458,12 @@ export interface FileRoutesByFullPath {
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
+  '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/employee-leaves': typeof ReportsEmployeeLeavesRoute
   '/reports/evaluation': typeof ReportsEvaluationRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
+  '/reports/financial-data': typeof ReportsFinancialDataRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
@@ -503,9 +525,12 @@ export interface FileRoutesByTo {
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
+  '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/employee-leaves': typeof ReportsEmployeeLeavesRoute
   '/reports/evaluation': typeof ReportsEvaluationRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
+  '/reports/financial-data': typeof ReportsFinancialDataRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
@@ -570,9 +595,12 @@ export interface FileRoutesById {
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
+  '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
   '/reports/employee-files': typeof ReportsEmployeeFilesRoute
+  '/reports/employee-leaves': typeof ReportsEmployeeLeavesRoute
   '/reports/evaluation': typeof ReportsEvaluationRoute
   '/reports/exceptions': typeof ReportsExceptionsRoute
+  '/reports/financial-data': typeof ReportsFinancialDataRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/reports/hire-and-termination': typeof ReportsHireAndTerminationRoute
   '/reports/late-days-list': typeof ReportsLateDaysListRoute
@@ -638,9 +666,12 @@ export interface FileRouteTypes {
     | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
+    | '/reports/employee-dependents'
     | '/reports/employee-files'
+    | '/reports/employee-leaves'
     | '/reports/evaluation'
     | '/reports/exceptions'
+    | '/reports/financial-data'
     | '/reports/fingerprint'
     | '/reports/hire-and-termination'
     | '/reports/late-days-list'
@@ -702,9 +733,12 @@ export interface FileRouteTypes {
     | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
+    | '/reports/employee-dependents'
     | '/reports/employee-files'
+    | '/reports/employee-leaves'
     | '/reports/evaluation'
     | '/reports/exceptions'
+    | '/reports/financial-data'
     | '/reports/fingerprint'
     | '/reports/hire-and-termination'
     | '/reports/late-days-list'
@@ -768,9 +802,12 @@ export interface FileRouteTypes {
     | '/reports/basic-data'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
+    | '/reports/employee-dependents'
     | '/reports/employee-files'
+    | '/reports/employee-leaves'
     | '/reports/evaluation'
     | '/reports/exceptions'
+    | '/reports/financial-data'
     | '/reports/fingerprint'
     | '/reports/hire-and-termination'
     | '/reports/late-days-list'
@@ -825,9 +862,12 @@ export interface RootRouteChildren {
   ReportsBasicDataRoute: typeof ReportsBasicDataRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
   ReportsEmployeeDataRoute: typeof ReportsEmployeeDataRoute
+  ReportsEmployeeDependentsRoute: typeof ReportsEmployeeDependentsRoute
   ReportsEmployeeFilesRoute: typeof ReportsEmployeeFilesRoute
+  ReportsEmployeeLeavesRoute: typeof ReportsEmployeeLeavesRoute
   ReportsEvaluationRoute: typeof ReportsEvaluationRoute
   ReportsExceptionsRoute: typeof ReportsExceptionsRoute
+  ReportsFinancialDataRoute: typeof ReportsFinancialDataRoute
   ReportsFingerprintRoute: typeof ReportsFingerprintRoute
   ReportsHireAndTerminationRoute: typeof ReportsHireAndTerminationRoute
   ReportsLateDaysListRoute: typeof ReportsLateDaysListRoute
@@ -1128,11 +1168,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsEmployeeDataRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/employee-dependents': {
+      id: '/reports/employee-dependents'
+      path: '/reports/employee-dependents'
+      fullPath: '/reports/employee-dependents'
+      preLoaderRoute: typeof ReportsEmployeeDependentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/employee-files': {
       id: '/reports/employee-files'
       path: '/reports/employee-files'
       fullPath: '/reports/employee-files'
       preLoaderRoute: typeof ReportsEmployeeFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/employee-leaves': {
+      id: '/reports/employee-leaves'
+      path: '/reports/employee-leaves'
+      fullPath: '/reports/employee-leaves'
+      preLoaderRoute: typeof ReportsEmployeeLeavesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/evaluation': {
@@ -1147,6 +1201,13 @@ declare module '@tanstack/react-router' {
       path: '/reports/exceptions'
       fullPath: '/reports/exceptions'
       preLoaderRoute: typeof ReportsExceptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/financial-data': {
+      id: '/reports/financial-data'
+      path: '/reports/financial-data'
+      fullPath: '/reports/financial-data'
+      preLoaderRoute: typeof ReportsFinancialDataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/fingerprint': {
@@ -1395,9 +1456,12 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsBasicDataRoute: ReportsBasicDataRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
   ReportsEmployeeDataRoute: ReportsEmployeeDataRoute,
+  ReportsEmployeeDependentsRoute: ReportsEmployeeDependentsRoute,
   ReportsEmployeeFilesRoute: ReportsEmployeeFilesRoute,
+  ReportsEmployeeLeavesRoute: ReportsEmployeeLeavesRoute,
   ReportsEvaluationRoute: ReportsEvaluationRoute,
   ReportsExceptionsRoute: ReportsExceptionsRoute,
+  ReportsFinancialDataRoute: ReportsFinancialDataRoute,
   ReportsFingerprintRoute: ReportsFingerprintRoute,
   ReportsHireAndTerminationRoute: ReportsHireAndTerminationRoute,
   ReportsLateDaysListRoute: ReportsLateDaysListRoute,

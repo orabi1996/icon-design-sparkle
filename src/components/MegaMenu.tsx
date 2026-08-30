@@ -27,14 +27,14 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
 
   return (
     <div ref={ref} className="relative" onMouseLeave={() => setOpen(null)}>
-      <nav className="border-b border-topbar-border bg-topbar">
-        <ul className="flex items-center gap-1 overflow-x-auto px-3 py-1.5 [scrollbar-width:none] md:px-5">
+      <nav className="border-b border-topbar-border bg-topbar shadow-xs">
+        <ul className="flex items-center gap-1.5 overflow-x-auto px-4 py-2 [scrollbar-width:none] md:px-6">
           {items.map((item) => {
             const isOpen = open === item.label;
-            const className = `group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${
+            const className = `group flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-bold transition-all ${
               isOpen
-                ? "bg-white/12 text-topbar-foreground"
-                : "text-topbar-muted hover:bg-topbar-hover hover:text-topbar-foreground"
+                ? "bg-white/20 text-white shadow-xs backdrop-blur-xs ring-1 ring-white/30"
+                : "text-topbar-muted hover:bg-white/10 hover:text-white"
             }`;
             const content = (
               <>
@@ -45,15 +45,15 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
                   className={
                     isOpen
                       ? "text-topbar-accent"
-                      : "text-topbar-muted/80 group-hover:text-topbar-accent"
+                      : "text-topbar-muted group-hover:text-topbar-accent transition-colors"
                   }
                 />
-                {item.label}
+                <span>{item.label}</span>
                 {item.columns && (
                   <MaterialIcon
-                    name="expand_more"
-                    size={16}
-                    className={`text-topbar-muted/70 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    name="arrow_drop_down"
+                    size={20}
+                    className={`text-topbar-muted/80 transition-transform duration-200 ${isOpen ? "rotate-180 text-white" : ""}`}
                   />
                 )}
               </>
@@ -82,15 +82,14 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
 
       {active?.columns && (
         <div
-          className="absolute inset-x-0 top-full z-40 origin-top animate-in fade-in slide-in-from-top-1 px-3 pt-2 duration-150 md:px-5"
+          className="absolute inset-x-0 top-full z-40 origin-top animate-in fade-in slide-in-from-top-1 px-4 pt-2 duration-150 md:px-6"
           role="menu"
         >
           <div
-            className="overflow-hidden rounded-2xl border border-border bg-card/98 backdrop-blur"
-            style={{ boxShadow: "var(--shadow-raised)" }}
+            className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white/98 shadow-[0_8px_32px_0_rgba(0,0,0,0.14)] backdrop-blur-md"
           >
             <div
-              className={`grid gap-px bg-border ${
+              className={`grid gap-px bg-slate-100 ${
                 active.columns.length >= 4
                   ? "sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
                   : active.columns.length === 3
@@ -99,23 +98,24 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
               }`}
             >
               {active.columns.map((col) => (
-                <div key={col.title} className="bg-card">
-                  <p className="bg-secondary px-4 py-2.5 text-[12px] font-bold text-primary">
+                <div key={col.title} className="bg-white p-3">
+                  <div className="mb-2 flex items-center gap-2 rounded-xl bg-[#f0f4f9] px-3.5 py-2 text-[12px] font-extrabold text-[#004e82]">
+                    <span className="size-1.5 rounded-full bg-[#0b57d0]" />
                     {col.title}
-                  </p>
-                  <ul className="max-h-[52vh] overflow-y-auto p-2">
+                  </div>
+                  <ul className="max-h-[55vh] space-y-0.5 overflow-y-auto p-1 [scrollbar-width:thin]">
                     {col.items.map((it) => {
                       const label = typeof it === "string" ? it : it.label;
                       const cls =
-                        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-[13px] font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-accent-foreground";
+                        "group flex w-full items-center gap-2 rounded-full px-3.5 py-2 text-right text-[12px] font-medium text-slate-700 transition-all hover:bg-[#e8f0fe] hover:text-[#0b57d0] hover:ps-4";
                       const inner = (
                         <>
                           <MaterialIcon
                             name="chevron_left"
                             size={16}
-                            className="shrink-0 text-primary/50"
+                            className="shrink-0 text-slate-400 group-hover:text-[#0b57d0] transition-transform group-hover:-translate-x-0.5"
                           />
-                          <span className="flex-1 text-right">{label}</span>
+                          <span className="flex-1 text-right font-medium">{label}</span>
                         </>
                       );
                       return (

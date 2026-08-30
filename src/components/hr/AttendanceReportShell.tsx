@@ -408,52 +408,53 @@ export function ResultTable<T extends Row>({
 
   return (
     <div
-      className="mt-3 overflow-hidden rounded-2xl border border-border bg-card"
-      style={{ boxShadow: "var(--shadow-card)" }}
+      className="mt-3 overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_1px_3px_0_rgba(60,64,67,0.08),0_4px_12px_0_rgba(60,64,67,0.06)]"
     >
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-        <h2 className="me-auto flex items-center gap-2 text-sm font-bold">
-          <MaterialIcon name="table_rows" size={19} className="text-primary" filled />
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-[#fcfdff] px-5 py-3.5">
+        <h2 className="me-auto flex items-center gap-2.5 text-sm font-bold text-slate-800">
+          <span className="grid size-8 place-items-center rounded-full bg-[#e8f0fe] text-[#0b57d0]">
+            <MaterialIcon name="table_rows" size={18} filled />
+          </span>
           {title}
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
-            {rows.length}
+          <span className="rounded-full bg-[#e8f0fe] px-2.5 py-0.5 text-[11px] font-extrabold text-[#0b57d0]">
+            {rows.length} سجل
           </span>
         </h2>
         <button
           onClick={exportRow}
-          title="Excel/CSV"
-          className="grid size-9 place-items-center rounded-lg bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+          title="تصدير Excel/CSV"
+          className="grid size-9 place-items-center rounded-full bg-emerald-600 text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all"
         >
-          <MaterialIcon name="table_view" size={17} />
+          <MaterialIcon name="table_view" size={18} />
         </button>
         <button
           onClick={() => window.print()}
           title="طباعة"
-          className="grid size-9 place-items-center rounded-lg bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+          className="grid size-9 place-items-center rounded-full bg-[#0b57d0] text-white shadow-xs hover:bg-[#0842a0] active:scale-95 transition-all"
         >
-          <MaterialIcon name="print" size={17} />
+          <MaterialIcon name="print" size={18} />
         </button>
         <button
           onClick={() => window.print()}
           title="PDF"
-          className="grid size-9 place-items-center rounded-lg bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+          className="grid size-9 place-items-center rounded-full bg-slate-700 text-white shadow-xs hover:bg-slate-800 active:scale-95 transition-all"
         >
-          <MaterialIcon name="picture_as_pdf" size={17} />
+          <MaterialIcon name="picture_as_pdf" size={18} />
         </button>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-max border-collapse text-right">
+        <table className="w-full min-w-max border-collapse text-right text-[12px]">
           <thead>
-            <tr className="bg-topbar text-topbar-foreground">
+            <tr className="bg-[#004e82] text-white">
               {columns.map((c) => (
                 <th
                   key={c.key}
-                  className={`whitespace-nowrap px-4 py-3 text-[12.5px] font-extrabold ${c.className ?? ""}`}
+                  className={`whitespace-nowrap px-4 py-3 font-bold ${c.className ?? ""}`}
                 >
                   <span className="flex items-center gap-1.5">
                     {c.label}
-                    <MaterialIcon name="expand_more" size={16} className="text-white/85" />
+                    <MaterialIcon name="unfold_more" size={15} className="text-white/70" />
                   </span>
                 </th>
               ))}
@@ -464,7 +465,7 @@ export function ResultTable<T extends Row>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-14 text-center text-sm font-semibold text-muted-foreground"
+                  className="px-4 py-14 text-center text-sm font-semibold text-slate-400"
                 >
                   {isLoading ? "جارٍ التحميل..." : "لا توجد بيانات مطابقة"}
                 </td>
@@ -473,12 +474,14 @@ export function ResultTable<T extends Row>({
             {pageRows.map((r, i) => (
               <tr
                 key={String(r["id"] ?? i)}
-                className="border-b border-border last:border-0 odd:bg-secondary/30 hover:bg-accent/40"
+                className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-[#f8fafd] ${
+                  i % 2 === 0 ? "bg-white" : "bg-[#fcfdff]"
+                }`}
               >
                 {columns.map((c) => (
                   <td
                     key={c.key}
-                    className={`whitespace-nowrap px-4 py-2.5 text-[13px] ${
+                    className={`whitespace-nowrap px-4 py-2.5 font-medium text-slate-800 ${
                       c.align === "left" ? "text-left font-mono" : ""
                     } ${c.className ?? ""}`}
                   >
@@ -491,12 +494,12 @@ export function ResultTable<T extends Row>({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-border px-4 py-3 text-[12px] font-bold">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-[#fcfdff] px-6 py-3.5 text-[12px] font-bold">
         <div className="flex items-center gap-1">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
-            className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-40"
+            className="grid size-8 place-items-center rounded-full text-slate-600 hover:bg-slate-100 disabled:opacity-30 transition-colors"
           >
             <MaterialIcon name="chevron_right" size={18} />
           </button>
@@ -507,10 +510,10 @@ export function ResultTable<T extends Row>({
               <button
                 key={n}
                 onClick={() => setPage(n)}
-                className={`grid size-8 place-items-center rounded-lg transition-colors ${
+                className={`grid size-8 place-items-center rounded-full text-xs font-bold transition-all ${
                   n === currentPage
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary"
+                    ? "bg-[#0b57d0] text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 {n}
@@ -520,17 +523,18 @@ export function ResultTable<T extends Row>({
           <button
             onClick={() => setPage((p) => Math.min(pages, p + 1))}
             disabled={currentPage >= pages}
-            className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-40"
+            className="grid size-8 place-items-center rounded-full text-slate-600 hover:bg-slate-100 disabled:opacity-30 transition-colors"
           >
             <MaterialIcon name="chevron_left" size={18} />
           </button>
-          <span dir="ltr" className="ms-2 font-mono text-[12px] text-muted-foreground">
+          <span dir="ltr" className="ms-2 font-mono text-[12px] text-slate-500">
             Page {currentPage} of {pages}
           </span>
-          <span className="ms-2 text-muted-foreground">({rows.length} عنصر)</span>
+          <span className="ms-2 text-slate-500">({rows.length} عنصر)</span>
         </div>
 
-        <div className="ms-auto flex items-center gap-1">
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-slate-500 me-2">الصفوف لكل صفحة:</span>
           {[20, 10, 5].map((n) => (
             <button
               key={n}
@@ -538,10 +542,10 @@ export function ResultTable<T extends Row>({
                 setPageSize(n);
                 setPage(1);
               }}
-              className={`grid size-8 place-items-center rounded-lg transition-colors ${
+              className={`grid size-8 place-items-center rounded-full text-xs font-bold transition-all ${
                 n === pageSize
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary"
+                  ? "bg-[#0b57d0] text-white shadow-2xs"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
               {n}

@@ -97,7 +97,7 @@ function EmployeeLeavesReport() {
       employees.forEach((emp, i) => {
         const days = 3 + (i % 12);
         const basic = Number(emp["basic_salary"] || 7000);
-        const lType = types[i % types.length];
+        const lType = types[i % types.length]!;
         const status = i % 4 === 0 ? "بانتظار الموافقة" : i % 7 === 0 ? "مرفوضة" : "معتمدة";
 
         list.push({

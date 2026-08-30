@@ -98,7 +98,7 @@ function EmployeeDependentsReport() {
 
       employees.forEach((emp, i) => {
         if (i % 2 === 0) {
-          const item1 = sampleRels[i % sampleRels.length];
+          const item1 = sampleRels[i % sampleRels.length]!;
           list.push({
             id: `dep-${emp["emp_no"]}-1`,
             emp_no: emp["emp_no"] || String(i + 1),

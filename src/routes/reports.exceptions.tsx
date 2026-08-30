@@ -104,8 +104,8 @@ function ExceptionsReport() {
           notes: r["notes"] || (noIn ? "غياب بدون إذن" : noOut ? "لم تسجل بصمة الخروج" : `تأخير ${r["late_minutes"]} دقيقة`),
         } as Row;
       })
-      .filter(Boolean)
-      .map((r, i) => ({ ...r, seq: i + 1 }));
+      .filter((r): r is Row => Boolean(r))
+      .map((r, i): Row => ({ ...r, seq: i + 1 }));
   }, [attendance, employees, applied]);
 
   const columns = [

@@ -38,6 +38,7 @@ import { Route as RegulationsOtherRouteImport } from './routes/regulations.other
 import { Route as RegulationsPermitsRouteImport } from './routes/regulations.permits'
 import { Route as RegulationsShiftsRouteImport } from './routes/regulations.shifts'
 import { Route as RegulationsVacationsRouteImport } from './routes/regulations.vacations'
+import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendance'
 import { Route as ReportsFingerprintRouteImport } from './routes/reports.fingerprint'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
 import { Route as SettingsBasicRouteImport } from './routes/settings.basic'
@@ -200,6 +201,11 @@ const RegulationsVacationsRoute = RegulationsVacationsRouteImport.update({
   path: '/vacations',
   getParentRoute: () => RegulationsRoute,
 } as any)
+const ReportsAttendanceRoute = ReportsAttendanceRouteImport.update({
+  id: '/reports/attendance',
+  path: '/reports/attendance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsFingerprintRoute = ReportsFingerprintRouteImport.update({
   id: '/reports/fingerprint',
   path: '/reports/fingerprint',
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
@@ -355,6 +362,7 @@ export interface FileRoutesByTo {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
@@ -403,6 +411,7 @@ export interface FileRoutesById {
   '/regulations/permits': typeof RegulationsPermitsRoute
   '/regulations/shifts': typeof RegulationsShiftsRoute
   '/regulations/vacations': typeof RegulationsVacationsRoute
+  '/reports/attendance': typeof ReportsAttendanceRoute
   '/reports/fingerprint': typeof ReportsFingerprintRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
   '/settings/basic': typeof SettingsBasicRoute
@@ -452,6 +461,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/reports/attendance'
     | '/reports/fingerprint'
     | '/settings/account-links'
     | '/settings/basic'
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/reports/attendance'
     | '/reports/fingerprint'
     | '/settings/account-links'
     | '/settings/basic'
@@ -544,6 +555,7 @@ export interface FileRouteTypes {
     | '/regulations/permits'
     | '/regulations/shifts'
     | '/regulations/vacations'
+    | '/reports/attendance'
     | '/reports/fingerprint'
     | '/settings/account-links'
     | '/settings/basic'
@@ -582,6 +594,7 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRouteWithChildren
   SurveysRoute: typeof SurveysRoute
   VacationsRoute: typeof VacationsRoute
+  ReportsAttendanceRoute: typeof ReportsAttendanceRoute
   ReportsFingerprintRoute: typeof ReportsFingerprintRoute
   TasksPermissionsRoute: typeof TasksPermissionsRoute
   TasksReportsRoute: typeof TasksReportsRoute
@@ -794,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegulationsVacationsRouteImport
       parentRoute: typeof RegulationsRoute
     }
+    '/reports/attendance': {
+      id: '/reports/attendance'
+      path: '/reports/attendance'
+      fullPath: '/reports/attendance'
+      preLoaderRoute: typeof ReportsAttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/fingerprint': {
       id: '/reports/fingerprint'
       path: '/reports/fingerprint'
@@ -1000,6 +1020,7 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRouteWithChildren,
   SurveysRoute: SurveysRoute,
   VacationsRoute: VacationsRoute,
+  ReportsAttendanceRoute: ReportsAttendanceRoute,
   ReportsFingerprintRoute: ReportsFingerprintRoute,
   TasksPermissionsRoute: TasksPermissionsRoute,
   TasksReportsRoute: TasksReportsRoute,

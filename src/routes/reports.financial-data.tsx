@@ -77,7 +77,7 @@ function FinancialDataReport() {
 
   // Normalized financial data per employee
   const rows = useMemo(() => {
-    return employees.map((e, idx): Record<string, unknown> => {
+    return employees.map((e, idx): Row => {
       const basic = Number(e["basic_salary"] || (idx % 2 === 0 ? 6000 : 8500));
       const housing = Number(e["housing_allowance"] || Math.round(basic * 0.25));
       const transport = Number(e["transport_allowance"] || Math.round(basic * 0.1));

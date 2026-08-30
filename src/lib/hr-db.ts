@@ -37,7 +37,8 @@ export type HrTable =
   | "task_creator_permissions"
   | "task_receiver_permissions"
   | "tasks"
-  | "approval_requests";
+  | "approval_requests"
+  | "fingerprint_records";
 
 export type RowFilters = Record<string, string | number | boolean>;
 

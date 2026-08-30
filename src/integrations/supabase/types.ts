@@ -374,7 +374,6 @@ export type Database = {
           hire_date: string | null
           iban: string | null
           id: string
-          is_human_resources: boolean
           job_title: string | null
           manager_name: string | null
           national_id: string | null
@@ -398,7 +397,6 @@ export type Database = {
           hire_date?: string | null
           iban?: string | null
           id?: string
-          is_human_resources?: boolean
           job_title?: string | null
           manager_name?: string | null
           national_id?: string | null
@@ -422,7 +420,6 @@ export type Database = {
           hire_date?: string | null
           iban?: string | null
           id?: string
-          is_human_resources?: boolean
           job_title?: string | null
           manager_name?: string | null
           national_id?: string | null

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/hr/AppShell";
 import { Breadcrumbs, Btn, Chip } from "@/components/hr/ui";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { useRows, useSaveRow, useDeleteRow, type Row } from "@/lib/hr-db";
+import { useRows, type Row } from "@/lib/hr-db";
 
 export const Route = createFileRoute("/reports/fingerprint")({
   head: () => ({
@@ -155,7 +155,6 @@ function FingerprintReportPage() {
   const [term, setTerm] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [draft, setDraft] = useState<Row | null>(null);
 
   const [colFilters, setColFilters] = useState<Record<ColKey, string>>({
     emp_no: "",
@@ -178,9 +177,6 @@ function FingerprintReportPage() {
     to: applied.to,
     rangeColumn: "punch_date",
   });
-
-  const save = useSaveRow("fingerprint_records");
-  const del = useDeleteRow("fingerprint_records");
 
   const filtered = useMemo(() => {
     const t = term.trim();
@@ -216,29 +212,6 @@ function FingerprintReportPage() {
 
   const dateInvalid = from > to;
 
-  const openNew = () =>
-    setDraft({
-      employee_name: "",
-      emp_no: "",
-      branch: "",
-      department: "",
-      punch_date: todayISO(),
-      punch_time: "08:00:00",
-      punch_status: STATUS_OPTIONS[0],
-      device_name: "",
-      location_name: "",
-      source: "manual",
-    });
-
-  const submit = async () => {
-    if (!draft) return;
-    if (!String(draft["employee_name"] ?? "").trim()) return;
-    if (!String(draft["punch_date"] ?? "").trim()) return;
-    if (!String(draft["punch_time"] ?? "").trim()) return;
-    await save.mutateAsync(draft);
-    setDraft(null);
-  };
-
   return (
     <AppShell>
       <div className="mt-3">
@@ -252,7 +225,7 @@ function FingerprintReportPage() {
 
       {/* Date filters card */}
       <div className="mt-3 rounded-2xl border border-border bg-secondary/60 p-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto]">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
           <label>
             <span className="mb-1.5 block text-[12px] font-bold text-foreground/80">
               التاريخ من
@@ -300,11 +273,6 @@ function FingerprintReportPage() {
           <div className="self-end">
             <Btn icon="search" onClick={search}>
               بحث
-            </Btn>
-          </div>
-          <div className="self-end">
-            <Btn icon="add" variant="teal" onClick={openNew}>
-              إضافة بصمة
             </Btn>
           </div>
         </div>
@@ -368,7 +336,6 @@ function FingerprintReportPage() {
                     </span>
                   </th>
                 ))}
-                <th className="w-12 px-2" />
               </tr>
               <tr className="bg-secondary/60">
                 {COLUMNS.map((c) => (
@@ -390,7 +357,6 @@ function FingerprintReportPage() {
                     </div>
                   </th>
                 ))}
-                <th className="px-2" />
               </tr>
             </thead>
 
@@ -398,7 +364,7 @@ function FingerprintReportPage() {
               {(isLoading || pageRows.length === 0) && (
                 <tr>
                   <td
-                    colSpan={COLUMNS.length + 1}
+                    colSpan={COLUMNS.length}
                     className="px-4 py-14 text-center text-sm font-semibold text-muted-foreground"
                   >
                     {isLoading ? "جارٍ تحميل السجلات..." : "لا توجد بيانات مطابقة"}
@@ -446,27 +412,6 @@ function FingerprintReportPage() {
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-[12px] text-muted-foreground">
                     {String(r["location_name"] ?? "—")}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2.5">
-                    <span className="flex items-center gap-1">
-                      <button
-                        title="تعديل"
-                        onClick={() => setDraft({ ...r })}
-                        className="grid size-8 place-items-center rounded-lg bg-secondary text-primary transition-colors hover:bg-accent"
-                      >
-                        <MaterialIcon name="edit" size={16} />
-                      </button>
-                      <button
-                        title="حذف"
-                        onClick={() => {
-                          if (confirm("هل تريد حذف هذه البصمة نهائياً؟"))
-                            del.mutate(String(r["id"]));
-                        }}
-                        className="grid size-8 place-items-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      >
-                        <MaterialIcon name="delete" size={16} />
-                      </button>
-                    </span>
                   </td>
                 </tr>
               ))}
@@ -538,161 +483,6 @@ function FingerprintReportPage() {
         </div>
       </div>
 
-      {draft && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-topbar/50 p-4">
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card">
-            <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-              <MaterialIcon
-                name={draft["id"] ? "edit" : "fingerprint"}
-                size={22}
-                className="text-primary"
-                filled
-              />
-              <div>
-                <h3 className="text-sm font-extrabold">
-                  {draft["id"] ? "تعديل بصمة" : "إضافة بصمة يدوية"}
-                </h3>
-                <p className="text-[11px] font-semibold text-muted-foreground">
-                  أدخل بيانات الموظف والبصمة (تُسجّل كمصدر يدوي)
-                </p>
-              </div>
-              <button
-                onClick={() => setDraft(null)}
-                className="ms-auto text-muted-foreground hover:text-foreground"
-              >
-                <MaterialIcon name="close" size={22} />
-              </button>
-            </div>
-
-            <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
-              <FieldText
-                label="اسم الموظف"
-                required
-                value={String(draft["employee_name"] ?? "")}
-                onChange={(v) => setDraft({ ...draft, employee_name: v })}
-              />
-              <FieldText
-                label="الرقم الوظيفي"
-                value={String(draft["emp_no"] ?? "")}
-                onChange={(v) => setDraft({ ...draft, emp_no: v })}
-              />
-              <FieldText
-                label="الفرع"
-                value={String(draft["branch"] ?? "")}
-                onChange={(v) => setDraft({ ...draft, branch: v })}
-              />
-              <FieldText
-                label="القسم"
-                value={String(draft["department"] ?? "")}
-                onChange={(v) => setDraft({ ...draft, department: v })}
-              />
-              <label>
-                <span className="mb-1.5 block text-[12px] font-bold text-foreground/80">
-                  التاريخ *
-                </span>
-                <input
-                  type="date"
-                  className={control}
-                  value={String(draft["punch_date"] ?? "")}
-                  onChange={(e) => setDraft({ ...draft, punch_date: e.target.value })}
-                />
-              </label>
-              <label>
-                <span className="mb-1.5 block text-[12px] font-bold text-foreground/80">
-                  الوقت *
-                </span>
-                <input
-                  type="time"
-                  step="1"
-                  className={control}
-                  value={String(draft["punch_time"] ?? "")}
-                  onChange={(e) => setDraft({ ...draft, punch_time: e.target.value })}
-                />
-              </label>
-              <FieldSelect
-                label="حالة البصمة"
-                value={String(draft["punch_status"] ?? STATUS_OPTIONS[0])}
-                options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
-                onChange={(v) => setDraft({ ...draft, punch_status: v })}
-              />
-              <FieldText
-                label="اسم جهاز البصمة"
-                value={String(draft["device_name"] ?? "")}
-                onChange={(v) => setDraft({ ...draft, device_name: v })}
-              />
-              <FieldText
-                label="اسم الموقع"
-                value={String(draft["location_name"] ?? "")}
-                onChange={(v) => setDraft({ ...draft, location_name: v })}
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2 border-t border-border px-5 py-4">
-              <button
-                onClick={submit}
-                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-bold text-primary-foreground hover:opacity-90"
-              >
-                <MaterialIcon name="save" size={18} />
-                {save.isPending ? "جارٍ الحفظ..." : draft["id"] ? "حفظ التعديلات" : "حفظ البصمة"}
-              </button>
-              <button
-                onClick={() => setDraft(null)}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-bold hover:bg-secondary"
-              >
-                <MaterialIcon name="close" size={18} />
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </AppShell>
-  );
-}
-
-function FieldText({
-  label,
-  required,
-  value,
-  onChange,
-}: {
-  label: string;
-  required?: boolean;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 flex items-center gap-1 text-[12px] font-bold text-foreground/80">
-        {label}
-        {required && <span className="text-destructive">*</span>}
-      </span>
-      <input className={control} value={value} onChange={(e) => onChange(e.target.value)} />
-    </label>
-  );
-}
-
-function FieldSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[12px] font-bold text-foreground/80">{label}</span>
-      <select className={control} value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }

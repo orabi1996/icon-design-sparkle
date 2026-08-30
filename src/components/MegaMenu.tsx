@@ -4,7 +4,7 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 
 export type MegaLink = { label: string; to: string };
 export type MegaColumn = { title: string; items: (string | MegaLink)[] };
-export type NavItem = { label: string; icon: string; columns?: MegaColumn[] };
+export type NavItem = { label: string; icon: string; to?: string; columns?: MegaColumn[] };
 
 export function MegaMenu({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState<string | null>(null);
@@ -31,33 +31,49 @@ export function MegaMenu({ items }: { items: NavItem[] }) {
         <ul className="flex items-center gap-1 overflow-x-auto px-3 py-1.5 [scrollbar-width:none] md:px-5">
           {items.map((item) => {
             const isOpen = open === item.label;
+            const className = `group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${
+              isOpen
+                ? "bg-white/12 text-topbar-foreground"
+                : "text-topbar-muted hover:bg-topbar-hover hover:text-topbar-foreground"
+            }`;
+            const content = (
+              <>
+                <MaterialIcon
+                  name={item.icon}
+                  size={18}
+                  filled={isOpen}
+                  className={
+                    isOpen
+                      ? "text-topbar-accent"
+                      : "text-topbar-muted/80 group-hover:text-topbar-accent"
+                  }
+                />
+                {item.label}
+                {item.columns && (
+                  <MaterialIcon
+                    name="expand_more"
+                    size={16}
+                    className={`text-topbar-muted/70 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  />
+                )}
+              </>
+            );
             return (
               <li key={item.label}>
-                <button
-                  onMouseEnter={() => item.columns && setOpen(item.label)}
-                  onClick={() => setOpen(isOpen ? null : item.columns ? item.label : null)}
-                  aria-expanded={isOpen}
-                  className={`group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${
-                    isOpen
-                      ? "bg-white/12 text-topbar-foreground"
-                      : "text-topbar-muted hover:bg-topbar-hover hover:text-topbar-foreground"
-                  }`}
-                >
-                  <MaterialIcon
-                    name={item.icon}
-                    size={18}
-                    filled={isOpen}
-                    className={isOpen ? "text-topbar-accent" : "text-topbar-muted/80 group-hover:text-topbar-accent"}
-                  />
-                  {item.label}
-                  {item.columns && (
-                    <MaterialIcon
-                      name="expand_more"
-                      size={16}
-                      className={`text-topbar-muted/70 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    />
-                  )}
-                </button>
+                {item.to ? (
+                  <Link to={item.to} className={className} onClick={() => setOpen(null)}>
+                    {content}
+                  </Link>
+                ) : (
+                  <button
+                    onMouseEnter={() => item.columns && setOpen(item.label)}
+                    onClick={() => setOpen(isOpen ? null : item.columns ? item.label : null)}
+                    aria-expanded={isOpen}
+                    className={className}
+                  >
+                    {content}
+                  </button>
+                )}
               </li>
             );
           })}

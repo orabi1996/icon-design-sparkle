@@ -49,7 +49,12 @@ export type HrTable =
   | "task_receiver_permissions"
   | "tasks"
   | "approval_requests"
-  | "fingerprint_records";
+  | "fingerprint_records"
+  | "permission_groups"
+  | "permission_group_members"
+  | "permission_rules"
+  | "permission_scopes"
+  | "permission_features";
 
 export type RowFilters = Record<string, string | number | boolean>;
 

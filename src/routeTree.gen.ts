@@ -19,6 +19,7 @@ import { Route as InquiriesRouteImport } from './routes/inquiries'
 import { Route as LeavesRouteImport } from './routes/leaves'
 import { Route as LoansRouteImport } from './routes/loans'
 import { Route as PayrollRouteImport } from './routes/payroll'
+import { Route as PermissionsRouteImport } from './routes/permissions'
 import { Route as PermitsRouteImport } from './routes/permits'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
@@ -47,7 +48,11 @@ import { Route as ReportsAbsenceMonthlyRouteImport } from './routes/reports.abse
 import { Route as ReportsAbsenceValueRouteImport } from './routes/reports.absence-value'
 import { Route as ReportsAdminFormsRouteImport } from './routes/reports.admin-forms'
 import { Route as ReportsAttendanceRouteImport } from './routes/reports.attendance'
+import { Route as ReportsAttendanceComprehensiveRouteImport } from './routes/reports.attendance-comprehensive'
+import { Route as ReportsAttendanceDetailedRouteImport } from './routes/reports.attendance-detailed'
+import { Route as ReportsAttendanceStatisticsRouteImport } from './routes/reports.attendance-statistics'
 import { Route as ReportsBasicDataRouteImport } from './routes/reports.basic-data'
+import { Route as ReportsDailyLateRouteImport } from './routes/reports.daily-late'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
 import { Route as ReportsEmployeeDataRouteImport } from './routes/reports.employee-data'
 import { Route as ReportsEmployeeDependentsRouteImport } from './routes/reports.employee-dependents'
@@ -125,6 +130,11 @@ const LoansRoute = LoansRouteImport.update({
 const PayrollRoute = PayrollRouteImport.update({
   id: '/payroll',
   path: '/payroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PermissionsRoute = PermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PermitsRoute = PermitsRouteImport.update({
@@ -268,9 +278,32 @@ const ReportsAttendanceRoute = ReportsAttendanceRouteImport.update({
   path: '/reports/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsAttendanceComprehensiveRoute =
+  ReportsAttendanceComprehensiveRouteImport.update({
+    id: '/reports/attendance-comprehensive',
+    path: '/reports/attendance-comprehensive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ReportsAttendanceDetailedRoute =
+  ReportsAttendanceDetailedRouteImport.update({
+    id: '/reports/attendance-detailed',
+    path: '/reports/attendance-detailed',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ReportsAttendanceStatisticsRoute =
+  ReportsAttendanceStatisticsRouteImport.update({
+    id: '/reports/attendance-statistics',
+    path: '/reports/attendance-statistics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsBasicDataRoute = ReportsBasicDataRouteImport.update({
   id: '/reports/basic-data',
   path: '/reports/basic-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsDailyLateRoute = ReportsDailyLateRouteImport.update({
+  id: '/reports/daily-late',
+  path: '/reports/daily-late',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsEarlyCheckoutDaysRoute =
@@ -428,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
+  '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
@@ -455,7 +489,11 @@ export interface FileRoutesByFullPath {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
+  '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
+  '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
+  '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
@@ -497,6 +535,7 @@ export interface FileRoutesByTo {
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
+  '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/request-notifications': typeof RequestNotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -522,7 +561,11 @@ export interface FileRoutesByTo {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
+  '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
+  '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
+  '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
@@ -565,6 +608,7 @@ export interface FileRoutesById {
   '/leaves': typeof LeavesRoute
   '/loans': typeof LoansRoute
   '/payroll': typeof PayrollRoute
+  '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
@@ -592,7 +636,11 @@ export interface FileRoutesById {
   '/reports/absence-value': typeof ReportsAbsenceValueRoute
   '/reports/admin-forms': typeof ReportsAdminFormsRoute
   '/reports/attendance': typeof ReportsAttendanceRoute
+  '/reports/attendance-comprehensive': typeof ReportsAttendanceComprehensiveRoute
+  '/reports/attendance-detailed': typeof ReportsAttendanceDetailedRoute
+  '/reports/attendance-statistics': typeof ReportsAttendanceStatisticsRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
+  '/reports/daily-late': typeof ReportsDailyLateRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-data': typeof ReportsEmployeeDataRoute
   '/reports/employee-dependents': typeof ReportsEmployeeDependentsRoute
@@ -636,6 +684,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/loans'
     | '/payroll'
+    | '/permissions'
     | '/permits'
     | '/regulations'
     | '/request-notifications'
@@ -663,7 +712,11 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/admin-forms'
     | '/reports/attendance'
+    | '/reports/attendance-comprehensive'
+    | '/reports/attendance-detailed'
+    | '/reports/attendance-statistics'
     | '/reports/basic-data'
+    | '/reports/daily-late'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/employee-dependents'
@@ -705,6 +758,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/loans'
     | '/payroll'
+    | '/permissions'
     | '/permits'
     | '/request-notifications'
     | '/reset-password'
@@ -730,7 +784,11 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/admin-forms'
     | '/reports/attendance'
+    | '/reports/attendance-comprehensive'
+    | '/reports/attendance-detailed'
+    | '/reports/attendance-statistics'
     | '/reports/basic-data'
+    | '/reports/daily-late'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/employee-dependents'
@@ -772,6 +830,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/loans'
     | '/payroll'
+    | '/permissions'
     | '/permits'
     | '/regulations'
     | '/request-notifications'
@@ -799,7 +858,11 @@ export interface FileRouteTypes {
     | '/reports/absence-value'
     | '/reports/admin-forms'
     | '/reports/attendance'
+    | '/reports/attendance-comprehensive'
+    | '/reports/attendance-detailed'
+    | '/reports/attendance-statistics'
     | '/reports/basic-data'
+    | '/reports/daily-late'
     | '/reports/early-checkout-days'
     | '/reports/employee-data'
     | '/reports/employee-dependents'
@@ -842,6 +905,7 @@ export interface RootRouteChildren {
   LeavesRoute: typeof LeavesRoute
   LoansRoute: typeof LoansRoute
   PayrollRoute: typeof PayrollRoute
+  PermissionsRoute: typeof PermissionsRoute
   PermitsRoute: typeof PermitsRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
@@ -859,7 +923,11 @@ export interface RootRouteChildren {
   ReportsAbsenceValueRoute: typeof ReportsAbsenceValueRoute
   ReportsAdminFormsRoute: typeof ReportsAdminFormsRoute
   ReportsAttendanceRoute: typeof ReportsAttendanceRoute
+  ReportsAttendanceComprehensiveRoute: typeof ReportsAttendanceComprehensiveRoute
+  ReportsAttendanceDetailedRoute: typeof ReportsAttendanceDetailedRoute
+  ReportsAttendanceStatisticsRoute: typeof ReportsAttendanceStatisticsRoute
   ReportsBasicDataRoute: typeof ReportsBasicDataRoute
+  ReportsDailyLateRoute: typeof ReportsDailyLateRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
   ReportsEmployeeDataRoute: typeof ReportsEmployeeDataRoute
   ReportsEmployeeDependentsRoute: typeof ReportsEmployeeDependentsRoute
@@ -949,6 +1017,13 @@ declare module '@tanstack/react-router' {
       path: '/payroll'
       fullPath: '/payroll'
       preLoaderRoute: typeof PayrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/permissions': {
+      id: '/permissions'
+      path: '/permissions'
+      fullPath: '/permissions'
+      preLoaderRoute: typeof PermissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/permits': {
@@ -1147,11 +1222,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsAttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/attendance-comprehensive': {
+      id: '/reports/attendance-comprehensive'
+      path: '/reports/attendance-comprehensive'
+      fullPath: '/reports/attendance-comprehensive'
+      preLoaderRoute: typeof ReportsAttendanceComprehensiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/attendance-detailed': {
+      id: '/reports/attendance-detailed'
+      path: '/reports/attendance-detailed'
+      fullPath: '/reports/attendance-detailed'
+      preLoaderRoute: typeof ReportsAttendanceDetailedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/attendance-statistics': {
+      id: '/reports/attendance-statistics'
+      path: '/reports/attendance-statistics'
+      fullPath: '/reports/attendance-statistics'
+      preLoaderRoute: typeof ReportsAttendanceStatisticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/basic-data': {
       id: '/reports/basic-data'
       path: '/reports/basic-data'
       fullPath: '/reports/basic-data'
       preLoaderRoute: typeof ReportsBasicDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/daily-late': {
+      id: '/reports/daily-late'
+      path: '/reports/daily-late'
+      fullPath: '/reports/daily-late'
+      preLoaderRoute: typeof ReportsDailyLateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/early-checkout-days': {
@@ -1436,6 +1539,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeavesRoute: LeavesRoute,
   LoansRoute: LoansRoute,
   PayrollRoute: PayrollRoute,
+  PermissionsRoute: PermissionsRoute,
   PermitsRoute: PermitsRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
@@ -1453,7 +1557,11 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsAbsenceValueRoute: ReportsAbsenceValueRoute,
   ReportsAdminFormsRoute: ReportsAdminFormsRoute,
   ReportsAttendanceRoute: ReportsAttendanceRoute,
+  ReportsAttendanceComprehensiveRoute: ReportsAttendanceComprehensiveRoute,
+  ReportsAttendanceDetailedRoute: ReportsAttendanceDetailedRoute,
+  ReportsAttendanceStatisticsRoute: ReportsAttendanceStatisticsRoute,
   ReportsBasicDataRoute: ReportsBasicDataRoute,
+  ReportsDailyLateRoute: ReportsDailyLateRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
   ReportsEmployeeDataRoute: ReportsEmployeeDataRoute,
   ReportsEmployeeDependentsRoute: ReportsEmployeeDependentsRoute,

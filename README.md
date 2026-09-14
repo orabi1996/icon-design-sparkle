@@ -24,3 +24,13 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Business implementation
+
+The business layer is being delivered in reviewable vertical phases. This phase adds a tenant/company foundation, immutable company history, a screen directory, and a source-backed loan balance report.
+
+- [Phase 1 foundation and activation runbook](docs/business/phase-1-foundation.md)
+- [All 96 registered screens](docs/business/screen-map.md)
+- [Full business roadmap](docs/business/roadmap.md)
+
+The `VITE_COMPANY_BUSINESS_ENABLED` flag remains off until the migration, staging authorization tests, typecheck, build, and UAT are approved. Existing legacy tables are not silently reassigned to a tenant.

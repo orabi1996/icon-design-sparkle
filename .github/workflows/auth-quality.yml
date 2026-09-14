@@ -1,0 +1,60 @@
+name: Auth quality
+
+on:
+  pull_request:
+    paths:
+      - "src/routes/auth.tsx"
+      - "tests/auth-contract.test.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/auth-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  auth-tests:
+    name: Auth contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        # Main's pre-existing lock is missing optional Tailwind @emnapi peers; npm ci fails.
+        run: npm install --no-audit --no-fund
+      - run: npm test
+
+  typecheck:
+    name: TypeScript contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - run: npm run check:types
+
+  build:
+    name: Application build
+    needs: [auth-tests, typecheck]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_COMPANY_BUSINESS_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - run: npm run build

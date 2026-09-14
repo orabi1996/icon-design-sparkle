@@ -72,7 +72,7 @@ function StatCard({
   tone: keyof typeof tones;
   to?: string;
 }) {
-  const currentTone = tones[tone] ?? tones.sky;
+  const currentTone = tones[tone] ?? { bg: "bg-[#e8f0fe]", text: "text-[#0b57d0]", bar: "bg-[#0b57d0]" };
   const body = (
     <article
       className="group relative h-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_3px_0_rgba(60,64,67,0.08),0_4px_12px_0_rgba(60,64,67,0.06)] transition-all hover:shadow-[0_4px_16px_0_rgba(60,64,67,0.12)] hover:-translate-y-0.5"

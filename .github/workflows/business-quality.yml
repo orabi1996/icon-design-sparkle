@@ -49,3 +49,24 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Check TypeScript
         run: npm run check:types
+
+  build:
+    name: Application build
+    needs: [business-tests, typecheck]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_COMPANY_BUSINESS_ENABLED: "false"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        # Keep the same temporary lock repair used by the validation jobs.
+        run: npm install --no-audit --no-fund
+      - name: Build application
+        run: npm run build

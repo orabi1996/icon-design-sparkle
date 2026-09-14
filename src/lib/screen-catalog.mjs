@@ -430,7 +430,7 @@ export const SCREENS = Object.freeze([
     "path": "/requests/setup",
     "title": "تهيئة الطلبات ومسارات الاعتماد",
     "section": "الطلبات",
-    "status": "needs_business"
+    "status": "business"
   },
   {
     "path": "/reset-password",

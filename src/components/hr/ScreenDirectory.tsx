@@ -9,6 +9,7 @@ import { normalizeSearch } from "@/lib/business-core.mjs";
 const statusLabels = {
   phase1: "تطوير المرحلة الأولى",
   needs_business: "يحتاج استكمال البيزنس",
+  business: "بيانات محفوظة وقواعد تشغيل مفعّلة",
   legacy: "شاشة قائمة — لم تُعتمد وظيفيًا",
 };
 

@@ -124,12 +124,12 @@ function CompanySettingsPage() {
     if (save.isPending || (!isNew && (!company?.can_manage || expectedVersion === null))) return;
     const validation = validateCompanyProfile(formData);
     const nextErrors = { ...validation.errors };
-    if (reason.trim().length < 3 || reason.trim().length > 500) nextErrors.reason = "سبب التغيير مطلوب (3 إلى 500 حرف)";
+    if (reason.trim().length < 3 || reason.trim().length > 500) nextErrors["reason"] = "سبب التغيير مطلوب (3 إلى 500 حرف)";
     if (isNew && tenantChoice === "new" && (!isSystemAdmin || !tenantName.trim() || tenantName.trim().length > 200)) {
-      nextErrors.tenant = "إنشاء مساحة عميل جديدة يتطلب مدير النظام واسم مجموعة من 1 إلى 200 حرف";
+      nextErrors["tenant"] = "إنشاء مساحة عميل جديدة يتطلب مدير النظام واسم مجموعة من 1 إلى 200 حرف";
     }
     if (isNew && tenantChoice !== "new" && !tenantOptions.some(([id]) => id === tenantChoice)) {
-      nextErrors.tenant = "اختر مساحة عميل تملك صلاحية إدارتها";
+      nextErrors["tenant"] = "اختر مساحة عميل تملك صلاحية إدارتها";
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;

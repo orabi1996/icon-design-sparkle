@@ -31,7 +31,7 @@ function RequestSetupPage() {
 
   useEffect(() => {
     if (!settingsQuery.isFetched || hydrated) return;
-    const parsed = parseRequestConfigs(settingsQuery.data?.configs);
+    const parsed = parseRequestConfigs(settingsQuery.data?.["configs"]);
     setRequestConfigs(parsed.configs);
     if (parsed.invalidCount > 0) {
       setLoadWarning("تم العثور على إعدادات غير مكتملة؛ عُرضت القيم السليمة مع إبقاء القيم الافتراضية عند الحاجة.");

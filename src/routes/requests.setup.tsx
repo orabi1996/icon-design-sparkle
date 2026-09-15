@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/hr/AppShell";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { useSaveSettings, useSettings } from "@/lib/hr-db";
+import { supabase } from "@/integrations/supabase/client";
+import { useRequestTypeSettings, useSaveRequestTypeSettings } from "@/lib/request-settings-db";
+import type { RequestSettingsSnapshot } from "@/lib/request-settings.mjs";
 import {
-  DEFAULT_REQUEST_TYPES,
-  parseRequestConfigs,
-  serializeRequestConfigs,
   splitApprovalChain,
   validateRequestConfig,
   type RequestTypeConfig,
@@ -21,27 +20,40 @@ const inputCls =
   "h-8 w-full rounded border border-[#b4c7e7] bg-white px-2.5 text-[12px] font-medium text-slate-800 outline-none transition focus:border-[#0070c0] focus:ring-1 focus:ring-[#0070c0]/20";
 
 function RequestSetupPage() {
-  const settingsQuery = useSettings("request_types");
-  const saveSettings = useSaveSettings("request_types");
-  const [requestConfigs, setRequestConfigs] = useState<RequestTypeConfig[]>(() =>
-    DEFAULT_REQUEST_TYPES.map((item) => ({ ...item, approval_chain: [...item.approval_chain] })),
-  );
-  const [hydrated, setHydrated] = useState(false);
-  const [loadWarning, setLoadWarning] = useState<string | null>(null);
+  return <AppShell><RequestSettingsSession /></AppShell>;
+}
 
+function RequestSettingsSession() {
+  const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
-    if (!settingsQuery.isFetched || hydrated) return;
-    const parsed = parseRequestConfigs(settingsQuery.data?.["configs"]);
-    setRequestConfigs(parsed.configs);
-    if (parsed.invalidCount > 0) {
-      setLoadWarning("تم العثور على إعدادات غير مكتملة؛ عُرضت القيم السليمة مع إبقاء القيم الافتراضية عند الحاجة.");
-    }
-    setHydrated(true);
-  }, [hydrated, settingsQuery.data, settingsQuery.isFetched]);
+    let alive = true;
+    let authEventSeen = false;
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      authEventSeen = true;
+      if (alive) setUserId(session?.user.id ?? null);
+    });
+    void supabase.auth.getSession().then(({ data }) => {
+      if (alive && !authEventSeen) setUserId(data.session?.user.id ?? null);
+    }).catch(() => { if (alive) setUserId(null); });
+    return () => { alive = false; listener.subscription.unsubscribe(); };
+  }, []);
+  // Account changes remount the editor, so drafts and snapshots cannot leak across accounts.
+  return userId ? <RequestSetupEditor key={userId} userId={userId} /> : <p>جارٍ التحقق من جلسة الدخول...</p>;
+}
 
+function RequestSetupEditor({ userId }: { userId: string }) {
+  const settingsQuery = useRequestTypeSettings(userId);
+  const saveSettings = useSaveRequestTypeSettings(userId);
+  const requestConfigs = settingsQuery.isSuccess ? settingsQuery.data.configs : [];
+  const mutationInFlight = useRef(false);
+  const [reloadRequired, setReloadRequired] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReq, setEditingReq] = useState<RequestTypeConfig | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [draftBase, setDraftBase] = useState<RequestSettingsSnapshot | null>(null);
+  const [chainText, setChainText] = useState("");
+  const canEdit = settingsQuery.isSuccess && !settingsQuery.isFetching && !saveSettings.isPending && !reloadRequired;
 
   const emptyDraft = (): Omit<RequestTypeConfig, "id"> => ({
     code: "",
@@ -66,8 +78,12 @@ function RequestSetupPage() {
   const [newReq, setNewReq] = useState<Omit<RequestTypeConfig, "id">>(() => emptyDraft());
 
   const handleOpenAdd = () => {
+    if (!canEdit || mutationInFlight.current || !settingsQuery.data) return;
     setEditingReq(null);
     setFormError(null);
+    setNotice(null);
+    setDraftBase(settingsQuery.data);
+    setChainText(emptyDraft().approval_chain.join("، "));
     setNewReq({
       ...emptyDraft(),
       code: `REQ-${String(requestConfigs.length + 1).padStart(2, "0")}`,
@@ -76,58 +92,86 @@ function RequestSetupPage() {
   };
 
   const handleEdit = (request: RequestTypeConfig) => {
+    if (!canEdit || mutationInFlight.current || !settingsQuery.data) return;
     setEditingReq(request);
     setFormError(null);
+    setNotice(null);
+    setDraftBase(settingsQuery.data);
+    setChainText(request.approval_chain.join("، "));
     setNewReq(draftFrom(request));
     setIsModalOpen(true);
   };
 
   const handleSave = async () => {
+    if (!canEdit || mutationInFlight.current || !draftBase) return;
     const candidate: RequestTypeConfig = {
-      id: editingReq?.id ?? `req-${Date.now()}`,
+      id: editingReq?.id ?? `req-${crypto.randomUUID()}`,
       ...newReq,
+      approval_chain: splitApprovalChain(chainText),
     };
     const validation = validateRequestConfig(candidate);
     if (!validation.ok || !validation.value) {
       setFormError(Object.values(validation.errors)[0] ?? "راجع بيانات نوع الطلب.");
       return;
     }
-    if (requestConfigs.some((request) => request.code === validation.value.code && request.id !== candidate.id)) {
+    const value = validation.value;
+    if (draftBase.configs.some((request) => request.code === value.code && request.id !== candidate.id)) {
       setFormError("كود الطلب مستخدم بالفعل؛ اختر كودًا مختلفًا.");
       return;
     }
 
     const next = editingReq
-      ? requestConfigs.map((request) => (request.id === editingReq.id ? validation.value! : request))
-      : [...requestConfigs, validation.value];
+      ? draftBase.configs.map((request) => (request.id === editingReq.id ? value : request))
+      : [...draftBase.configs, value];
+    mutationInFlight.current = true;
     try {
-      await saveSettings.mutateAsync({ configs: serializeRequestConfigs(next) });
-      setRequestConfigs(next);
+      await saveSettings.mutateAsync({ configs: next, expectedValue: draftBase.expectedValue });
       setFormError(null);
       setIsModalOpen(false);
-    } catch {
-      setFormError("تعذر حفظ إعدادات الطلبات. تحقق من صلاحية المستخدم وحاول مرة أخرى.");
+      setNotice("تم تأكيد حفظ إعدادات الطلبات بنجاح.");
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "تعذر تأكيد الحفظ. أعد تحميل الإعدادات.");
+      setReloadRequired(true);
+    } finally {
+      mutationInFlight.current = false;
     }
   };
 
   const handleDelete = async (request: RequestTypeConfig) => {
+    if (!canEdit || mutationInFlight.current || !settingsQuery.data) return;
+    setNotice(null);
     if (requestConfigs.length === 1) {
       setFormError("لا يمكن حذف آخر نوع طلب؛ يجب الاحتفاظ بنوع واحد على الأقل.");
       return;
     }
     if (typeof window !== "undefined" && !window.confirm(`حذف نوع الطلب "${request.name}"؟`)) return;
     const next = requestConfigs.filter((item) => item.id !== request.id);
+    mutationInFlight.current = true;
     try {
-      await saveSettings.mutateAsync({ configs: serializeRequestConfigs(next) });
-      setRequestConfigs(next);
+      await saveSettings.mutateAsync({ configs: next, expectedValue: settingsQuery.data.expectedValue });
       setFormError(null);
-    } catch {
-      setFormError("تعذر حذف نوع الطلب. حاول مرة أخرى.");
+      setNotice("تم تأكيد حذف نوع الطلب.");
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "تعذر تأكيد الحذف. أعد تحميل الإعدادات.");
+      setReloadRequired(true);
+    } finally {
+      mutationInFlight.current = false;
     }
   };
 
+  const handleReload = async () => {
+    if (mutationInFlight.current || settingsQuery.isFetching) return;
+    if (isModalOpen && !window.confirm("إلغاء مسودة التعديل وتحميل آخر نسخة محفوظة؟")) return;
+    setIsModalOpen(false);
+    setDraftBase(null);
+    setFormError(null);
+    setNotice(null);
+    const result = await settingsQuery.refetch();
+    if (result.isSuccess) setReloadRequired(false);
+  };
+
   return (
-    <AppShell>
+    <>
       {/* Title */}
       <div className="mb-3 flex items-center justify-between border-b border-slate-200 pb-2">
         <h1 className="text-[16px] font-extrabold text-[#004e82] flex items-center gap-2">
@@ -144,7 +188,7 @@ function RequestSetupPage() {
           <div className="text-lg font-extrabold text-[#0070c0] font-mono mt-1">{requestConfigs.length} أنواع</div>
         </div>
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-500">الطلبات المتاحة للخدمة الذاتية</div>
+          <div className="text-[11px] font-bold text-slate-500">أنواع الطلبات النشطة في الإعدادات</div>
           <div className="text-lg font-extrabold text-emerald-700 font-mono mt-1">{requestConfigs.filter((r) => r.status === "نشط").length} طلب نشط</div>
         </div>
         <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 shadow-xs">
@@ -153,17 +197,18 @@ function RequestSetupPage() {
         </div>
         <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-3 shadow-xs">
           <div className="text-[11px] font-bold text-slate-500">التكامل مع الإشعارات والتطبيق</div>
-          <div className="text-lg font-extrabold text-purple-700 font-mono mt-1">فوري (Realtime)</div>
+          <div className="text-sm font-extrabold text-purple-700 mt-1">غير مفعّل بعد</div>
         </div>
       </div>
 
-      {settingsQuery.isLoading && <p className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800">جاري تحميل إعدادات أنواع الطلبات...</p>}
-      {(settingsQuery.isError || loadWarning) && (
-        <div className="mb-3 space-y-2">
-          {settingsQuery.isError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">تعذر تحميل إعدادات الطلبات؛ يتم عرض نسخة افتراضية آمنة.</p>}
-          {loadWarning && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">{loadWarning}</p>}
-        </div>
-      )}
+      <p className="mb-3 text-xs text-slate-600">هذه الشاشة لحفظ إعدادات النظام العامة بواسطة مدير النظام؛ لا تنفّذ الموافقات أو الإشعارات ولا تعزل الإعدادات حسب الشركة بعد.</p>
+      {settingsQuery.isFetching && <p role="status" className="mb-3 text-xs text-blue-800">جارٍ تحميل إعدادات أنواع الطلبات...</p>}
+      {settingsQuery.error && <p role="alert" className="mb-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">{settingsQuery.error.message}</p>}
+      {settingsQuery.data && !settingsQuery.data.exists && <p className="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">لا توجد إعدادات محفوظة بعد؛ القيم المعروضة مقترحات أولية ولا تُحفظ إلا عند التأكيد.</p>}
+      {!isModalOpen && formError && <p role="alert" className="mb-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">{formError}</p>}
+      {notice && <p role="status" className="mb-3 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">{notice}</p>}
+      {reloadRequired && <p role="alert" className="mb-3 text-xs text-amber-800">التعديل متوقف حتى إعادة تحميل آخر نسخة والتحقق من نتيجة العملية السابقة.</p>}
+      <button type="button" onClick={() => void handleReload()} disabled={saveSettings.isPending || settingsQuery.isFetching} className="mb-3 rounded border px-3 py-2 text-xs disabled:opacity-40">إعادة تحميل الإعدادات</button>
 
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200" dir="rtl">
@@ -171,6 +216,7 @@ function RequestSetupPage() {
         <button
           type="button"
           onClick={handleOpenAdd}
+          disabled={!canEdit}
           className="flex items-center justify-center gap-1 rounded bg-[#0070c0] h-8 px-4 text-xs font-bold text-white shadow-xs hover:bg-[#005fa3] transition"
         >
           <MaterialIcon name="add" size={16} />
@@ -219,6 +265,7 @@ function RequestSetupPage() {
                 <button
                   type="button"
                   onClick={() => handleEdit(r)}
+                  disabled={!canEdit}
                   className="text-[#0070c0] font-bold hover:underline"
                 >
                   تعديل المسار
@@ -226,7 +273,7 @@ function RequestSetupPage() {
                 <button
                 type="button"
                 onClick={() => void handleDelete(r)}
-                disabled={saveSettings.isPending}
+                disabled={!canEdit}
                 className="text-rose-600 font-bold hover:underline disabled:opacity-40"
               >
                   حذف
@@ -240,18 +287,18 @@ function RequestSetupPage() {
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4" dir="rtl">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl border border-slate-200">
+          <div role="dialog" aria-modal="true" aria-labelledby="request-settings-title" className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-              <h3 className="text-sm font-extrabold text-[#004e82] flex items-center gap-1.5">
+              <h3 id="request-settings-title" className="text-sm font-extrabold text-[#004e82] flex items-center gap-1.5">
                 <MaterialIcon name="schema" size={18} className="text-[#0070c0]" />
                 {editingReq ? "تعديل إعدادات نوع الطلب" : "إضافة نوع طلب ومسار اعتماد جديد"}
               </h3>
-              <button type="button" onClick={() => { setIsModalOpen(false); setFormError(null); }} className="text-slate-400 hover:text-slate-700">
+              <button type="button" aria-label="إغلاق" disabled={saveSettings.isPending} onClick={() => { setIsModalOpen(false); setFormError(null); }} className="text-slate-400 hover:text-slate-700">
                 <MaterialIcon name="close" size={20} />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            <fieldset disabled={!canEdit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-bold text-slate-700">كود الطلب *</span>
                 <input
@@ -318,10 +365,10 @@ function RequestSetupPage() {
               <label className="flex flex-col gap-1 sm:col-span-2">
                 <span className="text-xs font-bold text-slate-700">سلسلة الموافقات * <span className="font-normal text-slate-400">(افصل بين الخطوات بفاصلة أو سطر جديد)</span></span>
                 <textarea
-                  value={newReq.approval_chain.join("، ")}
-                  onChange={(e) => setNewReq((p) => ({ ...p, approval_chain: splitApprovalChain(e.target.value) }))}
+                  value={chainText}
+                  onChange={(e) => { setChainText(e.target.value); setFormError(null); }}
                   rows={2}
-                  maxLength={700}
+                  maxLength={1000}
                   className={inputCls + " min-h-16 py-2"}
                   required
                 />
@@ -343,14 +390,16 @@ function RequestSetupPage() {
                 />
                 السماح للموظف بإلغاء الطلب قبل اعتماده
               </label>
-            </div>
+            </fieldset>
 
             {formError && <p role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold leading-5 text-red-700">{formError}</p>}
+            {reloadRequired && <button type="button" onClick={() => void handleReload()} disabled={settingsQuery.isFetching} className="mb-3 rounded border px-3 py-2 text-xs">تحميل آخر نسخة وإلغاء المسودة</button>}
 
             <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-3">
               <button
                 type="button"
                 onClick={() => { setIsModalOpen(false); setFormError(null); }}
+                disabled={saveSettings.isPending}
                 className="px-4 h-8 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50"
               >
                 إلغاء
@@ -358,7 +407,7 @@ function RequestSetupPage() {
               <button
                 type="button"
                 onClick={() => void handleSave()}
-                disabled={saveSettings.isPending}
+                disabled={!canEdit}
                 className="px-5 h-8 rounded-lg bg-[#0070c0] hover:bg-[#005fa3] text-white text-xs font-bold shadow-xs disabled:opacity-50"
               >
                 {saveSettings.isPending ? "جارٍ الحفظ..." : "حفظ الإعدادات"}
@@ -371,6 +420,6 @@ function RequestSetupPage() {
       <div className="mt-8 text-center text-xs font-bold text-slate-400 border-t border-slate-200 pt-4">
         جميع الحقوق محفوظة © الحلول الخبيرة
       </div>
-    </AppShell>
+    </>
   );
 }

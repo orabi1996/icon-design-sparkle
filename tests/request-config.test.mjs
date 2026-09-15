@@ -67,5 +67,16 @@ test("serializer rejects duplicates and preserves normalized workflow data", () 
 
 test("approval chain input accepts Arabic commas/new lines and removes duplicates", () => {
   assert.deepEqual(splitApprovalChain("المدير المباشر، الموارد البشرية\nالمدير المباشر"), ["المدير المباشر", "الموارد البشرية"]);
-  assert.deepEqual(splitApprovalChain(""), ["المدير المباشر", "الموارد البشرية"]);
+  assert.deepEqual(splitApprovalChain(""), []);
+});
+
+test("blank steps, overlong fields and nonnumeric SLA are rejected, never truncated", () => {
+  for (const overrides of [
+    { name: "x".repeat(161) }, { code: "X".repeat(33) },
+    { id: "req-" + "x".repeat(80) }, { approval_chain: ["x".repeat(121)] },
+    { approval_chain: ["مدير النظام", null] }, { approval_chain: ["مدير النظام", " "] },
+    { max_sla_hours: "24" }, { max_sla_hours: true }, { max_sla_hours: 2.5 },
+  ]) assert.equal(validateRequestConfig(valid(overrides)).ok, false, JSON.stringify(overrides));
+  assert.deepEqual(splitApprovalChain(" ،\n, "), []);
+  assert.equal(validateRequestConfig(valid({ approval_chain: splitApprovalChain("") })).ok, false);
 });

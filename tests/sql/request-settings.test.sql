@@ -55,7 +55,11 @@ SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L
 SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', jsonb_set(:'original'::jsonb, '{0,approval_chain}', '[]')), '22023');
 SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', jsonb_set(:'original'::jsonb, '{0,extra}', 'true')), '22023');
 SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', :'original'::jsonb || :'original'::jsonb), '22023');
-SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', (:'original'::jsonb)->0 - 'status'), '22023');
+SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', jsonb_build_array(((:'original'::jsonb)->0) - 'status')), '22023');
+SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', jsonb_set(:'original'::jsonb, '{0,approval_chain}', '[null]')), '22023');
+SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', jsonb_set(:'original'::jsonb, '{0,approval_chain}', '["مدير النظام","مدير النظام"]')), '22023');
+SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', :'original'::jsonb || jsonb_set(:'original'::jsonb, '{0,id}', '"req-duplicate-code"')), '22023');
+SELECT pg_temp.assert_raises(format('SELECT public.save_request_type_settings(%L::jsonb,NULL)', :'original'::jsonb || jsonb_set(:'original'::jsonb, '{0,code}', '"REQ-OTHER"')), '22023');
 SELECT public.save_request_type_settings(jsonb_set(:'original'::jsonb, '{0,max_sla_hours}', '48'), :'original') AS saved
 \gset
 SELECT pg_temp.assert_true((:'saved'::jsonb->>'exists')::boolean, 'admin save receipt');

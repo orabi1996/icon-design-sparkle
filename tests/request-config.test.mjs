@@ -76,6 +76,7 @@ test("blank steps, overlong fields and nonnumeric SLA are rejected, never trunca
     { id: "req-" + "x".repeat(80) }, { approval_chain: ["x".repeat(121)] },
     { approval_chain: ["مدير النظام", null] }, { approval_chain: ["مدير النظام", " "] },
     { max_sla_hours: "24" }, { max_sla_hours: true }, { max_sla_hours: 2.5 },
+    { unknownField: "preserve rather than silently remove" },
   ]) assert.equal(validateRequestConfig(valid(overrides)).ok, false, JSON.stringify(overrides));
   assert.deepEqual(splitApprovalChain(" ،\n, "), []);
   assert.equal(validateRequestConfig(valid({ approval_chain: splitApprovalChain("") })).ok, false);

@@ -63,7 +63,7 @@ export const DEFAULT_REQUEST_TYPES = Object.freeze([
 ]);
 
 const isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
-const text = (value, max) => {
+const text = (value) => {
   if (typeof value !== "string") return "";
   const normalized = value.trim();
   return normalized;
@@ -74,13 +74,15 @@ export function validateRequestConfig(input) {
   if (!isRecord(input)) return { ok: false, errors: { form: "بيانات نوع الطلب غير صحيحة." } };
 
   const errors = {};
-  const id = text(input.id, 80);
-  const code = text(input.code, 32).toUpperCase();
-  const name = text(input.name, 160);
-  const category = text(input.category, 40);
-  const status = text(input.status, 20);
+  const fields = ["id", "code", "name", "category", "approval_chain", "max_sla_hours", "requires_attachment", "allow_cancel", "status"];
+  if (Object.keys(input).some((key) => !fields.includes(key))) errors.form = "توجد حقول غير مسموح بها؛ راجع السجل الأصلي.";
+  const id = text(input.id);
+  const code = text(input.code).toUpperCase();
+  const name = text(input.name);
+  const category = text(input.category);
+  const status = text(input.status);
   const chain = Array.isArray(input.approval_chain)
-    ? input.approval_chain.map((step) => text(step, 120)).filter(Boolean)
+    ? input.approval_chain.map((step) => text(step)).filter(Boolean)
     : [];
   const maxSla = input.max_sla_hours;
 
@@ -117,7 +119,7 @@ export function parseRequestConfigs(raw) {
 
   try {
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return { configs: cloneDefaults(), invalidCount: 1, source: "defaults" };
+    if (!Array.isArray(parsed) || parsed.length > 200) return { configs: cloneDefaults(), invalidCount: 1, source: "defaults" };
 
     const configs = [];
     const ids = new Set();

@@ -79,6 +79,10 @@ function RequestSetupEditor({ userId }: { userId: string }) {
 
   const handleOpenAdd = () => {
     if (!canEdit || mutationInFlight.current || !settingsQuery.data) return;
+    if (requestConfigs.length >= 200) {
+      setFormError("الحد الأقصى 200 نوع طلب؛ عدّل أو احذف نوعًا موجودًا أولًا.");
+      return;
+    }
     setEditingReq(null);
     setFormError(null);
     setNotice(null);

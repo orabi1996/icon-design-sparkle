@@ -101,15 +101,26 @@ export const previewM08Import = createServerFn({ method: 'POST' }).middleware([r
   });
 
 export const exportM08 = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
-  .validator((input: unknown) => companyInput.extend({ from: z.string(), to: z.string(), report: z.enum(['rosters', 'coverage', 'results', 'requests', 'deliveries', 'audit']) }).parse(input))
+  .validator((input: unknown) => companyInput.extend({ from: z.string(), to: z.string(), branch: z.string().max(80).optional(), siteCode: z.string().max(80).optional(), report: z.enum(['rosters', 'coverage', 'planned_actual', 'night_distribution', 'published_changes', 'swaps', 'overtime', 'cost_centers', 'results', 'requests', 'deliveries', 'audit']) }).parse(input))
   .handler(async ({ context, data }) => {
     const b = await contextData(context, data.companyId);
+    if (!b.actor.grants.some((g: { actions: string[] }) => g.actions.includes('export'))) throw new Error('غير مصرح بتصدير بيانات الدوام');
+    if (data.report === 'audit' && (!allowed(b.actor, 'audit') || !allowed(b.actor, 'export'))) throw new Error('تصدير التدقيق يتطلب صلاحية شاملة للشركة');
+    if (data.report === 'cost_centers' && !b.actor.grants.some((g: { fields?: string[] }) => g.fields?.includes('cost'))) throw new Error('تقرير مراكز التكلفة يتطلب صلاحية حقل التكلفة');
     const visible = projectState(b.state, b.actor);
     const { reportRows } = await import('./reports.mjs');
-    const rows = reportRows(visible, data.report, data.from, data.to, response(b).audit);
-    for (const row of rows) assertAccess(b.actor, 'export', row.employeeId ? employeeScope(b.state, row.employeeId, row.workDate) : row);
+    const rows = reportRows(visible, data.report, data.from, data.to, response(b).audit).filter((row: Db) => {
+      const branch = row.branch || (row.employeeId && employeeScope(b.state, row.employeeId, row.workDate).branch);
+      return (!data.branch || branch === data.branch) && (!data.siteCode || row.siteCode === data.siteCode);
+    });
+    for (const row of rows) {
+      const dates = Array.isArray(row.workDates) ? row.workDates : row.employeeId ? [row.workDate] : [];
+      if (row.employeeId) dates.forEach((day: string) => assertAccess(b.actor, 'export', employeeScope(b.state, row.employeeId, day)));
+      else assertAccess(b.actor, 'export', row);
+      if (data.report === 'cost_centers' && !allowedField(b.actor, 'cost', row)) throw new Error('حقل مركز التكلفة خارج نطاق صلاحياتك');
+    }
     if (data.report === 'deliveries') rows.forEach((row: Db) => assertAccess(b.actor, 'payroll', employeeScope(b.state, row.employeeId, row.workDate)));
-    return { generatedAt: new Date().toISOString(), companyId: data.companyId, from: data.from, to: data.to, report: data.report, revision: b.revision, rows };
+    return { generatedAt: new Date().toISOString(), companyId: data.companyId, from: data.from, to: data.to, branch: data.branch ?? '', siteCode: data.siteCode ?? '', report: data.report, revision: b.revision, rows };
   });
 
 export const m08LegacyEmployees = createServerFn({ method: 'GET' }).middleware([requireSupabaseAuth])

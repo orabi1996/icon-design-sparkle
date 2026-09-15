@@ -56,7 +56,8 @@ export function calculateAttendance(state, assignment, events, now) {
   const expected = requiredIntervals(a), leave = intersect(expected, approvedLeaveIntervals(state, a.employeeId)), paidLeave = intersect(expected, approvedLeaveIntervals(state, a.employeeId, true));
   const obligation = subtract(expected, leave), required = a.shift.type === 'flex' ? a.shift.requiredMinutes : minutes(expected);
   const base = { sources, employeeId: a.employeeId, employmentId: a.employmentId, workDate: a.workDate, assignmentKey: a.key,
-    costCenter: a.costCenter, timezone: a.timezone, requiredMinutes: required, excusedMinutes: minutes(leave), plannedOvertimeMinutes: a.plannedOvertimeMinutes ?? 0 };
+    branch: a.branch, siteCode: a.siteCode, costCenter: a.costCenter, timezone: a.timezone,
+    requiredMinutes: required, excusedMinutes: minutes(leave), plannedOvertimeMinutes: a.plannedOvertimeMinutes ?? 0 };
   if (a.shift.punchMode !== 'pairs') {
     const present = events.length > 0;
     return { ...base, status: present ? 'single_punch' : 'pending', presenceEvidence: present, presenceMinutes: null, actualMinutes: null,

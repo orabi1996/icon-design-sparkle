@@ -4,7 +4,7 @@ import { fixture, actor, reviewer, employee, otherEmployee, now, after, run, pun
 import { canonical, matchPunches, calculateAttendance, payrollDelta } from '../src/lib/m08/attendance.mjs';
 import { effectiveRevisions, publishedAssignments } from '../src/lib/m08/planning.mjs';
 import { employeeScope, projectState } from '../src/lib/m08/access.mjs';
-import { csvExport } from '../src/lib/m08/reports.mjs';
+import { csvExport, reportRows } from '../src/lib/m08/reports.mjs';
 
 test('shift → template → repeating pattern → binding → approved publication → attendance → payroll → closed correction adjustment', () => {
   let s = fixture(); s.shifts = []; s.templates = []; s.patterns = []; s.bindings = [];
@@ -163,4 +163,42 @@ test('dated policy or shift revision invalidates a previously approved draft bef
   const shiftChange = structuredClone(s); shiftChange.shifts.push({ ...s.shifts[0], version: 2, from: '2026-10-05', startTime: '09:00' });
   assert.throws(() => run(shiftChange, 'roster.publish', { rosterId: r.result.id, version: 1 }, reviewer), /إصدار الشفت/);
   assert.equal(canonical(s.rosters[0]), approved); assert.equal(publishedAssignments(s).length, 0);
+});
+
+test('request manager sees peer details only when authorized for both employees', () => {
+  const s = fixture(); s.requests.push({ id: 'peer-request', employeeId: 'e1', otherEmployeeId: 'e2', workDate: '2026-10-05', otherWorkDate: '2026-10-05', createdBy: 'user-e1', status: 'review', reason: 'سبب شخصي' });
+  const oneSide = { id: 'manager-only-e1', grants: [{ actions: ['read'], fields: [] }, { employeeId: 'e1', actions: ['request_approve'], fields: [] }] };
+  assert.deepEqual(projectState(s, oneSide).requests, []);
+  const bothSides = { id: 'manager-both', grants: [{ actions: ['read', 'request_approve'], fields: [] }] };
+  assert.equal(projectState(s, bothSides).requests.length, 1);
+});
+
+test('old-branch read cannot see a transferred employee new-branch vacancy', () => {
+  const s = fixture(); s.sites.push({ ...s.sites[0], id: 'site-b', code: 'B-HQ', branch: 'B' });
+  s.employments.push({ ...s.employments[0], version: 2, from: '2026-10-05', branch: 'B', siteCode: 'B-HQ', allowedSites: ['B-HQ'] });
+  s.openShifts.push({ id: 'private-vacancy', status: 'open', siteCode: 'B-HQ', workDate: '2026-10-05', skill: 'nurse', claims: [] });
+  assert.deepEqual(projectState(s, { id: 'branch-a-reader', grants: [{ branch: 'A', actions: ['read'], fields: [] }] }).openShifts, []);
+});
+
+test('night and cost-center reports aggregate published work without fabricating unapproved actual time', () => {
+  let s = fixture(); s = publishFixture(s, [row(s, 'e1', '2026-10-05', 'night'), row(s, 'e2', '2026-10-05', 'short')]);
+  const nights = reportRows(s, 'night_distribution', '2026-10-05', '2026-10-05');
+  assert.deepEqual(nights.map(n => [n.employeeId, n.nights, n.workDates]), [['e1', 1, ['2026-10-05']]]);
+  const center = reportRows(s, 'cost_centers', '2026-10-05', '2026-10-05')[0];
+  assert.equal(center.headcount, 2); assert.equal(center.nights, 1); assert.equal(center.actualMinutes, null); assert.equal(center.unconfirmedAssignments, 2);
+  const assigned = publishedAssignments(s)[0];
+  s.results.push({ id: 'approved-night', employeeId: assigned.employeeId, assignmentKey: assigned.key, workDate: assigned.workDate,
+    actualMinutes: 480, paidMinutes: 480, approval: { status: 'approved' } });
+  const measured = reportRows(s, 'cost_centers', '2026-10-05', '2026-10-05')[0];
+  assert.equal(measured.actualMinutes, 480); assert.equal(measured.recordedAssignments, 1); assert.equal(measured.unconfirmedAssignments, 1);
+  assert.equal(reportRows(s, 'planned_actual', '2026-10-05', '2026-10-05').find(r => r.employeeId === 'e2').actualMinutes, null);
+});
+
+test('payroll action alone does not expose cost-center fields in delivery reads', () => {
+  const s = fixture(); s.deliveries.push({ id: 'cost-private', employeeId: 'e1', workDate: '2026-10-05', status: 'pending', costCenter: 'CC1' });
+  const actorWithoutCost = { id: 'payroll-read', grants: [{ branch: 'A', actions: ['read', 'payroll'], fields: [] }] };
+  const view = projectState(s, actorWithoutCost);
+  assert.equal(view.deliveries.length, 1); assert.equal('costCenter' in view.deliveries[0], false);
+  const withCost = { ...actorWithoutCost, grants: [{ branch: 'A', actions: ['read', 'payroll'], fields: ['cost'] }] };
+  assert.equal(projectState(s, withCost).deliveries[0].costCenter, 'CC1');
 });

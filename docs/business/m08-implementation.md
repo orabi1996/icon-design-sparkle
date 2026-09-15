@@ -23,6 +23,14 @@ Apply additive company-foundation and M08 migrations in staging first. Configure
 - Leave balance movements and monetary payroll calculations are owned by the receiving modules. M08 sends versioned quantities and corrections through an idempotent delivery ledger; it does not invent monetary postings.
 - Configure approval stages, separation of duties, notification deadlines, employee scope, payroll period boundaries and holiday classification before production use.
 
+## External adapters and rollout gates
+
+The existing `leave_requests` screen permits mutable, names-only approvals, and `employee_id` is optional. Do not promote those entries to authoritative exemptions without a stable employee link, a verifiable approval revision and source acknowledgement. The M08 leave intake records the original reference/version and a separate acceptance decision; the leave-balance delivery still needs a receiver to accept movements.
+
+The existing `payroll_runs` screen is an editable archive, not an idempotent time receiver. M08 computes approved minute quantities and closed-period deltas with immutable references, but it does not post wages or entries to that archive. Configure a receiver that accepts/rejects delivery IDs and returns stable references before closing production payroll. M08 notifications have a persisted outbox, retry command and delivery-status record; connect an actual email/push channel worker and its deduplicated acknowledgment before assuming staff have received published changes.
+
+The aggregate enforces a 20 MB transaction bound. Measure the tenant's scheduled headcount, roster length and import volume in staging; larger workspaces need a normalized partitioned assignment store before raising this limit. Browser actions, reload persistence, historical backfill and delivery adapters require a real staging company/database. Keeping both M08 feature flags off avoids exposing screens as operational before that verification.
+
 ## Implementation evidence
 
 See the acceptance matrix and test output committed alongside this document. A passing unit or database contract test is not a claim that production migrations or browser acceptance have run.

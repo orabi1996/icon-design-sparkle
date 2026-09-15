@@ -314,7 +314,7 @@ export function execute(input, command, actor, now) {
     requireRule(!previous.some(d => ['pending', 'sent'].includes(d.status)), 'DELIVERY_PENDING', 'انتظر قرار التسليم السابق قبل إرسال فرق جديد');
     const quantities = payrollDelta(r, previous);
     result = { id, kind: 'payroll', resultId: r.id, resultVersion: r.version, assignmentKey: r.assignmentKey, employeeId: r.employeeId, employmentId: r.employmentId,
-      workDate: r.workDate, periodId: period.id, originalPeriodId: originalPeriod.id, adjustmentOf: previous.filter(d => d.status === 'accepted').map(d => d.id),
+      workDate: r.workDate, branch: r.branch, siteCode: r.siteCode, periodId: period.id, originalPeriodId: originalPeriod.id, adjustmentOf: previous.filter(d => d.status === 'accepted').map(d => d.id),
       quantities, costCenter: r.costCenter, policyId: r.sources.policyId, policyVersion: r.sources.policyVersion, status: 'pending', reason: command.reason, at: now, actor: actor.id, idempotencyKey: id };
     state.deliveries.push(result);
   } else if (command.type === 'delivery.respond') {
@@ -365,11 +365,11 @@ function executeSelfService(state, command, actor, now) {
       const policy = atVersion(state.policies, target.policyId, target.policyVersion), shift = atVersion(state.shifts, o.shiftId, o.shiftVersion);
       const trial = assignmentFromShift(state, d.employeeId, o.workDate, shift, o.siteCode, '', 1, policy, 'open');
       requireRule(instant(trial.start) > instant(now) + (policy.changeNoticeMinutes ?? 0) * 60000, 'OPEN_EXPIRED', 'بدأ الشفت أو تجاوز مهلة إشعار الموظف');
-      r.rosterId = o.rosterId; r.rosterVersion = target.version; r.workDate = o.workDate;
+      r.rosterId = o.rosterId; r.rosterVersion = target.version; r.workDate = o.workDate; r.siteCode = o.siteCode;
     } else {
       const a = publishedAssignments(state).find(a => a.key === d.assignmentKey && a.employeeId === d.employeeId);
       requireRule(a && a.dayType === 'WORK' && instant(a.start) > instant(now) + (a.policy.changeNoticeMinutes ?? 0) * 60000, 'REQUEST_TIME', 'الإسناد غير ساري أو تجاوز مهلة الطلب');
-      r.rosterId = a.rosterId; r.rosterVersion = a.rosterVersion; r.workDate = a.workDate;
+      r.rosterId = a.rosterId; r.rosterVersion = a.rosterVersion; r.workDate = a.workDate; r.siteCode = a.siteCode;
       if (d.kind === 'swap') {
         const b = publishedAssignments(state).find(b => b.key === d.otherAssignmentKey && b.employeeId === d.otherEmployeeId);
         requireRule(b && b.dayType === 'WORK' && b.employeeId !== a.employeeId && instant(b.start) > instant(now), 'SWAP_PARTNER', 'الشفت الآخر غير متاح للمبادلة');

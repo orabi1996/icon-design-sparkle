@@ -55,16 +55,20 @@ export function projectState(state, actor) {
     bindings: planner ? state.bindings.filter(b => (b.employeeIds ?? []).some(id => ids.has(id)) || actor.grants.some(g => !g.branch && !g.employeeId && g.actions.includes('read')))
       .map(b => ({ ...b, employeeIds: (b.employeeIds ?? []).filter(id => ids.has(id)) })) : [],
     leaves: state.leaves.filter(l => ids.has(l.employeeId) && (own(l) || ['leave', 'draft', 'approve', 'recalculate', 'attendance_approve'].some(a => allowed(actor, a, scopeOf(l))))).map(l => scrub(l, scopeOf(l))),
-    requests: state.requests.filter(r => r.createdBy === actor.id || scopeOf(r).userId === actor.id || r.otherEmployeeId && employeeScope(state, r.otherEmployeeId).userId === actor.id || allowed(actor, 'request_approve', scopeOf(r))),
+    requests: state.requests.filter(r => r.createdBy === actor.id || scopeOf(r).userId === actor.id || r.otherEmployeeId && employeeScope(state, r.otherEmployeeId).userId === actor.id ||
+      allowed(actor, 'request_approve', scopeOf(r)) && (!r.otherEmployeeId || allowed(actor, 'request_approve', employeeScope(state, r.otherEmployeeId, r.otherWorkDate ?? r.workDate)))),
     results: state.results.filter(r => ids.has(r.employeeId) && canResult(r)).map(r => scrub(r, scopeOf(r))),
     corrections: state.corrections.filter(c => ids.has(c.employeeId) && canEvidence(c)).map(c => scrub(c, scopeOf(c))),
     punches: (state.punches ?? []).filter(p => ids.has(p.employeeId) && canEvidence(p)),
-    deliveries: state.deliveries.filter(d => allowed(actor, 'payroll', scopeOf(d))),
+    deliveries: state.deliveries.filter(d => ids.has(d.employeeId) && allowed(actor, 'payroll', scopeOf(d))).map(d => scrub(d, scopeOf(d))),
     payrollPeriods: actor.grants.some(g => g.actions.includes('payroll')) ? state.payrollPeriods : [],
     exceptions: planner ? state.exceptions.filter(e => e.employeeId ? ids.has(e.employeeId) && allowed(actor, 'read', scopeOf(e)) : rosters.some(r => r.id === e.rosterId)) : [],
     notifications: state.notifications.filter(n => n.userId === actor.id || (n.employeeId && ids.has(n.employeeId) && allowed(actor, 'notify', scopeOf(n)))),
     demands: planner ? state.demands.filter(d => allowed(actor, 'read', d)) : [],
-    openShifts: state.openShifts.filter(o => planner && state.sites.some(s => s.code === o.siteCode && allowed(actor, 'read', { branch: s.branch })) || o.status === 'open' && visible.some(e => (e.allowedSites ?? []).includes(o.siteCode) && (!o.skill || e.skills.some(s => (typeof s === 'string' ? s : s.code) === o.skill)))).map(o => { const x = { ...o }; delete x.claims; return x; }),
+    openShifts: state.openShifts.filter(o => planner && state.sites.some(s => s.code === o.siteCode && allowed(actor, 'read', { branch: s.branch })) || o.status === 'open' && visible.some(e => {
+      const current = employeeScope(state, e.employeeId, o.workDate);
+      return current.status === 'active' && allowed(actor, 'read', current) && (current.allowedSites ?? []).includes(o.siteCode) && (!o.skill || current.skills.some(s => (typeof s === 'string' ? s : s.code) === o.skill));
+    })).map(o => { const x = { ...o }; delete x.claims; return x; }),
     swapOptions: state.rosters.filter(r => r.status === 'published').flatMap(r => r.assignments).filter(a => a.dayType === 'WORK' &&
       visible.some(e => e.branch === a.branch && e.employeeId !== a.employeeId) && state.employments.some(e => e.employeeId === a.employeeId && e.userId)).map(a => ({
       key: a.key, employeeId: a.employeeId, employeeCode: a.employeeCode, workDate: a.workDate, start: a.start, shiftCode: a.shift.code, siteCode: a.siteCode })),

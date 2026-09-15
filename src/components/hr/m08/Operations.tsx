@@ -8,6 +8,25 @@ import { opts, parseRef, refs, textField, type Field, type Row } from './forms';
 import { RosterPicker, useSelectedRoster } from './Rosters';
 import { authHeaders } from './Definitions';
 const utc = (value: string) => value ? value + (value.length === 16 ? ':00Z' : /Z$/.test(value) ? '' : 'Z') : value;
+const REPORT_OPTIONS = [
+  ['rosters', 'الجداول', 'Rosters'], ['coverage', 'التغطية', 'Coverage'], ['planned_actual', 'المخطط والفعلي', 'Planned vs actual'],
+  ['night_distribution', 'توزيع الليالي', 'Night distribution'], ['published_changes', 'التغييرات بعد النشر', 'Published changes'],
+  ['swaps', 'التبديل والتنازل', 'Swaps and transfers'], ['overtime', 'الإضافي', 'Overtime'], ['cost_centers', 'مراكز التكلفة', 'Cost centers'],
+  ['results', 'نتائج الحضور', 'Attendance results'], ['requests', 'الطلبات', 'Requests'], ['deliveries', 'التسليم للرواتب', 'Payroll deliveries'], ['audit', 'التدقيق', 'Audit'],
+];
+const REPORT_COLUMNS: Record<string, [string, string]> = {
+  employeeId: ['الموظف', 'Employee'], employeeCode: ['رقم الموظف', 'Employee code'], branch: ['الفرع', 'Branch'], siteCode: ['الموقع', 'Site'],
+  workDate: ['يوم العمل', 'Work date'], workDates: ['أيام العمل', 'Work dates'], plannedMinutes: ['دقائق مخططة', 'Planned minutes'],
+  actualMinutes: ['دقائق فعلية', 'Actual minutes'], paidMinutes: ['دقائق مدفوعة', 'Paid minutes'], missingMinutes: ['دقائق ناقصة', 'Missing minutes'],
+  nights: ['الليالي', 'Nights'], night: ['ليلي', 'Night'], headcount: ['عدد الموظفين', 'Headcount'],
+  plannedAssignments: ['فترات مخططة', 'Scheduled periods'], recordedAssignments: ['فترات محسوبة', 'Calculated periods'],
+  unconfirmedAssignments: ['فترات لم تعتمد نتائجها', 'Unconfirmed periods'],
+  costCenter: ['مركز التكلفة', 'Cost center'], shiftCode: ['رمز الشفت', 'Shift code'], dayType: ['نوع اليوم', 'Day type'],
+  status: ['الحالة', 'Status'], approval: ['الاعتماد', 'Approval'], source: ['المصدر', 'Source'], reason: ['السبب', 'Reason'],
+  periodNo: ['رقم الفترة', 'Period'], version: ['الإصدار', 'Version'], start: ['البداية', 'Start'], end: ['النهاية', 'End'],
+  plannedOvertime: ['إضافي مخطط', 'Planned OT'], observedOvertime: ['إضافي مرصود', 'Observed OT'],
+  eligibleOvertime: ['إضافي مؤهل', 'Eligible OT'], approvedOvertime: ['إضافي معتمد', 'Approved OT'],
+};
 export function Coverage() {
   const { state, command } = useM08(), t = useText(); const { roster, list, setId } = useSelectedRoster(); const [editing, setEditing] = useState<Row | null>(null);
   const result = coverage(state, roster?.assignments ?? publishedAssignments(state), state.demands.filter((d: Row) => !roster || d.workDate >= roster.from && d.workDate <= roster.to));
@@ -74,19 +93,21 @@ export function Exceptions() {
 }
 export function Reports({ auditOnly = false }: { auditOnly?: boolean }) {
   const { state, audit, companyId, command, actor } = useM08(), t = useText();
-  const [filters, setFilters] = useState<Row>({ from: new Date().toISOString().slice(0, 7) + '-01', to: new Date().toISOString().slice(0, 10), report: auditOnly ? 'audit' : 'rosters', status: '', employeeId: '' }), [dialog, setDialog] = useState<Row | null>(null), [error, setError] = useState('');
-  let rows: Row[] = []; try { rows = reportRows(state, filters.report, filters.from, filters.to, audit).filter(r => (!filters.status || r.status === filters.status) && (!filters.employeeId || r.employeeId === filters.employeeId)); } catch { /* Invalid transient date is shown below. */ }
+  const [filters, setFilters] = useState<Row>({ from: new Date().toISOString().slice(0, 7) + '-01', to: new Date().toISOString().slice(0, 10), report: auditOnly ? 'audit' : 'rosters', branch: '', siteCode: '', status: '', employeeId: '' }), [dialog, setDialog] = useState<Row | null>(null), [error, setError] = useState(''), [success, setSuccess] = useState('');
+  const matches = (r: Row) => (!filters.branch || r.branch === filters.branch) && (!filters.siteCode || r.siteCode === filters.siteCode) && (!filters.status || r.status === filters.status) && (!filters.employeeId || r.employeeId === filters.employeeId);
+  let rows: Row[] = []; try { rows = reportRows(state, filters.report, filters.from, filters.to, audit).filter(matches); } catch { /* Invalid transient date is shown below. */ }
   return <div className="space-y-4"><Panel title={auditOnly ? t('سجل الإصدارات والتدقيق', 'Versions and audit') : t('تقارير الوقت والتغطية', 'Time and coverage reports')}>
-    <Fields value={filters} onChange={setFilters} fields={[textField('from', 'من', 'From', 'date'), textField('to', 'إلى', 'To', 'date'), { ...textField('report', 'التقرير', 'Report', 'select'), options: opts(auditOnly ? ['audit'] : ['rosters', 'coverage', 'results', 'requests', 'deliveries', 'audit']) }, { ...textField('status', 'حالة النسخة', 'Version status', 'select', false), options: opts(['draft', 'review', 'approved', 'published', 'superseded', 'accepted', 'pending', 'rejected']) }, { ...textField('employeeId', 'الموظف', 'Employee', 'select', false), options: state.employments.map((e: Row) => ({ value: e.employeeId, label: `${e.code} · ${e.nameAr}` })) }]} />
+    <Fields value={filters} onChange={v => { setFilters(v); setError(''); setSuccess(''); }} fields={[textField('from', 'من', 'From', 'date'), textField('to', 'إلى', 'To', 'date'), { ...textField('report', 'التقرير', 'Report', 'select'), options: REPORT_OPTIONS.filter(([key]) => auditOnly ? key === 'audit' : key !== 'cost_centers' || actor.grants.some((g: Row) => g.fields?.includes('cost'))).map(([key, ar, en]) => ({ value: key!, label: t(ar!, en!) })) }, { ...textField('branch', 'الفرع', 'Branch', 'select', false), options: opts([...new Set<string>(state.employments.map((e: Row) => String(e.branch)))]) }, { ...textField('siteCode', 'الموقع', 'Site', 'select', false), options: opts([...new Set<string>(state.sites.map((s: Row) => String(s.code)))]) }, { ...textField('status', 'حالة النسخة', 'Version status', 'select', false), options: opts(['draft', 'review', 'approved', 'published', 'superseded', 'accepted', 'pending', 'rejected']) }, { ...textField('employeeId', 'الموظف', 'Employee', 'select', false), options: state.employments.map((e: Row) => ({ value: e.employeeId, label: `${e.code} · ${e.nameAr}` })) }]} />
     {filters.to < filters.from && <p role="alert">{t('نهاية الفترة قبل بدايتها', 'End precedes start')}</p>}
-    <CanButton action="export" onClick={() => {
-      setError(''); void authHeaders().then(headers => exportM08({ data: { companyId, from: filters.from, to: filters.to, report: filters.report }, headers })).then(output => {
-        const content = csvExport(output.rows.filter((r: Row) => (!filters.status || r.status === filters.status) && (!filters.employeeId || r.employeeId === filters.employeeId)), { generatedAt: output.generatedAt, companyId, from: filters.from, to: filters.to, revision: output.revision, status: filters.status, employeeId: filters.employeeId });
-        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' })); link.download = `M08_${filters.report}_${filters.from}.csv`; link.click(); URL.revokeObjectURL(link.href);
+    <CanButton action="export" disabled={filters.to < filters.from} onClick={() => {
+      setError(''); setSuccess(''); void authHeaders().then(headers => exportM08({ data: { companyId, from: filters.from, to: filters.to, report: filters.report, branch: filters.branch || undefined, siteCode: filters.siteCode || undefined }, headers })).then(output => {
+        const content = csvExport(output.rows.filter(matches), { generatedAt: output.generatedAt, companyId, from: filters.from, to: filters.to, revision: output.revision, branch: filters.branch, siteCode: filters.siteCode, status: filters.status, employeeId: filters.employeeId });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' })); link.download = `M08_${filters.report}_${filters.from}.csv`; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 30000);
+        setSuccess(t('تم تجهيز وتصدير النتائج المصرح بها.', 'Authorized report exported.'));
       }).catch(e => setError(e.message));
-    }}>{t('تصدير CSV بصلاحية الخادم', 'Export CSV')}</CanButton>{error && <p role="alert" className="text-red-700">{error}</p>}
+    }}>{t('تصدير CSV بصلاحية الخادم', 'Export CSV')}</CanButton>{error && <p role="alert" className="text-red-700">{error}</p>}{success && <p role="status" className="text-teal-700">{success}</p>}
     {auditOnly && <p className="text-xs text-muted-foreground">{t('يعرض آخر 200 عملية متاحة ضمن الصلاحية. الإصدارات السابقة محفوظة في قاعدة البيانات.', 'Shows the latest 200 authorized operations. Older versions remain stored in the database.')}</p>}
-    <DataList rows={rows} columns={[...new Set<string>(rows.flatMap(r => Object.keys(r)))].map(key => ({ key, label: [key, key] }))} />
+    <DataList rows={rows} columns={[...new Set<string>(rows.flatMap(r => Object.keys(r)))].map(key => ({ key, label: REPORT_COLUMNS[key] ?? [key, key] }))} />
   </Panel>
   {!auditOnly && <Panel title={t('تسليم الحضور المعتمد للرواتب', 'Approved attendance delivery to payroll')}><p className="text-sm">{t('السجل يسلّم كميات دقائق قابلة للتتبع. قبول النظام المستلم ورقم مرجعه مطلوبان؛ حساب المبالغ والقيد المالي خارج هذه الوحدة.', 'This ledger delivers traceable minute quantities. A receiver acknowledgment and reference are required; monetary calculations and financial posting belong to payroll.')}</p>
     <CanButton action="payroll_close" onClick={() => setDialog({ kind: 'period' })}>{t('إنشاء دورة رواتب', 'Create payroll period')}</CanButton>

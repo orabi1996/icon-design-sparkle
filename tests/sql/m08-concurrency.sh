@@ -26,11 +26,11 @@ then
   exit 1
 fi
 wait "$test_ci_first"
-if ! rg -q 'VERSION_STALE' "$test_ci_dir/second.log"; then
+if ! grep -q 'VERSION_STALE' "$test_ci_dir/second.log"; then
   cat "$test_ci_dir/second.log"
   exit 1
 fi
-psql -v ON_ERROR_STOP=1 -At <<'SQL' | rg -q '^PASS$'
+psql -v ON_ERROR_STOP=1 -At <<'SQL' | grep -Fxq 'PASS'
 SELECT CASE WHEN revision=2 AND state->>'winner'='first' AND (SELECT count(*) FROM public.m08_audit)=2
   THEN 'PASS' ELSE 'FAIL' END FROM public.m08_workspaces
 WHERE company_id='22222222-2222-4222-8222-222222222222';

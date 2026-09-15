@@ -1,5 +1,5 @@
-import { RuleError, requireRule, date, dates, addDays, instant, interval, overlap, minutes, intersect } from './time.mjs';
-import { PRIORITIES, effective, latest, atVersion, activeVersion, employmentAt, validateDefinition, assignmentFromShift, explicitDay, generate, publishedAssignments, validateRoster, previewImport, differences, approvedLeaveIntervals, coverage, requiredIntervals } from './planning.mjs';
+import { RuleError, requireRule, date, dates, addDays, instant, interval, overlap, minutes, intersect, localParts, zonedInstant } from './time.mjs';
+import { PRIORITIES, effective, effectiveRevisions, latest, atVersion, activeVersion, employmentAt, validateDefinition, assignmentFromShift, explicitDay, generate, publishedAssignments, validateRoster, previewImport, differences, approvedLeaveIntervals, coverage, requiredIntervals } from './planning.mjs';
 import { ENGINE_VERSION, matchPunches, calculateAttendance, canonical, payrollDelta } from './attendance.mjs';
 import { assertAccess, allowed, authorizeRoster, employeeScope } from './access.mjs';
 
@@ -7,6 +7,24 @@ export const COLLECTIONS = ['shifts', 'templates', 'patterns', 'bindings', 'poli
 export function emptyState() { return { schemaVersion: 1, ...Object.fromEntries(COLLECTIONS.map(k => [k, []])), punches: [] }; }
 const find = (items, id) => { const x = items.find(v => v.id === id); requireRule(x, 'NOT_FOUND', 'السجل غير متاح'); return x; };
 const requiredText = (s, message) => requireRule(typeof s === 'string' && s.trim().length >= 3 && s.length <= 1000, 'TEXT', message);
+function leaveScopes(state, leave) {
+  const touching = publishedAssignments(state).filter(a => a.employeeId === leave.employeeId && a.dayType === 'WORK' && overlap(interval(a.start, a.end), interval(leave.start, leave.end)));
+  const days = [...new Set(touching.map(a => a.workDate))];
+  if (!days.length) days.push(leave.start.slice(0, 10));
+  return days.map(day => employeeScope(state, leave.employeeId, day));
+}
+function punchWorkDate(state, punch, published = publishedAssignments(state)) {
+  const millis = instant(punch.at);
+  const near = published.filter(a => a.employeeId === punch.employeeId && a.dayType === 'WORK' && a.siteCode === punch.siteCode &&
+    millis >= instant(a.start) - a.shift.windowBefore * 60000 && millis <= instant(a.end) + a.shift.windowAfter * 60000);
+  if (near.length === 1) return near[0].workDate;
+  const utcDay = new Date(millis).toISOString().slice(0, 10);
+  const site = effectiveRevisions(state.sites, utcDay).find(s => s.code === punch.siteCode && s.status === 'active');
+  // Unknown/offline device sites remain raw evidence, never authoritative attendance.
+  if (!site) return utcDay;
+  const workDate = localParts(millis, site.timezone).date;
+  return workDate;
+}
 function mutable(roster) { requireRule(['draft', 'returned'].includes(roster.status), 'ROSTER_LOCKED', 'هذه النسخة ثابتة؛ أنشئ نسخة تعديل أو أعدها للمخطط'); }
 function touch(roster, assignments, actor, now, reason) {
   mutable(roster); roster.history.push({ version: roster.version, assignments: structuredClone(roster.assignments), actor: actor.id, at: now, reason });
@@ -24,6 +42,8 @@ function notify(state, eventId, employeeId, kind, at, payload = {}) {
 function publish(state, roster, actor, now, operationId, reason) {
   requireRule(roster.status === 'approved', 'NOT_APPROVED', 'يلزم اعتماد النسخة قبل النشر');
   const policy = atVersion(state.policies, roster.policyId, roster.policyVersion);
+  requireRule(dates(roster.from, roster.to).every(day => activeVersion(state.policies, policy.code, day).version === roster.policyVersion),
+    'POLICY_CHANGED', 'تغير إصدار السياسة خلال فترة الجدول؛ أعد إعداد النسخة واعتمادها');
   requireRule(policy.approvalRoles.every((role, index) => roster.approvals.some(a => a.stage === index && a.role === role && a.version === roster.version)), 'APPROVAL_STALE', 'موافقات هذه النسخة غير مكتملة');
   if (roster.baseId) requireRule(find(state.rosters, roster.baseId).status === 'published', 'BASE_STALE', 'استبدلت النسخة الأصلية؛ أعد تقييم التغيير');
   const conflicts = blocking(state, roster); requireRule(!conflicts.length, 'PUBLISH_CONFLICT', conflicts[0]?.message, { issues: conflicts });
@@ -39,6 +59,8 @@ function newRoster(state, data, actor, now, id) {
   requireRule(Array.isArray(data.employeeIds) && data.employeeIds.length > 0 && data.employeeIds.length <= 10000 && new Set(data.employeeIds).size === data.employeeIds.length, 'EMPLOYEES', 'نطاق الموظفين غير صحيح');
   const policy = atVersion(state.policies, data.policyId, data.policyVersion);
   requireRule(effective(policy, data.from) && effective(policy, data.to), 'POLICY', 'السياسة يجب أن تغطي كامل فترة الجدول');
+  requireRule(dates(data.from, data.to).every(day => activeVersion(state.policies, policy.code, day).version === policy.version),
+    'POLICY_VERSION', 'السياسة المختارة لا تغطي الفترة بإصدار سارٍ واحد؛ قسّم الجدول عند تغيير السياسة');
   return { id, name: data.name, from: data.from, to: data.to, employeeIds: [...data.employeeIds], policyId: policy.id, policyVersion: policy.version,
     status: 'draft', version: 1, createdBy: actor.id, createdAt: now, assignments: [], approvals: [], history: [], issues: [], baseId: null };
 }
@@ -192,39 +214,46 @@ export function execute(input, command, actor, now) {
     result = { id, rosterId: roster.id, rosterVersion: roster.version, issueKey: issue.key, employeeId: issue.employeeId, status: 'approved', actor: actor.id, at: now, reason: command.reason }; state.exceptions.push(result);
   } else if (command.type === 'leave.save') {
     const l = selectFields(data.value, ['id', 'employeeId', 'start', 'end', 'paid', 'leaveType', 'source', 'sourceId', 'sourceVersion']);
-    assertAccess(actor, 'leave', employeeScope(state, l.employeeId)); interval(l.start, l.end);
+    interval(l.start, l.end); leaveScopes(state, l).forEach(e => assertAccess(actor, 'leave', e));
     requireRule(typeof l.paid === 'boolean' && l.source && l.sourceId && Number.isInteger(l.sourceVersion), 'LEAVE_SOURCE', 'مصدر الإجازة وإصداره ونوع الدفع مطلوبة');
     const existing = state.leaves.find(x => x.source === l.source && x.sourceId === l.sourceId && x.sourceVersion === l.sourceVersion);
     requireRule(!existing, 'LEAVE_DUPLICATE', 'إصدار الإجازة مستلم بالفعل');
     result = { ...l, id, version: l.sourceVersion, status: 'pending', reason: command.reason, createdBy: actor.id, createdAt: now }; state.leaves.push(result);
   } else if (command.type === 'leave.approve' || command.type === 'leave.cancel') {
-    const leave = find(state.leaves, data.id); assertAccess(actor, 'leave', employeeScope(state, leave.employeeId)); assertAccess(actor, 'approve', employeeScope(state, leave.employeeId)); before = structuredClone(leave);
+    const leave = find(state.leaves, data.id); leaveScopes(state, leave).forEach(e => { assertAccess(actor, 'leave', e); assertAccess(actor, 'approve', e); }); before = structuredClone(leave);
     requireRule(command.type === 'leave.approve' ? leave.status === 'pending' : leave.status === 'approved', 'LEAVE_STATE', 'حالة الإجازة لا تسمح بالإجراء');
     leave.status = command.type === 'leave.approve' ? 'approved' : 'cancelled'; leave.approvedBy = actor.id; leave.approvedAt = now; leave.decisionReason = command.reason;
     leave.overlayRosterIds = state.rosters.filter(r => r.status === 'published' && r.assignments.some(a => a.employeeId === leave.employeeId && a.dayType === 'WORK' && overlap(interval(a.start, a.end), interval(leave.start, leave.end)))).map(r => r.id);
     const affected = publishedAssignments(state).filter(a => a.employeeId === leave.employeeId && a.dayType === 'WORK');
     const quantity = affected.reduce((n, a) => n + minutes(intersect(requiredIntervals(a), [interval(leave.start, leave.end)])), 0);
-    state.deliveries.push({ id, kind: 'leave_balance', employeeId: leave.employeeId, sourceId: leave.id, sourceVersion: leave.version, quantities: { plannedMinutes: command.type === 'leave.cancel' ? -quantity : quantity }, status: 'pending', reason: command.reason, at: now });
+    state.deliveries.push({ id, kind: 'leave_balance', employeeId: leave.employeeId, workDate: leave.start.slice(0, 10), sourceId: leave.id, sourceVersion: leave.version, quantities: { plannedMinutes: command.type === 'leave.cancel' ? -quantity : quantity }, status: 'pending', reason: command.reason, at: now });
     notify(state, id, leave.employeeId, 'leave_changed', now, { leaveId: leave.id }); result = leave;
   } else if (command.type === 'punch.ingest') {
     requireRule(Array.isArray(data.events) && data.events.length > 0 && data.events.length <= 10000, 'PUNCH_BATCH', 'دفعة البصمات غير صحيحة');
+    const published = publishedAssignments(state), seen = new Map(state.punches.map(p => [canonical([p.source, p.sourceEventId]), p]));
     let count = 0;
     for (const [index, value] of data.events.entries()) {
       const p = selectFields(value, ['employeeId', 'at', 'kind', 'siteCode', 'source', 'sourceEventId', 'legacyId']);
-      assertAccess(actor, 'punch', employeeScope(state, p.employeeId)); instant(p.at);
-      requireRule(['in', 'out'].includes(p.kind) && typeof p.source === 'string' && typeof p.sourceEventId === 'string' && p.sourceEventId.length > 0, 'PUNCH_SOURCE', 'نوع البصمة ومصدرها ومعرف المصدر مطلوبة');
-      const old = state.punches.find(x => x.source === p.source && x.sourceEventId === p.sourceEventId);
+      instant(p.at); requireRule(p.siteCode === undefined || typeof p.siteCode === 'string', 'PUNCH_SITE', 'رمز موقع البصمة غير صحيح');
+      p.siteCode = p.siteCode ?? '';
+      p.workDate = punchWorkDate(state, p, published);
+      p.siteUnverified = !effectiveRevisions(state.sites, p.workDate).some(s => s.code === p.siteCode && s.status === 'active');
+      assertAccess(actor, 'punch', employeeScope(state, p.employeeId, p.workDate));
+      requireRule(['in', 'out', 'break_start', 'break_end', 'unknown'].includes(p.kind) && typeof p.source === 'string' && typeof p.sourceEventId === 'string' && p.sourceEventId.length > 0, 'PUNCH_SOURCE', 'نوع البصمة ومصدرها ومعرف المصدر مطلوبة');
+      const key = canonical([p.source, p.sourceEventId]), old = seen.get(key);
       if (old) { requireRule(canonical(selectFields(old, Object.keys(p))) === canonical(p), 'SOURCE_REUSE', 'معرف مصدر البصمة مستخدم ببيانات مختلفة'); continue; }
-      state.punches.push({ ...p, id: `${id}:${index}`, receivedAt: now, receivedBy: actor.id }); count++;
+      const saved = { ...p, id: `${id}:${index}`, receivedAt: now, receivedBy: actor.id };
+      state.punches.push(saved); seen.set(key, saved); count++;
     }
     result = { count };
   } else if (command.type === 'correction.request') {
-    const punch = find(state.punches, data.punchId); assertAccess(actor, 'correct', employeeScope(state, punch.employeeId));
+    const punch = find(state.punches, data.punchId); assertAccess(actor, 'correct', employeeScope(state, punch.employeeId, punch.workDate ?? punch.at.slice(0, 10)));
     const replacement = selectFields(data.replacement ?? {}, ['at', 'kind', 'siteCode']);
     if (replacement.at) instant(replacement.at); requireRule(!replacement.kind || ['in', 'out'].includes(replacement.kind), 'KIND', 'نوع البصمة غير صحيح');
     result = { id, punchId: punch.id, employeeId: punch.employeeId, replacement, exclude: data.exclude === true, assignmentKey: data.assignmentKey || null, status: 'pending', sequence: state.corrections.filter(c => c.punchId === punch.id).length + 1, reason: command.reason, createdBy: actor.id, at: now }; state.corrections.push(result);
   } else if (command.type === 'correction.approve') {
-    const c = find(state.corrections, data.id); assertAccess(actor, 'correct', employeeScope(state, c.employeeId)); assertAccess(actor, 'attendance_approve', employeeScope(state, c.employeeId));
+    const c = find(state.corrections, data.id), raw = find(state.punches, c.punchId); const scope = employeeScope(state, c.employeeId, raw.workDate ?? raw.at.slice(0, 10));
+    assertAccess(actor, 'correct', scope); assertAccess(actor, 'attendance_approve', scope);
     requireRule(c.status === 'pending' && c.createdBy !== actor.id, 'CORRECTION_APPROVER', 'التصحيح يحتاج مراجعًا آخر ولم يعتمد من قبل');
     before = structuredClone(c); c.status = 'approved'; c.approvedBy = actor.id; c.approvedAt = now; result = c;
   } else if (command.type === 'attendance.calculate') {
@@ -245,7 +274,7 @@ export function execute(input, command, actor, now) {
       state.results.push(result);
     }
   } else if (['attendance.approve', 'attendance.reopen', 'attendance.overtime'].includes(command.type)) {
-    const r = find(state.results, data.id), e = employeeScope(state, r.employeeId); before = structuredClone(r);
+    const r = find(state.results, data.id), e = employeeScope(state, r.employeeId, r.workDate); before = structuredClone(r);
     assertAccess(actor, command.type === 'attendance.reopen' ? 'attendance_reopen' : 'attendance_approve', e);
     requireRule(state.results.filter(x => x.assignmentKey === r.assignmentKey).at(-1)?.id === r.id, 'RESULT_STALE', 'توجد نتيجة أحدث؛ راجعها أولًا');
     if (command.type === 'attendance.reopen') {
@@ -275,7 +304,7 @@ export function execute(input, command, actor, now) {
     result = { id: old?.id ?? id, from: data.from, to: data.to, status: data.status, reason: command.reason, actor: actor.id, at: now }; before = old;
     if (old) Object.assign(old, result); else state.payrollPeriods.push(result);
   } else if (command.type === 'payroll.deliver') {
-    const r = find(state.results, data.resultId); assertAccess(actor, 'payroll', employeeScope(state, r.employeeId));
+    const r = find(state.results, data.resultId); assertAccess(actor, 'payroll', employeeScope(state, r.employeeId, r.workDate));
     const period = find(state.payrollPeriods, data.periodId);
     requireRule(period.status === 'open', 'PAYROLL_CLOSED', 'دورة التسليم مقفلة');
     const originalPeriod = state.payrollPeriods.find(p => r.workDate >= p.from && r.workDate <= p.to);
@@ -289,7 +318,7 @@ export function execute(input, command, actor, now) {
       quantities, costCenter: r.costCenter, policyId: r.sources.policyId, policyVersion: r.sources.policyVersion, status: 'pending', reason: command.reason, at: now, actor: actor.id, idempotencyKey: id };
     state.deliveries.push(result);
   } else if (command.type === 'delivery.respond') {
-    const d = find(state.deliveries, data.id); assertAccess(actor, d.kind === 'payroll' ? 'payroll' : 'leave', employeeScope(state, d.employeeId));
+    const d = find(state.deliveries, data.id); assertAccess(actor, d.kind === 'payroll' ? 'payroll' : 'leave', employeeScope(state, d.employeeId, d.workDate));
     requireRule(['pending', 'sent'].includes(d.status) && ['accepted', 'rejected'].includes(data.status), 'DELIVERY_STATE', 'حالة التسليم لا تسمح بالقرار'); requiredText(data.externalReference, 'مرجع النظام المستلم مطلوب');
     before = structuredClone(d); d.status = data.status; d.externalReference = data.externalReference; d.responseAt = now; d.responseReason = command.reason; result = d;
   } else if (command.type.startsWith('request.') || command.type.startsWith('open.')) {
@@ -314,13 +343,17 @@ function executeSelfService(state, command, actor, now) {
     const roster = find(state.rosters, d.rosterId); authorizeRoster(actor, 'draft', roster, state);
     requireRule(roster.status === 'published', 'OPEN_ROSTER', 'الشاغر يجب أن يرتبط بنسخة جدول منشورة');
     const value = selectFields(d, ['rosterId', 'workDate', 'shiftId', 'shiftVersion', 'siteCode', 'skill', 'slots', 'deadline']);
-    date(value.workDate); instant(value.deadline); atVersion(state.shifts, value.shiftId, value.shiftVersion);
+    date(value.workDate); instant(value.deadline);
     requireRule(value.workDate >= roster.from && value.workDate <= roster.to, 'OPEN_DATE', 'تاريخ الشاغر خارج نطاق الجدول المنشور');
+    const site = activeVersion(state.sites, value.siteCode, value.workDate), shift = atVersion(state.shifts, value.shiftId, value.shiftVersion);
+    assertAccess(actor, 'draft', { branch: site.branch });
+    requireRule(effective(shift, value.workDate) && activeVersion(state.shifts, shift.code, value.workDate).version === shift.version, 'OPEN_SHIFT_VERSION', 'الشفت المطلوب غير ساري في تاريخ الشاغر');
+    const start = instant(zonedInstant(value.workDate, shift.startTime, site.timezone, shift.disambiguation).at);
+    requireRule(instant(value.deadline) < start, 'OPEN_DEADLINE', 'مهلة شغل الشاغر يجب أن تسبق بداية الشفت');
     requireRule(Number.isInteger(value.slots) && value.slots > 0 && instant(value.deadline) > instant(now), 'OPEN_SHIFT', 'عدد الأماكن أو آخر موعد غير صحيح');
     const open = { ...value, id, status: 'open', claims: [], reason: command.reason }; state.openShifts.push(open); return open;
   }
   if (command.type === 'request.create') {
-    assertAccess(actor, 'request', employeeScope(state, d.employeeId));
     requireRule(employeeScope(state, d.employeeId).userId === actor.id, 'OWNERSHIP', 'يمكنك طلب تغيير جدولك الشخصي فقط');
     requireRule(['swap', 'give', 'change', 'open'].includes(d.kind), 'REQUEST_KIND', 'نوع الطلب غير صحيح');
     const r = { id, kind: d.kind, employeeId: d.employeeId, otherEmployeeId: d.otherEmployeeId ?? null, assignmentKey: d.assignmentKey ?? null,
@@ -329,18 +362,22 @@ function executeSelfService(state, command, actor, now) {
     if (d.kind === 'open') {
       const o = find(state.openShifts, d.openId); requireRule(o.status === 'open' && instant(o.deadline) > instant(now), 'OPEN_CLOSED', 'الشاغر مغلق أو انتهت مهلته');
       const target = find(state.rosters, o.rosterId); requireRule(target.status === 'published', 'OPEN_ROSTER', 'تغير الجدول المنشور للشاغر');
-      r.rosterId = o.rosterId; r.rosterVersion = target.version;
+      const policy = atVersion(state.policies, target.policyId, target.policyVersion), shift = atVersion(state.shifts, o.shiftId, o.shiftVersion);
+      const trial = assignmentFromShift(state, d.employeeId, o.workDate, shift, o.siteCode, '', 1, policy, 'open');
+      requireRule(instant(trial.start) > instant(now) + (policy.changeNoticeMinutes ?? 0) * 60000, 'OPEN_EXPIRED', 'بدأ الشفت أو تجاوز مهلة إشعار الموظف');
+      r.rosterId = o.rosterId; r.rosterVersion = target.version; r.workDate = o.workDate;
     } else {
       const a = publishedAssignments(state).find(a => a.key === d.assignmentKey && a.employeeId === d.employeeId);
       requireRule(a && a.dayType === 'WORK' && instant(a.start) > instant(now) + (a.policy.changeNoticeMinutes ?? 0) * 60000, 'REQUEST_TIME', 'الإسناد غير ساري أو تجاوز مهلة الطلب');
-      r.rosterId = a.rosterId; r.rosterVersion = a.rosterVersion;
+      r.rosterId = a.rosterId; r.rosterVersion = a.rosterVersion; r.workDate = a.workDate;
       if (d.kind === 'swap') {
         const b = publishedAssignments(state).find(b => b.key === d.otherAssignmentKey && b.employeeId === d.otherEmployeeId);
         requireRule(b && b.dayType === 'WORK' && b.employeeId !== a.employeeId && instant(b.start) > instant(now), 'SWAP_PARTNER', 'الشفت الآخر غير متاح للمبادلة');
-        r.otherRosterId = b.rosterId; r.otherRosterVersion = b.rosterVersion;
+        r.otherRosterId = b.rosterId; r.otherRosterVersion = b.rosterVersion; r.otherWorkDate = b.workDate;
       }
       if (d.kind === 'give') requireRule(d.otherEmployeeId && d.otherEmployeeId !== d.employeeId, 'PARTNER', 'اختر الموظف المستلم');
     }
+    assertAccess(actor, 'request', employeeScope(state, d.employeeId, r.workDate));
     state.requests.push(r); if (r.otherEmployeeId) notify(state, id, r.otherEmployeeId, 'request_peer', now, { requestId: r.id }); return r;
   }
   const r = find(state.requests, d.id);
@@ -352,8 +389,8 @@ function executeSelfService(state, command, actor, now) {
     requireRule(r.createdBy === actor.id && ['review', 'peer_pending', 'needs_review'].includes(r.status), 'WITHDRAW', 'لا يمكن سحب هذا الطلب'); r.status = 'withdrawn'; return r;
   }
   requireRule(command.type === 'request.approve' || command.type === 'request.reject', 'ACTION', 'إجراء طلب غير صحيح');
-  assertAccess(actor, 'request_approve', employeeScope(state, r.employeeId));
-  if (r.otherEmployeeId) assertAccess(actor, 'request_approve', employeeScope(state, r.otherEmployeeId));
+  assertAccess(actor, 'request_approve', employeeScope(state, r.employeeId, r.workDate));
+  if (r.otherEmployeeId) assertAccess(actor, 'request_approve', employeeScope(state, r.otherEmployeeId, r.otherWorkDate ?? r.workDate));
   requireRule(r.status === 'review', 'REQUEST_STATE', 'الطلب لا ينتظر اعتماد المدير');
   if (command.type === 'request.reject') { r.status = 'rejected'; r.decisionReason = command.reason; notify(state, id, r.employeeId, 'request_rejected', now); return r; }
   // One manager must hold both scopes; narrower delegates cannot approve the other employee implicitly.
@@ -361,8 +398,9 @@ function executeSelfService(state, command, actor, now) {
   requireRule(originals.every(o => o.status === 'published') && originals[0].version === r.rosterVersion && (!r.otherRosterId || find(state.rosters, r.otherRosterId).version === r.otherRosterVersion), 'REQUEST_STALE', 'الإسناد تغير؛ يلزم إعادة تقييم الطلب');
   originals.forEach(o => authorizeRoster(actor, 'publish', o, state));
   // Effective access must also cover employees about to be ADDED to a published roster.
-  assertAccess(actor, 'publish', employeeScope(state, r.employeeId));
-  if (r.otherEmployeeId) assertAccess(actor, 'publish', employeeScope(state, r.otherEmployeeId));
+  assertAccess(actor, 'publish', employeeScope(state, r.employeeId, r.workDate));
+  if (r.otherEmployeeId) assertAccess(actor, 'publish', employeeScope(state, r.otherEmployeeId, r.otherWorkDate ?? r.workDate));
+  if (r.otherWorkDate) assertAccess(actor, 'publish', employeeScope(state, r.employeeId, r.otherWorkDate));
   const stages = originals.flatMap(o => atVersion(state.policies, o.policyId, o.policyVersion).approvalRoles.map((role, stage) =>
     ({ rosterId: o.id, originalVersion: o.version, stage, role })));
   const approvals = r.managerApprovals ?? [];
@@ -377,6 +415,7 @@ function executeSelfService(state, command, actor, now) {
     const o = find(state.openShifts, r.openId); requireRule(o.status === 'open' && o.claims.length < o.slots && instant(o.deadline) > instant(now), 'OPEN_FILLED', 'المكان الأخير شُغل أو انتهت المهلة');
     const policy = atVersion(state.policies, first.policyId, first.policyVersion), shift = atVersion(state.shifts, o.shiftId, o.shiftVersion);
     const row = assignmentFromShift(state, r.employeeId, o.workDate, shift, o.siteCode, '', 1, policy, 'open');
+    requireRule(instant(row.start) > instant(now) + (policy.changeNoticeMinutes ?? 0) * 60000, 'OPEN_EXPIRED', 'بدأ الشفت؛ لا يمكن نشر إسناد بأثر رجعي من طلب شاغر');
     requireRule(!o.skill || row.skills.some(s => typeof s === 'string' ? s === o.skill : s.code === o.skill && s.from <= o.workDate && (!s.to || s.to >= o.workDate)), 'SKILL', 'المهارة المطلوبة غير سارية');
     requireRule(!first.assignments.some(a => a.employeeId === r.employeeId && a.workDate === o.workDate && a.dayType === 'WORK'), 'OPEN_ASSIGNED', 'الموظف لديه شفت عمل في تاريخ الشاغر');
     first.employeeIds = [...new Set([...first.employeeIds, r.employeeId])]; first.assignments = first.assignments.filter(a => a.employeeId !== r.employeeId || a.workDate !== o.workDate); first.assignments.push(row);

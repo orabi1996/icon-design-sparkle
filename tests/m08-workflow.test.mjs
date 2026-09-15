@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fixture, actor, reviewer, employee, otherEmployee, now, after, run, punch, row, publishFixture } from './fixtures/m08.mjs';
-import { canonical, payrollDelta } from '../src/lib/m08/attendance.mjs';
+import { fixture, actor, reviewer, employee, otherEmployee, now, after, run, punch, row, roster, publishFixture } from './fixtures/m08.mjs';
+import { canonical, matchPunches, calculateAttendance, payrollDelta } from '../src/lib/m08/attendance.mjs';
 import { effectiveRevisions, publishedAssignments } from '../src/lib/m08/planning.mjs';
 import { employeeScope, projectState } from '../src/lib/m08/access.mjs';
 import { csvExport } from '../src/lib/m08/reports.mjs';
@@ -111,4 +111,56 @@ test('historical attendance stays scoped to the employment effective on its work
 test('CSV neutralizes formulas even after leading whitespace while preserving leading zeros', () => {
   const csv = csvExport([{ code: '00104', value: '  =cmd()' }]);
   assert.match(csv, /"00104"/); assert.match(csv, /"'  =cmd\(\)"/);
+});
+
+test('night checkout retains the source work date and old-branch punch permission after transfer', () => {
+  let s = fixture(); s = publishFixture(s, [row(s, 'e1', '2026-10-05', 'night')]);
+  s.employments.push({ ...s.employments[0], version: 2, from: '2026-10-06', branch: 'B' });
+  const scan = punch('night-out', '2026-10-06T06:00:00Z', 'out');
+  const scoped = branch => ({ id: 'site-device', grants: [{ branch, actions: ['read', 'punch'], fields: [] }] });
+  assert.throws(() => run(s, 'punch.ingest', { events: [scan] }, scoped('B'), after), /غير مصرح/);
+  const r = run(s, 'punch.ingest', { events: [scan] }, scoped('A'), after);
+  assert.equal(r.state.punches[0].workDate, '2026-10-05');
+  assert.equal(r.state.punches[0].at, '2026-10-06T06:00:00Z');
+});
+
+test('historical attendance approval is unavailable to a newly assigned branch', () => {
+  const s = fixture(); s.employments.push({ ...s.employments[0], version: 2, from: '2026-10-05', branch: 'B' });
+  s.results.push({ id: 'historical', employeeId: 'e1', workDate: '2026-10-04', assignmentKey: 'old', approval: { status: 'approved' } });
+  const scoped = branch => ({ id: 'hr-manager', grants: [{ branch, actions: ['attendance_reopen'], fields: [] }] });
+  assert.throws(() => run(s, 'attendance.reopen', { id: 'historical' }, scoped('B')), /غير مصرح/);
+  const r = run(s, 'attendance.reopen', { id: 'historical' }, scoped('A'));
+  assert.equal(r.state.results[0].approval.status, 'reopened');
+});
+
+test('unverified-site scans remain immutable raw evidence until a separately approved correction', () => {
+  let s = publishFixture(fixture()); const original = { ...punch('offline-1', '2026-10-05T08:00:00Z', 'in'), siteCode: 'OFFLINE' };
+  let r = run(s, 'punch.ingest', { events: [original] }); s = r.state;
+  assert.equal(s.punches[0].siteCode, 'OFFLINE'); assert.equal(s.punches[0].siteUnverified, true);
+  assert.equal(matchPunches(publishedAssignments(s), s.punches).exceptions[0].code, 'PUNCH_SITE_UNVERIFIED');
+  r = run(s, 'correction.request', { punchId: s.punches[0].id, replacement: { siteCode: 'HQ', at: original.at, kind: 'in' } }); s = r.state;
+  assert.equal(matchPunches(publishedAssignments(s), s.punches, s.corrections).byAssignment[publishedAssignments(s)[0].key].length, 0);
+  s = run(s, 'correction.approve', { id: r.result.id }, reviewer).state;
+  assert.equal(matchPunches(publishedAssignments(s), s.punches, s.corrections).byAssignment[publishedAssignments(s)[0].key].length, 1);
+  assert.equal(s.punches[0].siteCode, 'OFFLINE');
+});
+
+test('recorded break markers and a fixed break subtract the same minutes once', () => {
+  const s = fixture(), a = row(s);
+  const raw = [punch('in', '2026-10-05T08:00:00Z', 'in'), punch('break-1', '2026-10-05T12:00:00Z', 'break_start'),
+    punch('break-2', '2026-10-05T12:30:00Z', 'break_end'), punch('out', '2026-10-05T16:00:00Z', 'out')];
+  const actual = calculateAttendance(s, a, matchPunches([a], raw).byAssignment[a.key], after);
+  assert.equal(actual.presenceMinutes, 450); assert.equal(actual.actualMinutes, 450); assert.equal(actual.missingMinutes, 0);
+});
+
+test('dated policy or shift revision invalidates a previously approved draft before publication', () => {
+  let s = fixture(), r = roster(s); s = r.state; s.rosters[0].assignments = [row(s)];
+  s = run(s, 'roster.submit', { rosterId: r.result.id, version: 1 }, reviewer).state;
+  s = run(s, 'roster.approve', { rosterId: r.result.id, version: 1 }, reviewer).state;
+  const approved = canonical(s.rosters[0]);
+  const policyChange = structuredClone(s); policyChange.policies.push({ ...s.policies[0], version: 2, from: '2026-10-05', graceMinutes: 1 });
+  assert.throws(() => run(policyChange, 'roster.publish', { rosterId: r.result.id, version: 1 }, reviewer), /إصدار السياسة/);
+  const shiftChange = structuredClone(s); shiftChange.shifts.push({ ...s.shifts[0], version: 2, from: '2026-10-05', startTime: '09:00' });
+  assert.throws(() => run(shiftChange, 'roster.publish', { rosterId: r.result.id, version: 1 }, reviewer), /إصدار الشفت/);
+  assert.equal(canonical(s.rosters[0]), approved); assert.equal(publishedAssignments(s).length, 0);
 });

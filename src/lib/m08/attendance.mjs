@@ -11,11 +11,12 @@ export function matchPunches(assignments, raw, corrections = []) {
   const events = raw.map(p => {
     const edits = valid.filter(c => c.punchId === p.id).sort((a, b) => a.sequence - b.sequence);
     const c = edits.at(-1);
-    return c ? { ...p, ...(c.replacement ?? {}), excluded: c.exclude === true, correctionId: c.id, assignmentKey: c.assignmentKey || p.assignmentKey } : { ...p };
+    return c ? { ...p, ...(c.replacement ?? {}), excluded: c.exclude === true, correctionId: c.id, siteCorrected: Boolean(c.replacement?.siteCode), assignmentKey: c.assignmentKey || p.assignmentKey } : { ...p };
   });
   const byAssignment = Object.fromEntries(assignments.map(a => [a.key, []])), exceptions = [], sourceKeys = new Set();
   for (const event of events.sort((a, b) => instant(a.at) - instant(b.at) || a.id.localeCompare(b.id))) {
     if (event.excluded) continue;
+    if (event.siteUnverified && !event.siteCorrected) { exceptions.push({ code: 'PUNCH_SITE_UNVERIFIED', punchId: event.id, employeeId: event.employeeId }); continue; }
     const sourceKey = `${event.source}:${event.sourceEventId}`;
     if (sourceKeys.has(sourceKey)) { exceptions.push({ code: 'DUPLICATE_PUNCH', punchId: event.id }); continue; }
     sourceKeys.add(sourceKey);
@@ -31,10 +32,11 @@ export function matchPunches(assignments, raw, corrections = []) {
 function pairs(events) {
   let entry = null; const spans = [], issues = [];
   for (const p of events) {
-    if (p.kind === 'in') {
+    const kind = p.kind === 'break_end' ? 'in' : p.kind === 'break_start' ? 'out' : p.kind;
+    if (kind === 'in') {
       if (entry) issues.push({ code: 'MISSING_OUT', punchId: entry.id });
       entry = p;
-    } else if (p.kind === 'out') {
+    } else if (kind === 'out') {
       if (!entry) issues.push({ code: 'MISSING_IN', punchId: p.id });
       else if (instant(p.at) > instant(entry.at)) { spans.push(interval(entry.at, p.at)); entry = null; }
       else issues.push({ code: 'PUNCH_ORDER', punchId: p.id });

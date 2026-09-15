@@ -151,12 +151,13 @@ export function validateRoster(state, roster) {
       const e = employmentAt(state, a.employeeId, a.workDate);
       requireRule(e.id === a.employmentId && e.version === a.employmentVersion, 'EMPLOYMENT_CHANGED', 'تغير الارتباط الوظيفي؛ أعد التسكين');
       requireRule((e.allowedSites ?? [e.siteCode]).includes(a.siteCode), 'SITE', 'الموظف غير مصرح له بالموقع');
-      activeVersion(state.sites, a.siteCode, a.workDate);
+      const currentSite = activeVersion(state.sites, a.siteCode, a.workDate);
+      requireRule(!currentSite.costCenters?.length || currentSite.costCenters.includes(a.costCenter), 'COST_CENTER', 'مركز التكلفة لم يعد صالحًا للموقع');
       requireRule(effective(atVersion(state.policies, a.policyId, a.policyVersion), a.workDate), 'POLICY', 'السياسة غير سارية');
-      activeVersion(state.policies, a.policy.code, a.workDate);
+      requireRule(activeVersion(state.policies, a.policy.code, a.workDate).version === a.policyVersion, 'POLICY_CHANGED', 'تغير إصدار سياسة الدوام؛ أعد تقييم الإسناد واعتماده');
       if (a.dayType === 'WORK') {
         requireRule(effective(atVersion(state.shifts, a.shiftId, a.shiftVersion), a.workDate), 'SHIFT', 'الشفت غير ساري');
-        activeVersion(state.shifts, a.shift.code, a.workDate);
+        requireRule(activeVersion(state.shifts, a.shift.code, a.workDate).version === a.shiftVersion, 'SHIFT_CHANGED', 'تغير إصدار الشفت؛ اختر النسخة السارية لإسناد جديد');
         requireRule((a.shift.requiredSkills ?? []).every(skill => e.skills?.some(s => (typeof s === 'string' ? s === skill : s.code === skill && s.from <= a.workDate && (!s.to || s.to >= a.workDate)))), 'SKILL', 'المهارة المطلوبة غير سارية');
         interval(a.start, a.end);
       }

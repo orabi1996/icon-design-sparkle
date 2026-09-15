@@ -147,6 +147,8 @@ export const nav: NavItem[] = [
         items: [
           { label: "تهيئة الاجازات", to: "/regulations/vacations" },
           { label: "تهيئة مجموعات الدوام", to: "/regulations/shifts" },
+          { label: "إدارة الشفتات والجداول", to: "/shifts/rosters" },
+          { label: "جدولي المنشور", to: "/shifts/mine" },
           { label: "تهيئة السلف", to: "/regulations/loans" },
           { label: "تهيئة سلاسل الموافقات", to: "/regulations/approvals" },
           { label: "تهيئة لائحة الأذونات", to: "/regulations/permits" },

@@ -1,5 +1,20 @@
 /** Route inventory, not a claim of functional completeness. Update when routes change. */
 export const SCREENS = Object.freeze([
+  { path: "/shifts/library", title: "مكتبة الشفتات", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/templates", title: "قوالب أيام العمل", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/rosters", title: "جداول الدوام", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/import", title: "الاستيراد والتسكين الجماعي", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/patterns", title: "أنماط التكرار", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/bindings", title: "ربط الموظفين بالأنماط", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/coverage", title: "الاحتياج والتغطية", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/approvals", title: "مراجعة الجداول واعتمادها", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/requests", title: "طلبات التغيير والتبادل", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/open", title: "الشفتات الشاغرة", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/mine", title: "جدول الموظف", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/policies", title: "سياسات الدوام", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/exceptions", title: "الاستثناءات وأثر التغيير", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/reports", title: "تقارير الشفتات", section: "إدارة الشفتات والدوام", status: "phase1" },
+  { path: "/shifts/audit", title: "الإصدارات والتدقيق", section: "إدارة الشفتات والدوام", status: "phase1" },
   {
     "path": "/approval-requests",
     "title": "طلبات الاعتماد",

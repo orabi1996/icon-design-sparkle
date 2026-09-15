@@ -9,9 +9,20 @@ SET request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 SET ROLE authenticated;
 DO $$ BEGIN
   IF has_table_privilege('authenticated','public.m08_workspaces','SELECT') OR has_table_privilege('authenticated','public.m08_raw_events','UPDATE')
-    OR has_function_privilege('authenticated','public.m08_commit(uuid,uuid,text,bigint,uuid,text,jsonb,jsonb,jsonb,jsonb)','EXECUTE') THEN
+    OR has_function_privilege('authenticated','public.m08_commit(uuid,uuid,text,bigint,uuid,text,jsonb,jsonb,jsonb,jsonb)','EXECUTE')
+    OR has_table_privilege('authenticated','public.fingerprint_records','UPDATE') THEN
     RAISE EXCEPTION 'The authenticated role may access protected state/commit'; END IF;
 END $$;
+DO $$ BEGIN
+  IF (SELECT count(*) FROM public.fingerprint_records) <> 1 THEN RAISE EXCEPTION 'Admin could not review original legacy scan'; END IF;
+END $$;
+SET request.jwt.claim.sub = '00000000-0000-0000-0000-000000000002';
+DO $$ BEGIN
+  IF (SELECT count(*) FROM public.fingerprint_records) <> 0 THEN RAISE EXCEPTION 'Non-admin viewed legacy scans'; END IF;
+  IF has_table_privilege('authenticated','public.fingerprint_records','INSERT') OR has_table_privilege('authenticated','public.fingerprint_records','DELETE') THEN
+    RAISE EXCEPTION 'Non-admin could mutate original scans'; END IF;
+END $$;
+SET request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 SELECT public.m08_save_access('22222222-2222-4222-8222-222222222222','00000000-0000-0000-0000-000000000001',
  '[{"actions":["configure","draft","approve","publish","read","import","export","audit"],"fields":["cost"],"branch":"A"}]','{manager}',
  now()-interval '1 hour',null,0,'staging acceptance bootstrap');
@@ -21,6 +32,10 @@ DO $$ BEGIN
   EXCEPTION WHEN serialization_failure THEN NULL; END;
 END $$;
 RESET ROLE;
+DO $$ BEGIN
+  BEGIN UPDATE public.fingerprint_records SET punch_at=now(); RAISE EXCEPTION 'Legacy scan replaced'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF (SELECT punch_at FROM public.fingerprint_records WHERE id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') <> '2026-10-05T08:00:00Z' THEN RAISE EXCEPTION 'Original punch changed'; END IF;
+END $$;
 SET ROLE service_role;
 DO $$ BEGIN
   IF (public.m08_actor_context('22222222-2222-4222-8222-222222222222','00000000-0000-0000-0000-000000000001')->'grants'->0->'actions') IS NULL THEN

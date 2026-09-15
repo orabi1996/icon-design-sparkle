@@ -4,6 +4,7 @@ on:
     paths:
       - "supabase/migrations/20260914190000_company_business_foundation.sql"
       - "supabase/migrations/20260915130000_m08_shifts_rosters.sql"
+      - "supabase/migrations/20260915131000_m08_protect_legacy_raw_punches.sql"
       - "tests/sql/m08-*"
       - ".github/workflows/m08-db.yml"
 permissions:
@@ -36,5 +37,8 @@ jobs:
         run: |
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260914190000_company_business_foundation.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260915130000_m08_shifts_rosters.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260915131000_m08_protect_legacy_raw_punches.sql
       - name: Exercise permissions, immutable history and compare-and-swap
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/m08-contract.sql
+      - name: Race two independent clients on the same revision
+        run: bash tests/sql/m08-concurrency.sh

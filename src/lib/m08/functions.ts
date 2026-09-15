@@ -21,6 +21,7 @@ async function contextData(context: unknown, companyId: string) {
   const db = supabaseAdmin as Db;
   const { data, error } = await db.rpc('m08_load', { p_company_id: companyId, p_actor_id: c.userId });
   if (error) throw new Error(error.code === '42501' ? 'غير مصرح بالوصول إلى الشركة' : 'تعذر تحميل وحدة الشفتات؛ تحقق من تطبيق ترحيل قاعدة البيانات');
+  if (!data.actor?.canManageAccess && !data.actor?.grants?.some((g: { actions?: string[] }) => g.actions?.includes('read'))) throw new Error('غير مصرح بعرض بيانات وحدة الشفتات');
   const state: M08State = data.state ?? emptyState(); state['punches'] = data.punches ?? [];
   return { db, authDb: c.supabase, actor: data.actor as M08Actor, state, revision: Number(data.revision), audit: data.audit ?? [] };
 }
@@ -106,8 +107,8 @@ export const exportM08 = createServerFn({ method: 'POST' }).middleware([requireS
     const visible = projectState(b.state, b.actor);
     const { reportRows } = await import('./reports.mjs');
     const rows = reportRows(visible, data.report, data.from, data.to, response(b).audit);
-    for (const row of rows) assertAccess(b.actor, 'export', row.employeeId ? employeeScope(b.state, row.employeeId) : row);
-    if (data.report === 'deliveries') rows.forEach((row: Db) => assertAccess(b.actor, 'payroll', employeeScope(b.state, row.employeeId)));
+    for (const row of rows) assertAccess(b.actor, 'export', row.employeeId ? employeeScope(b.state, row.employeeId, row.workDate) : row);
+    if (data.report === 'deliveries') rows.forEach((row: Db) => assertAccess(b.actor, 'payroll', employeeScope(b.state, row.employeeId, row.workDate)));
     return { generatedAt: new Date().toISOString(), companyId: data.companyId, from: data.from, to: data.to, report: data.report, revision: b.revision, rows };
   });
 

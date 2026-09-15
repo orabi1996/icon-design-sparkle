@@ -312,8 +312,10 @@ function executeSelfService(state, command, actor, now) {
   const d = command.payload, id = command.operationId;
   if (command.type === 'open.create') {
     const roster = find(state.rosters, d.rosterId); authorizeRoster(actor, 'draft', roster, state);
+    requireRule(roster.status === 'published', 'OPEN_ROSTER', 'الشاغر يجب أن يرتبط بنسخة جدول منشورة');
     const value = selectFields(d, ['rosterId', 'workDate', 'shiftId', 'shiftVersion', 'siteCode', 'skill', 'slots', 'deadline']);
     date(value.workDate); instant(value.deadline); atVersion(state.shifts, value.shiftId, value.shiftVersion);
+    requireRule(value.workDate >= roster.from && value.workDate <= roster.to, 'OPEN_DATE', 'تاريخ الشاغر خارج نطاق الجدول المنشور');
     requireRule(Number.isInteger(value.slots) && value.slots > 0 && instant(value.deadline) > instant(now), 'OPEN_SHIFT', 'عدد الأماكن أو آخر موعد غير صحيح');
     const open = { ...value, id, status: 'open', claims: [], reason: command.reason }; state.openShifts.push(open); return open;
   }
@@ -323,10 +325,11 @@ function executeSelfService(state, command, actor, now) {
     requireRule(['swap', 'give', 'change', 'open'].includes(d.kind), 'REQUEST_KIND', 'نوع الطلب غير صحيح');
     const r = { id, kind: d.kind, employeeId: d.employeeId, otherEmployeeId: d.otherEmployeeId ?? null, assignmentKey: d.assignmentKey ?? null,
       otherAssignmentKey: d.otherAssignmentKey ?? null, openId: d.openId ?? null, proposedShiftId: d.proposedShiftId ?? null, proposedShiftVersion: d.proposedShiftVersion ?? null,
-      status: ['swap', 'give'].includes(d.kind) ? 'peer_pending' : 'review', reason: command.reason, createdBy: actor.id, at: now, approvals: [] };
+      status: ['swap', 'give'].includes(d.kind) ? 'peer_pending' : 'review', reason: command.reason, createdBy: actor.id, at: now, approvals: [], managerApprovals: [] };
     if (d.kind === 'open') {
       const o = find(state.openShifts, d.openId); requireRule(o.status === 'open' && instant(o.deadline) > instant(now), 'OPEN_CLOSED', 'الشاغر مغلق أو انتهت مهلته');
-      r.rosterId = o.rosterId; r.rosterVersion = find(state.rosters, o.rosterId).version;
+      const target = find(state.rosters, o.rosterId); requireRule(target.status === 'published', 'OPEN_ROSTER', 'تغير الجدول المنشور للشاغر');
+      r.rosterId = o.rosterId; r.rosterVersion = target.version;
     } else {
       const a = publishedAssignments(state).find(a => a.key === d.assignmentKey && a.employeeId === d.employeeId);
       requireRule(a && a.dayType === 'WORK' && instant(a.start) > instant(now) + (a.policy.changeNoticeMinutes ?? 0) * 60000, 'REQUEST_TIME', 'الإسناد غير ساري أو تجاوز مهلة الطلب');
@@ -357,6 +360,17 @@ function executeSelfService(state, command, actor, now) {
   const originals = [find(state.rosters, r.rosterId)]; if (r.otherRosterId && r.otherRosterId !== r.rosterId) originals.push(find(state.rosters, r.otherRosterId));
   requireRule(originals.every(o => o.status === 'published') && originals[0].version === r.rosterVersion && (!r.otherRosterId || find(state.rosters, r.otherRosterId).version === r.otherRosterVersion), 'REQUEST_STALE', 'الإسناد تغير؛ يلزم إعادة تقييم الطلب');
   originals.forEach(o => authorizeRoster(actor, 'publish', o, state));
+  // Effective access must also cover employees about to be ADDED to a published roster.
+  assertAccess(actor, 'publish', employeeScope(state, r.employeeId));
+  if (r.otherEmployeeId) assertAccess(actor, 'publish', employeeScope(state, r.otherEmployeeId));
+  const stages = originals.flatMap(o => atVersion(state.policies, o.policyId, o.policyVersion).approvalRoles.map((role, stage) =>
+    ({ rosterId: o.id, originalVersion: o.version, stage, role })));
+  const approvals = r.managerApprovals ?? [];
+  const next = stages.find(s => !approvals.some(a => a.rosterId === s.rosterId && a.stage === s.stage));
+  requireRule(next && actor.roles.includes(next.role), 'APPROVAL_ROLE', 'المرحلة التالية من طلب التغيير تحتاج صاحب دور اعتماد مختلف');
+  requireRule(originals.every(o => !atVersion(state.policies, o.policyId, o.policyVersion).separateApprover || r.createdBy !== actor.id), 'SEPARATION', 'صاحب الطلب لا يعتمد تغييره');
+  r.managerApprovals = [...approvals, { ...next, actor: actor.id, at: now, reason: command.reason }];
+  if (r.managerApprovals.length < stages.length) return r;
   const revisions = originals.map((o, i) => ({ ...structuredClone(o), id: `${id}:${i}`, baseId: o.id, version: 1, status: 'draft', approvals: [], history: [], createdBy: r.createdBy, reason: command.reason }));
   const first = revisions[0];
   if (r.kind === 'open') {
@@ -364,7 +378,8 @@ function executeSelfService(state, command, actor, now) {
     const policy = atVersion(state.policies, first.policyId, first.policyVersion), shift = atVersion(state.shifts, o.shiftId, o.shiftVersion);
     const row = assignmentFromShift(state, r.employeeId, o.workDate, shift, o.siteCode, '', 1, policy, 'open');
     requireRule(!o.skill || row.skills.some(s => typeof s === 'string' ? s === o.skill : s.code === o.skill && s.from <= o.workDate && (!s.to || s.to >= o.workDate)), 'SKILL', 'المهارة المطلوبة غير سارية');
-    first.employeeIds = [...new Set([...first.employeeIds, r.employeeId])]; first.assignments = first.assignments.filter(a => a.employeeId !== r.employeeId || a.workDate !== o.workDate || a.dayType === 'WORK'); first.assignments.push(row);
+    requireRule(!first.assignments.some(a => a.employeeId === r.employeeId && a.workDate === o.workDate && a.dayType === 'WORK'), 'OPEN_ASSIGNED', 'الموظف لديه شفت عمل في تاريخ الشاغر');
+    first.employeeIds = [...new Set([...first.employeeIds, r.employeeId])]; first.assignments = first.assignments.filter(a => a.employeeId !== r.employeeId || a.workDate !== o.workDate); first.assignments.push(row);
     o.claims.push({ employeeId: r.employeeId, requestId: r.id, at: now }); if (o.claims.length === o.slots) o.status = 'filled';
   } else {
     const a = findAssignment(first, r.assignmentKey), second = revisions.find(x => x.baseId === r.otherRosterId) ?? first, b = r.kind === 'swap' ? findAssignment(second, r.otherAssignmentKey) : null;
@@ -383,10 +398,14 @@ function executeSelfService(state, command, actor, now) {
   const preview = structuredClone(state); originals.forEach(o => { find(preview.rosters, o.id).status = 'superseded'; });
   for (const rev of revisions) preview.rosters.push({ ...rev, status: 'published' });
   for (const rev of revisions) {
+    authorizeRoster(actor, 'publish', rev, preview);
     const problems = validateRoster(preview, rev).filter(i => i.severity !== 'warning'); requireRule(!problems.length, 'REQUEST_CONFLICT', problems[0]?.message, { issues: problems });
     const policy = atVersion(state.policies, rev.policyId, rev.policyVersion);
-    requireRule(policy.approvalRoles.every(role => actor.roles.includes(role)) && (!policy.separateApprover || actor.id !== r.createdBy), 'APPROVAL_CHAIN', 'تنفيذ الطلب يحتاج معتمدًا مخولًا بكل مراحل ونطاقات التغيير');
-    rev.approvals = policy.approvalRoles.map((role, stage) => ({ role, stage, actor: actor.id, at: now, version: 1, requestId: r.id })); rev.status = 'published'; rev.publishedAt = now; rev.publishedBy = actor.id;
+    requireRule(policy.approvalRoles.every((role, stage) => r.managerApprovals.some(a => a.rosterId === rev.baseId && a.originalVersion === find(state.rosters, rev.baseId).version && a.role === role && a.stage === stage)), 'APPROVAL_CHAIN', 'موافقات الطلب لا تطابق نسخة المصدر');
+    rev.approvals = policy.approvalRoles.map((role, stage) => {
+      const approval = r.managerApprovals.find(a => a.rosterId === rev.baseId && a.stage === stage);
+      return { role, stage, actor: approval.actor, at: approval.at, reason: approval.reason, version: 1, sourceVersion: approval.originalVersion, requestId: r.id };
+    }); rev.status = 'published'; rev.publishedAt = now; rev.publishedBy = actor.id;
   }
   originals.forEach(o => { o.status = 'superseded'; o.supersededAt = now; }); state.rosters.push(...revisions);
   r.status = 'executed'; r.executedAt = now; r.approvedBy = actor.id; r.resultRosterIds = revisions.map(x => x.id);

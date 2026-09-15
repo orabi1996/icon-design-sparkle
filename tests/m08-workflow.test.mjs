@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fixture, actor, reviewer, now, after, run, punch } from './fixtures/m08.mjs';
+import { fixture, actor, reviewer, employee, otherEmployee, now, after, run, punch, row, publishFixture } from './fixtures/m08.mjs';
 import { canonical, payrollDelta } from '../src/lib/m08/attendance.mjs';
 import { effectiveRevisions, publishedAssignments } from '../src/lib/m08/planning.mjs';
+import { employeeScope, projectState } from '../src/lib/m08/access.mjs';
+import { csvExport } from '../src/lib/m08/reports.mjs';
 
 test('shift → template → repeating pattern → binding → approved publication → attendance → payroll → closed correction adjustment', () => {
   let s = fixture(); s.shifts = []; s.templates = []; s.patterns = []; s.bindings = [];
@@ -55,4 +57,58 @@ test('versioned future definition suspension cannot authorize a new assignment, 
   const s = fixture(); s.shifts.push({ ...s.shifts[0], version: 2, from: '2026-10-05', status: 'stopped' });
   assert.equal(effectiveRevisions(s.shifts, '2026-10-04').find(x => x.id === 'morning').version, 1);
   assert.equal(effectiveRevisions(s.shifts, '2026-10-05').find(x => x.id === 'morning'), undefined);
+});
+
+test('two manager approval stages preserve both published rosters until final atomic swap', () => {
+  let s = fixture(); s.policies[0].approvalRoles = ['manager', 'hr'];
+  let r = run(s, 'roster.create', { name: 'فترتان', from: '2026-10-05', to: '2026-10-05', employeeIds: ['e1', 'e2'], policyId: 'policy', policyVersion: 1 });
+  s = r.state; s.rosters[0].assignments = [row(s, 'e1', '2026-10-05', 'short'), row(s, 'e2', '2026-10-05', 'evening')];
+  const rosterId = r.result.id, hr = { ...reviewer, id: 'hr-approver', roles: ['hr'] };
+  for (const [action, who] of [['submit', reviewer], ['approve', reviewer], ['approve', hr], ['publish', reviewer]]) {
+    r = run(s, `roster.${action}`, { rosterId, version: 1 }, who); s = r.state;
+  }
+  r = run(s, 'request.create', { kind: 'swap', employeeId: 'e1', otherEmployeeId: 'e2', assignmentKey: 'e1:2026-10-05:1', otherAssignmentKey: 'e2:2026-10-05:1' }, employee);
+  s = r.state; const requestId = r.result.id;
+  s = run(s, 'request.peer', { id: requestId, accept: true }, otherEmployee).state;
+  const original = canonical(publishedAssignments(s));
+  r = run(s, 'request.approve', { id: requestId }, reviewer); s = r.state;
+  assert.equal(r.result.status, 'review'); assert.equal(r.result.managerApprovals.length, 1);
+  assert.equal(canonical(publishedAssignments(s)), original);
+  r = run(s, 'request.approve', { id: requestId }, hr);
+  assert.equal(r.result.status, 'executed'); assert.equal(r.result.managerApprovals.length, 2);
+  assert.deepEqual(r.state.rosters.at(-1).approvals.map(a => [a.role, a.actor, a.sourceVersion]), [['manager', reviewer.id, 1], ['hr', hr.id, 1]]);
+  assert.equal(r.state.rosters[0].status, 'superseded');
+});
+
+test('open-shift manager needs publish scope for the employee being added', () => {
+  let s = publishFixture(fixture()); const unchanged = canonical(publishedAssignments(s));
+  let r = run(s, 'open.create', { rosterId: s.rosters[0].id, workDate: '2026-10-05', shiftId: 'morning', shiftVersion: 1, siteCode: 'HQ', skill: 'nurse', slots: 1, deadline: '2026-10-04T00:00:00Z' });
+  s = r.state; r = run(s, 'request.create', { kind: 'open', employeeId: 'e2', openId: r.result.id }, otherEmployee); s = r.state;
+  const narrow = { ...reviewer, grants: [{ actions: ['request_approve'], fields: [] }, { employeeId: 'e1', actions: ['publish'], fields: [] }] };
+  assert.throws(() => run(s, 'request.approve', { id: r.result.id }, narrow), /غير مصرح/);
+  assert.equal(canonical(publishedAssignments(s)), unchanged); assert.deepEqual(s.openShifts[0].claims, []);
+});
+
+test('branch-only read does not expose colleagues raw punches, results or other-branch sites', () => {
+  const s = fixture(); s.sites.push({ ...s.sites[0], id: 'site-b', code: 'B-HQ', branch: 'B' });
+  s.punches.push(punch('raw-sensitive', '2026-10-05T08:00:00Z', 'in'));
+  s.results.push({ id: 'result-sensitive', employeeId: 'e1', workDate: '2026-10-05', status: 'calculated' });
+  const colleague = { id: 'branch-reader', grants: [{ branch: 'A', actions: ['read'], fields: [] }] };
+  const view = projectState(s, colleague);
+  assert.equal(view.employments.length, 2); assert.deepEqual(view.punches, []); assert.deepEqual(view.results, []);
+  assert.deepEqual(view.sites.map(site => site.code), ['HQ']);
+});
+
+test('historical attendance stays scoped to the employment effective on its work date', () => {
+  const s = fixture(); s.employments.push({ ...s.employments[0], version: 2, from: '2026-10-05', branch: 'B' });
+  s.results.push({ id: 'before-transfer', employeeId: 'e1', workDate: '2026-10-04' }, { id: 'after-transfer', employeeId: 'e1', workDate: '2026-10-05' });
+  assert.equal(employeeScope(s, 'e1', '2026-10-04').branch, 'A'); assert.equal(employeeScope(s, 'e1', '2026-10-05').branch, 'B');
+  const scoped = branch => ({ id: 'manager', grants: [{ branch, actions: ['read', 'recalculate'], fields: [] }] });
+  assert.deepEqual(projectState(s, scoped('A')).results.map(r => r.id), ['before-transfer']);
+  assert.deepEqual(projectState(s, scoped('B')).results.map(r => r.id), ['after-transfer']);
+});
+
+test('CSV neutralizes formulas even after leading whitespace while preserving leading zeros', () => {
+  const csv = csvExport([{ code: '00104', value: '  =cmd()' }]);
+  assert.match(csv, /"00104"/); assert.match(csv, /"'  =cmd\(\)"/);
 });

@@ -22,7 +22,7 @@ export function csvExport(rows, metadata = {}) {
   const safe = value => {
     const s = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
     // Prevent formula execution when an exported CSV is opened in spreadsheet applications.
-    return `"${(/^[=+\-@\t\r]/.test(s) ? "'" + s : s).replaceAll('"', '""')}"`;
+    return `"${(/^(?:\s*[=+\-@]|[\t\r\n])/.test(s) ? "'" + s : s).replaceAll('"', '""')}"`;
   };
   const headers = [...new Set(rows.flatMap(r => Object.keys(r)))];
   return '\uFEFF' + [Object.entries(metadata).map(([k, v]) => safe(`${k}: ${v}`)).join(','), headers.map(safe).join(','), ...rows.map(r => headers.map(k => safe(r[k])).join(','))].join('\r\n');

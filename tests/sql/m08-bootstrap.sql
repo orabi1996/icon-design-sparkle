@@ -13,7 +13,7 @@ ALTER TABLE public.fingerprint_records ENABLE ROW LEVEL SECURITY;
 CREATE POLICY fingerprint_records_all ON public.fingerprint_records FOR ALL TO authenticated USING(true) WITH CHECK(true);
 INSERT INTO public.fingerprint_records VALUES('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','00000000-0000-0000-0000-000000000003','2026-10-05T08:00:00Z');
 CREATE TABLE public.user_roles(user_id uuid, role text);
-CREATE FUNCTION public.is_permissions_admin() RETURNS boolean LANGUAGE sql STABLE AS $$
+CREATE FUNCTION public.is_permissions_admin() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
  SELECT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=auth.uid() AND role='admin') $$;
 INSERT INTO auth.users VALUES
 ('00000000-0000-0000-0000-000000000001'), ('00000000-0000-0000-0000-000000000002'), ('00000000-0000-0000-0000-000000000003');

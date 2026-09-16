@@ -17,7 +17,7 @@ export const nav: NavItem[] = [
     ],
   },
   { label: "الصلاحيات", icon: "shield_person", to: "/permissions" },
-  { label: "تقييم الأداء", icon: "trending_up" },
+  { label: "تقرير تقييم الأداء", icon: "trending_up", to: "/reports/evaluation" },
   {
     label: "طلبات الاعتماد",
     icon: "task_alt",
@@ -232,13 +232,12 @@ export const nav: NavItem[] = [
 
 export const sidebar: { label: string; icon: string; to?: string; badge?: string }[] = [
   { label: "اللوحة الرئيسية", icon: "space_dashboard", to: "/" },
-  { label: "الموظفون", icon: "groups", to: "/staff", badge: "٣٢٤" },
+  { label: "الموظفون", icon: "groups", to: "/staff" },
   { label: "العقود", icon: "description", to: "/staff/contracts" },
   {
     label: "اشعارات الطلبات",
     icon: "notifications_active",
     to: "/request-notifications",
-    badge: "٦",
   },
   {
     label: "الحضور والانصراف",
@@ -251,6 +250,6 @@ export const sidebar: { label: string; icon: string; to?: string; badge?: string
   { label: "مخصص نهاية الخدمة", icon: "savings", to: "/end-of-service-provision" },
   { label: "طلبات نهاية الخدمة", icon: "person_remove", to: "/end-of-service-requests" },
   { label: "اللوائح المالية", icon: "format_list_bulleted", to: "/regulations" },
-  { label: "الرواتب", icon: "payments" },
-  { label: "التدريب", icon: "school" },
+  { label: "الرواتب", icon: "payments", to: "/payroll" },
+  { label: "تقارير التدريب", icon: "school", to: "/reports/employee-training" },
 ];

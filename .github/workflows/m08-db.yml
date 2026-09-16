@@ -1,0 +1,44 @@
+name: M08 database contracts
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20260914190000_company_business_foundation.sql"
+      - "supabase/migrations/20260915130000_m08_shifts_rosters.sql"
+      - "supabase/migrations/20260915131000_m08_protect_legacy_raw_punches.sql"
+      - "tests/sql/m08-*"
+      - ".github/workflows/m08-db.yml"
+permissions:
+  contents: read
+jobs:
+  postgresql-contract:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci
+          POSTGRES_DB: m08_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d m08_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: disposable-ci
+      PGDATABASE: m08_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap isolated test roles
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/m08-bootstrap.sql
+      - name: Apply real additive migrations
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260914190000_company_business_foundation.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260915130000_m08_shifts_rosters.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260915131000_m08_protect_legacy_raw_punches.sql
+      - name: Exercise permissions, immutable history and compare-and-swap
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/m08-contract.sql
+      - name: Race two independent clients on the same revision
+        run: bash tests/sql/m08-concurrency.sh

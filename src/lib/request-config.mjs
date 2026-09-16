@@ -1,6 +1,5 @@
 const CATEGORIES = ["شؤون موظفين", "مالية", "إدارية", "عمليات"];
 const STATUSES = ["نشط", "معطل"];
-const DEFAULT_CHAIN = ["المدير المباشر", "الموارد البشرية"];
 
 export const REQUEST_CATEGORIES = Object.freeze([...CATEGORIES]);
 export const REQUEST_STATUSES = Object.freeze([...STATUSES]);
@@ -64,10 +63,10 @@ export const DEFAULT_REQUEST_TYPES = Object.freeze([
 ]);
 
 const isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
-const text = (value, max) => {
+const text = (value) => {
   if (typeof value !== "string") return "";
   const normalized = value.trim();
-  return normalized.length <= max ? normalized : normalized.slice(0, max);
+  return normalized;
 };
 const cloneDefaults = () => DEFAULT_REQUEST_TYPES.map((item) => ({ ...item, approval_chain: [...item.approval_chain] }));
 
@@ -75,22 +74,27 @@ export function validateRequestConfig(input) {
   if (!isRecord(input)) return { ok: false, errors: { form: "بيانات نوع الطلب غير صحيحة." } };
 
   const errors = {};
-  const id = text(input.id, 80);
-  const code = text(input.code, 32).toUpperCase();
-  const name = text(input.name, 160);
-  const category = text(input.category, 40);
-  const status = text(input.status, 20);
+  const fields = ["id", "code", "name", "category", "approval_chain", "max_sla_hours", "requires_attachment", "allow_cancel", "status"];
+  if (Object.keys(input).some((key) => !fields.includes(key))) errors.form = "توجد حقول غير مسموح بها؛ راجع السجل الأصلي.";
+  const id = text(input.id);
+  const code = text(input.code).toUpperCase();
+  const name = text(input.name);
+  const category = text(input.category);
+  const status = text(input.status);
   const chain = Array.isArray(input.approval_chain)
-    ? input.approval_chain.map((step) => text(step, 120)).filter(Boolean)
+    ? input.approval_chain.map((step) => text(step)).filter(Boolean)
     : [];
-  const maxSla = typeof input.max_sla_hours === "number" ? input.max_sla_hours : Number(input.max_sla_hours);
+  const maxSla = input.max_sla_hours;
 
-  if (!id || !/^req-[a-z0-9-]+$/i.test(id)) errors.id = "معرّف نوع الطلب غير صحيح.";
+  if (!id || id.length > 80 || !/^req-[a-z0-9-]+$/i.test(id)) errors.id = "معرّف نوع الطلب غير صحيح.";
   if (!/^[A-Z0-9][A-Z0-9_-]{2,31}$/.test(code)) errors.code = "كود الطلب يجب أن يكون من 3 إلى 32 حرفًا أو رقمًا.";
-  if (name.length < 2) errors.name = "اسم الطلب مطلوب.";
+  if (name.length < 2 || name.length > 160 || /[\u0000-\u001f\u007f]/.test(name)) errors.name = "اسم الطلب مطلوب وبحد أقصى 160 حرفًا دون محارف تحكم.";
   if (!CATEGORIES.includes(category)) errors.category = "تصنيف الطلب غير صحيح.";
   if (chain.length < 1 || chain.length > 8) errors.approval_chain = "أضف خطوة اعتماد واحدة إلى 8 خطوات.";
-  if (chain.some((step) => step.length < 2)) errors.approval_chain = "كل خطوة اعتماد يجب أن تحتوي على اسم واضح.";
+  if (chain.some((step) => step.length < 2 || step.length > 120 || /[\u0000-\u001f\u007f]/.test(step))
+    || !Array.isArray(input.approval_chain) || input.approval_chain.some((step) => typeof step !== "string" || !step.trim())) {
+    errors.approval_chain = "كل خطوة اعتماد يجب أن تحتوي على اسم واضح من 2 إلى 120 حرفًا.";
+  }
   if (!Number.isInteger(maxSla) || maxSla < 1 || maxSla > 720) errors.max_sla_hours = "زمن الاعتماد يجب أن يكون بين ساعة و720 ساعة.";
   if (typeof input.requires_attachment !== "boolean") errors.requires_attachment = "قيمة المرفقات غير صحيحة.";
   if (typeof input.allow_cancel !== "boolean") errors.allow_cancel = "قيمة الإلغاء غير صحيحة.";
@@ -115,7 +119,7 @@ export function parseRequestConfigs(raw) {
 
   try {
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return { configs: cloneDefaults(), invalidCount: 1, source: "defaults" };
+    if (!Array.isArray(parsed) || parsed.length > 200) return { configs: cloneDefaults(), invalidCount: 1, source: "defaults" };
 
     const configs = [];
     const ids = new Set();
@@ -143,7 +147,7 @@ export function parseRequestConfigs(raw) {
 }
 
 export function serializeRequestConfigs(configs) {
-  if (!Array.isArray(configs) || configs.length === 0) throw new Error("يجب الاحتفاظ بنوع طلب واحد على الأقل.");
+  if (!Array.isArray(configs) || configs.length === 0 || configs.length > 200) throw new Error("يجب الاحتفاظ بنوع طلب واحد إلى 200 نوع.");
   const normalized = [];
   const ids = new Set();
   const codes = new Set();
@@ -161,7 +165,7 @@ export function serializeRequestConfigs(configs) {
 }
 
 export function splitApprovalChain(value) {
-  if (typeof value !== "string") return [...DEFAULT_CHAIN];
+  if (typeof value !== "string") return [];
   const steps = [...new Set(value.split(/[,،\n]+/).map((step) => step.trim()).filter(Boolean))];
-  return steps.length ? steps : [...DEFAULT_CHAIN];
+  return steps;
 }

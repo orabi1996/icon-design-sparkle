@@ -50,9 +50,52 @@ jobs:
       - name: Check TypeScript
         run: npm run check:types
 
+  request-settings-db:
+    name: Request settings authorization and concurrency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: request-settings-ci-only
+          POSTGRES_DB: request_settings_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: request-settings-ci-only
+      PGDATABASE: request_settings_test
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Bootstrap disposable database and apply actual migrations
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f tests/sql/request-settings-bootstrap.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260830090000_create_permissions_module.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260915100000_secure_request_type_settings.sql
+      - name: Verify roles, RLS, validation, preservation and stale writes
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/sql/request-settings.test.sql
+      - name: Race two admin writes against the same snapshot
+        run: node tests/request-settings-concurrency.mjs
+
   build:
     name: Application build
-    needs: [business-tests, typecheck]
+    needs: [business-tests, typecheck, request-settings-db]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

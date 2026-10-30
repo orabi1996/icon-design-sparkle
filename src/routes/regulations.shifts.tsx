@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { MaterialIcon } from "@/components/MaterialIcon";
@@ -1372,50 +1372,96 @@ function BulkImportTab({
   onApplyAssignments: (newAssignments: Record<string, any>) => void;
 }) {
   const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Template download mock
-  const handleDownloadTemplate = () => {
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      "الرقم الوظيفي,اسم الموظف,2026-09-20,2026-09-21,2026-09-22,2026-09-23,2026-09-24,2026-09-25,2026-09-26\n" +
-      employees
-        .slice(0, 5)
-        .map((e) => `${e.emp_no},${e.full_name},صباحي,صباحي,صباحي,صباحي,صباحي,راحة,راحة`)
-        .join("\n");
-    const encoded = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encoded);
-    link.setAttribute("download", "نموذج_تسكين_الورديات.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("تم تحميل نموذج التسكين الجماعي بنجاح");
+  // Template download real Excel
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import("xlsx");
+    const dates = [
+      "2026-09-20",
+      "2026-09-21",
+      "2026-09-22",
+      "2026-09-23",
+      "2026-09-24",
+      "2026-09-25",
+      "2026-09-26",
+    ];
+    const headers = ["الرقم الوظيفي", "اسم الموظف", ...dates];
+    const sampleRows = employees.slice(0, 10).map((e) => [
+      e.emp_no,
+      e.full_name,
+      "الدوام الإداري",
+      "الدوام الإداري",
+      "الدوام الإداري",
+      "الدوام الإداري",
+      "الدوام الإداري",
+      "راحة أسبوعية",
+      "راحة أسبوعية",
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "تسكين الورديات");
+    XLSX.writeFile(wb, "نموذج_تسكين_الورديات.xlsx");
+    toast.success("تم تحميل نموذج التسكين الجماعي بنجاح بصيغة Excel");
   };
 
-  const handleSimulateUpload = () => {
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
     setImporting(true);
-    setTimeout(() => {
-      const generated: Record<string, any> = {};
-      const dates = [
-        "2026-09-20",
-        "2026-09-21",
-        "2026-09-22",
-        "2026-09-23",
-        "2026-09-24",
-        "2026-09-25",
-        "2026-09-26",
-      ];
-      employees.forEach((e) => {
-        dates.forEach((d, idx) => {
-          const isOff = idx >= 5;
-          generated[`${e.id}:${d}`] = isOff
-            ? { shiftName: "راحة أسبوعية", code: "OFF", color: "#94a3b8", hours: 0, isOff: true }
-            : { shiftName: "الدوام الإداري", code: "AM", color: "#0b57d0", hours: 8 };
-        });
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0] || ""];
+      if (!sheet) throw new Error("لم يتم العثور على ورقة بيانات");
+      const matrix = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+      if (matrix.length < 2) throw new Error("الملف لا يحتوي على صفوف بيانات");
+      const headers = matrix[0] || [];
+      const dataRows = matrix.slice(1).filter((r) => r.some((c) => String(c).trim()));
+
+      const dateCols: { date: string; colIdx: number }[] = [];
+      headers.forEach((h, idx) => {
+        const str = String(h).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+          dateCols.push({ date: str, colIdx: idx });
+        }
       });
+
+      const empByNo = new Map(employees.map((e) => [String(e.emp_no).trim(), e]));
+      const generated: Record<string, any> = {};
+      let assignedCount = 0;
+
+      for (const row of dataRows) {
+        const empNo = String(row[0] || "").trim();
+        const emp = empByNo.get(empNo);
+        if (!emp) continue;
+
+        for (const { date, colIdx } of dateCols) {
+          const shiftText = String(row[colIdx] || "").trim();
+          if (!shiftText) continue;
+          const isOff = shiftText.includes("راحة") || shiftText.toLowerCase() === "off";
+          const matchedShift = shifts.find(
+            (s) => s.name === shiftText,
+          );
+          generated[`${emp.id}:${date}`] = {
+            shiftName: matchedShift?.name || (isOff ? "راحة أسبوعية" : shiftText),
+            code: isOff ? "OFF" : "SH",
+            color: isOff ? "#94a3b8" : "#0b57d0",
+            hours: isOff ? 0 : 8,
+            isOff,
+          };
+          assignedCount++;
+        }
+      }
+
       onApplyAssignments(generated);
+      toast.success(`تم استيراد ملف التسكين وتطبيق ${assignedCount} وردية بنجاح`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل استيراد الملف");
+    } finally {
       setImporting(false);
-    }, 800);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -1431,7 +1477,7 @@ function BulkImportTab({
         <button
           type="button"
           onClick={handleDownloadTemplate}
-          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-4 h-9 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-4 h-9 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
         >
           <MaterialIcon name="download" size={17} />
           <span>تنزيل نموذج Excel فارغ</span>
@@ -1439,7 +1485,17 @@ function BulkImportTab({
       </div>
 
       {/* Upload Box */}
-      <div className="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center space-y-4 hover:border-[#0b57d0] transition-colors">
+      <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center space-y-4 hover:border-[#0b57d0] transition-colors">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileUpload(file);
+          }}
+        />
         <span className="grid size-14 place-items-center rounded-2xl bg-[#e8f0fe] text-[#0b57d0] mx-auto">
           <MaterialIcon name="cloud_upload" size={28} filled />
         </span>
@@ -1447,15 +1503,10 @@ function BulkImportTab({
           <h3 className="text-sm font-black text-slate-800">اسحب ملف التسكين الجماعي هنا أو اضغط للاختيار</h3>
           <p className="text-xs text-slate-400 mt-1">يدعم ملفات بصيغة (.xlsx, .csv) حتى 10,000 سطر</p>
         </div>
-        <button
-          type="button"
-          disabled={importing}
-          onClick={handleSimulateUpload}
-          className="rounded-full bg-[#0b57d0] px-6 h-10 text-xs font-extrabold text-white hover:bg-[#0842a0] transition disabled:opacity-50"
-        >
-          {importing ? "جاري معالجة الملف والتحقق..." : "اختيار ملف التسكين والتحقق"}
-        </button>
-      </div>
+        <div className="inline-block rounded-full bg-[#0b57d0] px-6 py-2.5 text-xs font-extrabold text-white hover:bg-[#0842a0] transition">
+          {importing ? "جاري معالجة الملف وتطبيق الورديات..." : "اختيار ملف التسكين والتحقق"}
+        </div>
+      </label>
     </div>
   );
 }

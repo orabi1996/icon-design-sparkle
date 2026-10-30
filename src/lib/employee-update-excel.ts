@@ -311,12 +311,8 @@ export async function parseEmployeeUpdateFile(
         addError(errors, rowNumber, index, value, "صيغة البريد الإلكتروني غير صحيحة");
       } else if (spec.kind === "countryCode" && !/^\+?[0-9]{1,5}$/.test(value)) {
         addError(errors, rowNumber, index, value, "مفتاح الدولة يجب أن يكون أرقامًا مثل +966");
-      } else if (spec.kind in allowedValues) {
-        const allowed = allowedValues[spec.kind as ReferenceKey];
-        if (allowed.size > 0 && !allowed.has(normalizeExcelText(value))) {
-          addError(errors, rowNumber, index, value, referenceMessages[spec.kind as ReferenceKey]);
-        }
       }
+      // Allow user-specified job titles, nationalities, etc. without blocking the Excel update batch.
     });
 
     if (raw.IDNumber) {

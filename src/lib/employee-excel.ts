@@ -421,22 +421,9 @@ export async function parseEmployeeImportFile(
       addError(errors, rowNumber, 6, raw.IDNumber, "رقم الهوية يجب أن يحتوي على أرقام فقط");
     }
 
-    const lookupChecks: [ColumnKey, Set<string>, string][] = [
-      ["SectionName", departments, "القسم غير موجود في بيانات النظام"],
-      ["BranchName", branches, "الفرع غير موجود في بيانات النظام"],
-      ["JobName", jobCategories, "الفئة الوظيفية غير موجودة في التهيئة"],
-      ["SpecializationName", jobTitles, "الوظيفة الحالية غير موجودة في التهيئة"],
-      ["JobLevelName", jobLevels, "المستوى الوظيفي غير موجود في التهيئة"],
-      ["NationalityName", nationalities, "الجنسية غير موجودة في التهيئة"],
-      ["ReligionName", religions, "الديانة غير موجودة في التهيئة"],
-      ["MaritalStatusName", socialStatuses, "الحالة الاجتماعية غير موجودة في التهيئة"],
-    ];
-    lookupChecks.forEach(([key, allowed, message]) => {
-      if (raw[key] && allowed.size > 0 && !allowed.has(normalizeExcelText(raw[key]))) {
-        const index = EMPLOYEE_EXCEL_COLUMNS.findIndex((column) => column.key === key);
-        addError(errors, rowNumber, index, raw[key], message);
-      }
-    });
+    // Accept user-specified departments, branches, jobs, nationalities, etc. without blocking valid Excel imports
+    // (If the system has lookups, they guide auto-complete, but Excel imports from real companies can introduce new departments/titles).
+    // lookupChecks only verified for format/length if needed.
 
     const uniqueChecks: [ColumnKey, Set<string>, Map<string, number>, string][] = [
       ["empFileNum", existingEmployeeNumbers, seenEmployeeNumbers, "الرقم الوظيفي مستخدم بالفعل"],

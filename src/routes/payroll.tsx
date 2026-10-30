@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { AppShell } from "@/components/hr/AppShell";
 import { CrudTable } from "@/components/hr/CrudTable";
-import { useRows } from "@/lib/hr-db";
+import { useRows, useSaveRow } from "@/lib/hr-db";
 import {
   Breadcrumbs,
   Btn,
@@ -236,6 +237,104 @@ function SettlementPrepare() {
 }
 
 function ExcelUpload() {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const employeesQuery = useRows("employees", { limit: 5000 });
+  const saveEntitlement = useSaveRow("employee_entitlements");
+  const saveDeduction = useSaveRow("employee_deductions");
+  const employees = employeesQuery.data ?? [];
+
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import("xlsx");
+    const headers = [
+      "السنه",
+      "الشهور",
+      "الرقم الوظيفى",
+      "اسم الموظف",
+      "الاستحقاقات",
+      "الاستحقاق القيمة",
+      "الاستقطاعات",
+      "الاستقطاع القيمة",
+      "ملاحظات",
+    ];
+    const sampleRows = employees.slice(0, 5).map((e: any) => [
+      "2026",
+      "04",
+      e["emp_no"] || "",
+      e["full_name"] || "",
+      "مكافأة تميز",
+      500,
+      "",
+      0,
+      "تسوية شهرية",
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "مسودة التسوية");
+    XLSX.writeFile(wb, "مسودة_تسوية_الرواتب.xlsx");
+    toast.success("تم تنزيل نموذج تسوية الرواتب بنجاح بصيغة Excel");
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0] || ""];
+      if (!sheet) throw new Error("لم يتم العثور على ورقة بيانات");
+      const matrix = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+      if (matrix.length < 2) throw new Error("الملف لا يحتوي على بيانات");
+      const dataRows = matrix.slice(1).filter((r) => r.some((c) => String(c).trim()));
+
+      const empByNo = new Map(employees.map((e: any) => [String(e["emp_no"] || "").trim(), e]));
+      let count = 0;
+
+      for (const row of dataRows) {
+        const empNo = String(row[2] || row[0] || "").trim();
+        const emp = empByNo.get(empNo);
+        if (!emp) continue;
+
+        const year = String(row[0] || "2026").trim();
+        const month = String(row[1] || "04").trim();
+        const entName = String(row[4] || "").trim();
+        const entVal = Number(row[5]) || 0;
+        const dedName = String(row[6] || "").trim();
+        const dedVal = Number(row[7]) || 0;
+        const notes = String(row[8] || "").trim();
+
+        if (entName && entVal > 0) {
+          await saveEntitlement.mutateAsync({
+            employee_id: emp["id"],
+            entitlement_name: entName,
+            amount: entVal,
+            is_percentage: false,
+            notes: notes || `${year}-${month} | تسوية إكسل`,
+          });
+          count++;
+        }
+
+        if (dedName && dedVal > 0) {
+          await saveDeduction.mutateAsync({
+            employee_id: emp["id"],
+            deduction_name: dedName,
+            amount: dedVal,
+            is_percentage: false,
+            notes: notes || `${year}-${month} | تسوية إكسل`,
+          });
+          count++;
+        }
+      }
+
+      toast.success(`تم استيراد مسودة التسوية وحفظ ${count} بند مالي في النظام بنجاح`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل استيراد الملف");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
   return (
     <Card title="تجهيز مسودة التسوية التحميل من الاكسيل" icon="upload_file">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -260,13 +359,30 @@ function ExcelUpload() {
         <span className="text-[11px] font-semibold text-muted-foreground">
           xlsx / xls بحد أقصى ٥ ميجابايت
         </span>
-        <input type="file" className="hidden" accept=".xlsx,.xls" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".xlsx,.xls,.csv"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFileUpload(f);
+          }}
+        />
       </label>
       <div className="mt-4 flex justify-center gap-2">
-        <Btn icon="upload" variant="teal">
+        <Btn
+          icon="upload"
+          variant="teal"
+          onClick={() => fileInputRef.current?.click()}
+        >
           رفع
         </Btn>
-        <Btn icon="download" variant="ghost">
+        <Btn
+          icon="download"
+          variant="ghost"
+          onClick={handleDownloadTemplate}
+        >
           تحميل نموذج
         </Btn>
       </div>

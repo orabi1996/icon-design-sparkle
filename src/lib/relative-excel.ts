@@ -225,31 +225,13 @@ export function parseRelativeImportMatrix(
     let nationality = raw.Nationality;
     if (raw.Nationality && references.nationalities.length > 0) {
       const resolved = resolveReference(raw.Nationality, references.nationalities);
-      if (!resolved) {
-        addError(
-          rowNumber,
-          4,
-          raw.Nationality,
-          "الجنسية غير موجودة في قائمة الجنسيات المهيأة بالنظام",
-        );
-      } else {
-        nationality = resolved;
-      }
+      nationality = resolved || raw.Nationality;
     }
 
     let relationship = raw.Relationship;
     if (raw.Relationship && references.relationships.length > 0) {
       const resolved = resolveReference(raw.Relationship, references.relationships);
-      if (!resolved) {
-        addError(
-          rowNumber,
-          2,
-          raw.Relationship,
-          "صلة القرابة غير موجودة في قائمة صلات القرابة المهيأة بالنظام",
-        );
-      } else {
-        relationship = resolved;
-      }
+      relationship = resolved || raw.Relationship;
     }
 
     const gender = raw.Gender ? normalizeGender(raw.Gender) : null;

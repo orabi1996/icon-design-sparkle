@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import {
   Breadcrumbs,
@@ -12,6 +13,7 @@ import {
   Select,
   TableToolbar,
 } from "@/components/hr/ui";
+import { useRows, useSaveRow } from "@/lib/hr-db";
 
 export const Route = createFileRoute("/staff/manager")({
   head: () => ({
@@ -73,6 +75,93 @@ function Panel({ title, children, open = true }: { title: string; children?: Rea
 
 function ManagerPage() {
   const [view, setView] = useState("add");
+  const [selectedEmp, setSelectedEmp] = useState("");
+  const [selectedMgr, setSelectedMgr] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const employeesQuery = useRows("employees", { limit: 5000 });
+  const saveEmployee = useSaveRow("employees");
+
+  const employees = employeesQuery.data ?? [];
+  const empOptions = ["اختر ....", ...employees.map((e) => String(e["full_name"] || e["emp_no"]))];
+  const mgrOptions = ["اختر ....", ...employees.map((e) => String(e["full_name"] || e["emp_no"]))];
+
+  const handleSaveDirect = async () => {
+    if (!selectedEmp || selectedEmp === "اختر ....") {
+      toast.error("يرجى اختيار الموظف");
+      return;
+    }
+    const emp = employees.find(
+      (e) => String(e["full_name"] || e["emp_no"]) === selectedEmp,
+    );
+    if (!emp) return;
+
+    const mgr = selectedMgr === "اختر ...." ? "" : selectedMgr;
+    await saveEmployee.mutateAsync({
+      id: emp["id"],
+      emp_no: emp["emp_no"],
+      manager_name: mgr,
+    });
+    toast.success(mgr ? `تم تعيين ${mgr} كمدير مباشر بنجاح` : "تم إزالة المدير المباشر");
+  };
+
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import("xlsx");
+    const headers = ["الرقم الوظيفي للموظف", "اسم الموظف", "الرقم الوظيفي للمدير", "اسم المدير المباشر"];
+    const sampleRows = employees.slice(0, 5).map((e, idx) => [
+      e["emp_no"] || "",
+      e["full_name"] || "",
+      employees[idx + 1]?.["emp_no"] || "",
+      employees[idx + 1]?.["full_name"] || "",
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "المدير المباشر");
+    XLSX.writeFile(wb, "نموذج_تحديث_المدير_المباشر.xlsx");
+    toast.success("تم تنزيل نموذج المدير المباشر بنجاح");
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0] || ""];
+      if (!sheet) throw new Error("لم يتم العثور على ورقة بيانات");
+      const matrix = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+      if (matrix.length < 2) throw new Error("الملف لا يحتوي على بيانات صالحة");
+      const dataRows = matrix.slice(1).filter((r) => r.some((c) => String(c).trim()));
+
+      const empByNo = new Map(employees.map((e) => [String(e["emp_no"] || "").trim(), e]));
+      const empByName = new Map(employees.map((e) => [String(e["full_name"] || "").trim(), e]));
+
+      let updatedCount = 0;
+      for (const row of dataRows) {
+        const empNo = String(row[0] || "").trim();
+        const empName = String(row[1] || "").trim();
+        const mgrName = String(row[3] || row[2] || "").trim();
+
+        const emp = empByNo.get(empNo) || empByName.get(empName);
+        if (emp && mgrName) {
+          await saveEmployee.mutateAsync({
+            id: emp["id"],
+            emp_no: emp["emp_no"],
+            manager_name: mgrName,
+          });
+          updatedCount++;
+        }
+      }
+      toast.success(`تم استيراد الملف وتحديث المدير المباشر لـ ${updatedCount} موظف بنجاح`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل استيراد الملف");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   return (
     <div className="mt-4">
@@ -97,41 +186,49 @@ function ManagerPage() {
                 بيانات الموظف التنظيمية
               </h3>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {view === "change" && (
-                  <Field label="المدير المباشر الحالي">
-                    <Select options={opts.mgr} />
-                  </Field>
-                )}
-                <Field label="الفرع">
-                  <Select options={opts.branch} />
-                </Field>
-                <Field label="القسم">
-                  <Select options={opts.dept} />
-                </Field>
-                <Field label="القسم الرئيسي">
-                  <Select options={opts.main} />
-                </Field>
-                <Field label="المسار">
-                  <Select options={opts.path} />
-                </Field>
-                <Field label="القطاع">
-                  <Select options={opts.sector} />
-                </Field>
                 <Field label="اسم الموظف" required>
-                  <Select options={opts.emp} />
+                  <select
+                    value={selectedEmp}
+                    onChange={(e) => setSelectedEmp(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-border bg-card px-3 text-[12px] font-semibold outline-none focus:border-primary"
+                  >
+                    {empOptions.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
-                {view === "add" && (
-                  <Field label="المدير المباشر" required>
-                    <Select options={opts.mgr} />
-                  </Field>
-                )}
+                <Field label="المدير المباشر" required={view === "add"}>
+                  <select
+                    value={selectedMgr}
+                    onChange={(e) => setSelectedMgr(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-border bg-card px-3 text-[12px] font-semibold outline-none focus:border-primary"
+                  >
+                    {mgrOptions.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
-                <Btn icon={view === "add" ? "person_add" : "sync"} variant="teal">
+                <Btn
+                  icon={view === "add" ? "person_add" : "sync"}
+                  variant="teal"
+                  onClick={handleSaveDirect}
+                >
                   {view === "add" ? "إضافة مدير مباشر للموظف" : "تغيير المدير المباشر"}
                 </Btn>
                 {view === "change" && (
-                  <button className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/8 px-4 py-2.5 text-[13px] font-bold text-destructive transition-colors hover:bg-destructive/15">
+                  <button
+                    onClick={() => {
+                      setSelectedMgr("");
+                      handleSaveDirect();
+                    }}
+                    className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/8 px-4 py-2.5 text-[13px] font-bold text-destructive transition-colors hover:bg-destructive/15 cursor-pointer"
+                  >
                     <MaterialIcon name="close" size={18} />
                     إزالة المدير المباشر
                   </button>
@@ -147,18 +244,37 @@ function ManagerPage() {
                   <span className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
                     <MaterialIcon name="cloud_upload" size={24} filled />
                   </span>
-                  <span className="text-[13px] font-bold">اسحب ملف الإكسل هنا أو اضغط للاختيار</span>
+                  <span className="text-[13px] font-bold">
+                    {uploading ? "جاري معالجة الملف..." : "اسحب ملف الإكسل هنا أو اضغط للاختيار"}
+                  </span>
                   <span className="text-[11px] font-semibold text-muted-foreground">
                     الصيغ المدعومة: XLSX · XLS · CSV — حتى ١٠ ميجابايت
                   </span>
-                  <input type="file" className="hidden" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileUpload(f);
+                    }}
+                  />
                 </label>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  <Btn icon="upload" variant="teal">
-                    رفع
+                  <Btn
+                    icon="upload"
+                    variant="teal"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    رفع ملف إكسل
                   </Btn>
-                  <Btn icon="download" variant="ghost">
-                    تحميل نموذج
+                  <Btn
+                    icon="download"
+                    variant="ghost"
+                    onClick={handleDownloadTemplate}
+                  >
+                    تحميل نموذج إكسل
                   </Btn>
                 </div>
               </div>

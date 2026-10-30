@@ -199,7 +199,7 @@ async function readVirtualTableRows(table: string): Promise<Row[]> {
       .eq("section", section);
 
     if (!error && Array.isArray(data)) {
-      const merged: Record<string, Row> = { ...localMap };
+      const synced: Record<string, Row> = {};
       for (const item of data) {
         const k = String(item["key"] ?? "");
         const v = item["value"];
@@ -207,15 +207,15 @@ async function readVirtualTableRows(table: string): Promise<Row[]> {
           try {
             const parsed = JSON.parse(v);
             if (parsed && typeof parsed === "object") {
-              merged[k] = { ...parsed, id: parsed["id"] ?? k };
+              synced[k] = { ...parsed, id: parsed["id"] ?? k };
             }
           } catch {
             // ignore malformed JSON
           }
         }
       }
-      writeLocalJson(localKey, merged);
-      return Object.values(merged);
+      writeLocalJson(localKey, synced);
+      return Object.values(synced);
     }
   } catch {
     // Fallback to localMap
@@ -294,7 +294,7 @@ async function readRowExtrasMap(table: string): Promise<Record<string, Row>> {
       .eq("section", section);
 
     if (!error && Array.isArray(data)) {
-      const merged: Record<string, Row> = { ...localMap };
+      const synced: Record<string, Row> = {};
       for (const item of data) {
         const k = String(item["key"] ?? "");
         const v = item["value"];
@@ -302,15 +302,15 @@ async function readRowExtrasMap(table: string): Promise<Record<string, Row>> {
           try {
             const parsed = JSON.parse(v);
             if (parsed && typeof parsed === "object") {
-              merged[k] = { ...(merged[k] ?? {}), ...parsed };
+              synced[k] = parsed;
             }
           } catch {
             // ignore
           }
         }
       }
-      writeLocalJson(localKey, merged);
-      return merged;
+      writeLocalJson(localKey, synced);
+      return synced;
     }
   } catch {
     // Fallback to localMap
@@ -645,10 +645,26 @@ export function useInsertRows(table: HrTable) {
         }
         return saved;
       }
+
+      // Persist extra columns for remote rows
+      if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+          const inserted = data[i] as Row;
+          const origRow = rows[i];
+          if (inserted?.["id"] && origRow) {
+            const { extraValues } = splitRemoteAndExtraColumns(table, origRow);
+            if (Object.keys(extraValues).length > 0) {
+              await saveRowExtras(table, String(inserted["id"]), extraValues);
+            }
+          }
+        }
+      }
+
       return (data ?? []) as Row[];
     },
     onSuccess: (rows) => {
       invalidate(qc, table);
+      qc.invalidateQueries({ queryKey: ["app_settings"] });
       toast.success(`تمت إضافة ${rows.length} سجل بنجاح`);
     },
     onError: (e: Error) => toast.error(`تعذر استيراد البيانات: ${e.message}`),
@@ -695,10 +711,26 @@ export function useUpsertRows(
         }
         return saved;
       }
+
+      // Persist extra columns for upserted rows
+      if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+          const upserted = data[i] as Row;
+          const origRow = rows[i];
+          if (upserted?.["id"] && origRow) {
+            const { extraValues } = splitRemoteAndExtraColumns(table, origRow);
+            if (Object.keys(extraValues).length > 0) {
+              await saveRowExtras(table, String(upserted["id"]), extraValues);
+            }
+          }
+        }
+      }
+
       return (data ?? []) as Row[];
     },
     onSuccess: (rows) => {
       invalidate(qc, table);
+      qc.invalidateQueries({ queryKey: ["app_settings"] });
       toast.success(
         messages?.success?.(rows.length) ??
           `تم تحديث بيانات ${rows.length} موظف بنجاح`,
@@ -732,28 +764,112 @@ export function useApplyStaffBulkImport() {
       rows: Row[];
     }) => {
       if (rows.length === 0) throw new Error("لا توجد بيانات صالحة للحفظ");
-      const { data, error } = await db.rpc("apply_staff_bulk_import", {
-        p_import_type: importType,
-        p_rows: rows,
-      });
-      if (!error && data) {
-        return data as { processed: number; import_type: StaffBulkImportType };
+
+      // Try RPC first
+      try {
+        const { data, error } = await db.rpc("apply_staff_bulk_import", {
+          p_import_type: importType,
+          p_rows: rows,
+        });
+        if (!error && data) {
+          return data as { processed: number; import_type: StaffBulkImportType };
+        }
+      } catch {
+        // Fall back to robust client-side batch persistence
       }
 
-      // Client-side fallback when RPC is not present on the remote schema
+      // Robust fallback handling all 6 bulk import types
       if (importType === "documents") {
         for (const r of rows) {
-          await saveVirtualTableRow("employee_documents", r);
+          const docRow: Row = {
+            employee_id: r["employee_id"],
+            doc_type: r["document_type"] || r["doc_type"] || "مستند رسمي",
+            doc_no: r["document_number"] || r["doc_no"] || "",
+            issue_date: r["document_date"] || r["issue_date"] || null,
+            expiry_date: r["renewal_date"] || r["expiry_date"] || null,
+            notes: (r["notes"] as string) || null,
+          };
+          await saveVirtualTableRow("employee_documents", docRow);
         }
       } else if (importType === "entitlement") {
         for (const r of rows) {
-          await saveVirtualTableRow("employee_entitlements", r);
+          const entRow: Row = {
+            employee_id: r["employee_id"],
+            entitlement_name:
+              r["definition_name"] || r["entitlement_name"] || "بدل",
+            amount: Number(r["amount"]) || 0,
+            is_percentage: false,
+            notes:
+              (r["notes"] as string) ||
+              (r["year"]
+                ? `${r["year"]}-${r["month"] || "01"} | استحقاق جماعي`
+                : null),
+          };
+          await saveVirtualTableRow("employee_entitlements", entRow);
         }
       } else if (importType === "deduction") {
         for (const r of rows) {
-          await saveVirtualTableRow("employee_deductions", r);
+          const dedRow: Row = {
+            employee_id: r["employee_id"],
+            deduction_name:
+              r["definition_name"] || r["deduction_name"] || "استقطاع",
+            amount: Number(r["amount"]) || 0,
+            is_percentage: false,
+            notes:
+              (r["notes"] as string) ||
+              (r["year"]
+                ? `${r["year"]}-${r["month"] || "01"} | استقطاع جماعي`
+                : null),
+          };
+          await saveVirtualTableRow("employee_deductions", dedRow);
+        }
+      } else if (importType === "salaries") {
+        for (const r of rows) {
+          const empId = String(r["employee_id"] || "");
+          if (!empId) continue;
+          const patch: Row = {};
+          if (r["basic_salary"] != null) patch["basic_salary"] = Number(r["basic_salary"]);
+          if (r["status"]) patch["status"] = r["status"];
+          if (r["work_number"]) patch["labor_office_no"] = r["work_number"];
+
+          const { remoteValues, extraValues } = splitRemoteAndExtraColumns("employees", patch);
+          if (Object.keys(remoteValues).length > 0) {
+            await db.from("employees").update(remoteValues).eq("id", empId);
+          }
+          if (Object.keys(extraValues).length > 0) {
+            await saveRowExtras("employees", empId, extraValues);
+          }
+        }
+      } else if (importType === "facility") {
+        for (const r of rows) {
+          const empId = String(r["employee_id"] || "");
+          if (!empId) continue;
+          await saveRowExtras("employees", empId, {
+            labor_office_no: r["work_number"],
+          });
+        }
+      } else if (importType === "bank") {
+        for (const r of rows) {
+          const empId = String(r["employee_id"] || "");
+          if (!empId) continue;
+          const patch: Row = {
+            bank_name: r["bank_code"],
+            bank_account_no: r["bank_account_no"],
+            iban: r["bank_account_no"],
+            payment_method: r["payment_method"],
+          };
+          const { remoteValues, extraValues } = splitRemoteAndExtraColumns("employees", patch);
+          if (Object.keys(remoteValues).length > 0) {
+            await db.from("employees").update(remoteValues).eq("id", empId);
+          }
+          await saveRowExtras("employees", empId, {
+            ...extraValues,
+            bank_account_status: r["bank_account_status"],
+            bank_code: r["bank_code"],
+          });
         }
       }
+
       return { processed: rows.length, import_type: importType };
     },
     onSuccess: () => {
@@ -765,6 +881,7 @@ export function useApplyStaffBulkImport() {
       ] satisfies HrTable[]) {
         invalidate(qc, table);
       }
+      qc.invalidateQueries({ queryKey: ["app_settings"] });
     },
   });
 }

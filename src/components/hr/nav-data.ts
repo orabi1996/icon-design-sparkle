@@ -33,7 +33,45 @@ export const nav: NavItem[] = [
     icon: "lab_profile",
     columns: [
       {
-        title: "تقارير البصمة",
+        title: "تقارير البصمه",
+        groups: [
+          {
+            title: "الحضور والبصمة",
+            items: [
+              { label: "تقرير البصمة", to: "/reports/fingerprint" },
+              { label: "تقرير حضور وإنصراف البصمة", to: "/reports/attendance" },
+              {
+                label: "تقرير الحضور والانصراف التفصيلي",
+                to: "/reports/attendance-detailed",
+              },
+              {
+                label: "تقرير الحضور والإنصراف الشامل",
+                to: "/reports/attendance-comprehensive",
+              },
+            ],
+          },
+          {
+            title: "الغياب",
+            items: [
+              { label: "تقرير غياب الموظف", to: "/reports/absence-employee" },
+              { label: "تقرير الغياب اليومي", to: "/reports/absence-daily" },
+              { label: "تفاصيل قيمة غياب الموظف", to: "/reports/absence-value" },
+              { label: "تقرير عدد أيام الغياب", to: "/reports/absence-days-count" },
+              { label: "تقرير الغياب بالأيام", to: "/reports/absence-days-list" },
+              { label: "تقرير حصر الغياب بالأشهر", to: "/reports/absence-monthly" },
+            ],
+          },
+          {
+            title: "التأخير والانصراف المبكر",
+            items: [
+              { label: "تقرير التأخير اليومي", to: "/reports/daily-late" },
+              { label: "تقرير عدد الدقائق وساعات التأخير", to: "/reports/late-minutes" },
+              { label: "تقرير التأخير بالأيام", to: "/reports/late-days-list" },
+              { label: "تقرير الانصراف المبكر بالأيام", to: "/reports/early-checkout-days" },
+              { label: "تقرير استثناءات الحضور والإنصراف", to: "/reports/exceptions" },
+            ],
+          },
+        ],
         items: [
           { label: "تقرير البصمة", to: "/reports/fingerprint" },
           { label: "تقرير حضور وإنصراف البصمة", to: "/reports/attendance" },
@@ -68,6 +106,51 @@ export const nav: NavItem[] = [
       },
       {
         title: "تقارير بيانات الموظفين",
+        groups: [
+          {
+            title: "البيانات الأساسية للموظف",
+            items: [
+              { label: "تقرير بيانات الموظفين", to: "/reports/employee-data" },
+              { label: "تقرير البيانات الاساسية", to: "/reports/basic-data" },
+              { label: "تقرير ملفات الموظفين", to: "/reports/employee-files" },
+              { label: "تقرير المرافقين", to: "/reports/employee-dependents" },
+              { label: "تقرير البيانات المالية", to: "/reports/financial-data" },
+            ],
+          },
+          {
+            title: "التعيينات والخدمة والطلبات",
+            items: [
+              { label: "تقرير التعيينات وإنهاء الخدمة", to: "/reports/hire-and-termination" },
+              { label: "تقرير عقود الموظفين", to: "/reports/employee-contracts-report" },
+              { label: "تقرير الطلبات المتنوعة", to: "/reports/requests-summary" },
+              { label: "طلبات نهاية الخدمة", to: "/end-of-service-requests" },
+              { label: "المسائلات", to: "/inquiries" },
+              { label: "المراسلات", to: "/correspondence" },
+              { label: "الأذونات", to: "/permits" },
+            ],
+          },
+          {
+            title: "طباعة النماذج الاداريه",
+            items: [
+              { label: "طباعة النماذج الإدارية", to: "/reports/admin-forms" },
+            ],
+          },
+          {
+            title: "التقييم والتأمين الطبي",
+            items: [
+              { label: "تقرير التقييم", to: "/reports/evaluation" },
+              { label: "تقرير التأمين الطبي للموظفين", to: "/reports/medical-insurance" },
+            ],
+          },
+          {
+            title: "تفاصيل اجازات الموظفين",
+            items: [
+              { label: "تقرير اجازات الموظفين", to: "/reports/employee-leaves" },
+              { label: "تقرير الشهادات", to: "/reports/employee-certificates" },
+              { label: "تقرير الدورات التدريبية", to: "/reports/employee-training" },
+            ],
+          },
+        ],
         items: [
           { label: "تقرير بيانات الموظفين", to: "/reports/employee-data" },
           { label: "تقرير البيانات الاساسية", to: "/reports/basic-data" },
@@ -85,6 +168,42 @@ export const nav: NavItem[] = [
       },
       {
         title: "تقارير ماليات الموظفين",
+        groups: [
+          {
+            title: "الرواتب والمسير",
+            items: [
+              { label: "مسير الرواتب", to: "/reports/payroll-sheet" },
+              { label: "مقارنة بين شهرين للمسير", to: "/reports/payroll-comparison" },
+              { label: "تقرير تعديل المسير", to: "/reports/payroll-adjustments" },
+              { label: "تقرير البيانات المالية", to: "/reports/financial-data" },
+            ],
+          },
+          {
+            title: "الاستحقاقات والاستقطاعات",
+            items: [
+              { label: "تقرير الاستحقاقات والاستقطاعات", to: "/reports/entitlements-deductions" },
+              { label: "لائحة الإستحقاقات", to: "/regulations" },
+              { label: "لائحة الإستقطاعات", to: "/regulations/deductions" },
+            ],
+          },
+          {
+            title: "السلف والعهد",
+            items: [
+              { label: "تقرير بيانات السلف", to: "/reports/loans-data" },
+              { label: "تقرير رصيد السلف", to: "/reports/loans-balance" },
+              { label: "تقرير العهد النقدية", to: "/reports/petty-cash" },
+              { label: "مخصص نهاية الخدمة", to: "/end-of-service-provision" },
+            ],
+          },
+          {
+            title: "كشوف حسابات الموظفين",
+            items: [
+              { label: "تقرير كشف الحساب البنكي", to: "/reports/bank-statement" },
+              { label: "كشف حساب الموظف للعام", to: "/reports/employee-account-statement" },
+              { label: "ملف البنك", to: "/payroll/bank-file" },
+            ],
+          },
+        ],
         items: [
           { label: "مسير الرواتب", to: "/reports/payroll-sheet" },
           { label: "مقارنة بين شهرين للمسير", to: "/reports/payroll-comparison" },
@@ -98,7 +217,38 @@ export const nav: NavItem[] = [
         ],
       },
       {
-        title: "تقارير إحصائية",
+        title: "تقارير احصائيه",
+        groups: [
+          {
+            title: "إحصائيات القوى العاملة",
+            items: [
+              { label: "تقرير الموازنة التقديرية للقوى العاملة", to: "/reports/manpower-budget" },
+              { label: "تقرير اعداد الموظفين", to: "/reports/employee-headcount" },
+            ],
+          },
+          {
+            title: "التعميمات والاستبيانات",
+            items: [
+              { label: "تقرير التعميمات والاستبيانات", to: "/reports/surveys-report" },
+              { label: "تقرير الطلبات المتنوعة", to: "/reports/requests-summary" },
+            ],
+          },
+          {
+            title: "المستندات والشهادات",
+            items: [
+              { label: "تقرير عقود الموظفين", to: "/reports/employee-contracts-report" },
+              { label: "تقرير الشهادات", to: "/reports/employee-certificates" },
+              { label: "تقرير الدورات التدريبية", to: "/reports/employee-training" },
+            ],
+          },
+          {
+            title: "تحليل الحضور",
+            items: [
+              { label: "تقرير إحصائي عن الحضور والانصراف", to: "/reports/attendance-statistics" },
+              { label: "مقارنة الغياب والتأخير للفروع والأقسام", to: "/reports/absence-late-comparison" },
+            ],
+          },
+        ],
         items: [
           { label: "تقرير الموازنة التقديرية للقوى العاملة", to: "/reports/manpower-budget" },
           { label: "تقرير اعداد الموظفين", to: "/reports/employee-headcount" },
@@ -109,6 +259,21 @@ export const nav: NavItem[] = [
       },
       {
         title: "تقارير تاريخية",
+        groups: [
+          {
+            title: "سجلات الإجازات التاريخية",
+            items: [
+              { label: "تقرير الملف التاريخي لاجازات الموظفين", to: "/reports/historical-leaves" },
+            ],
+          },
+          {
+            title: "الأرشيف",
+            items: [
+              { label: "الأرشيف", to: "/reports/archive" },
+              { label: "طلبات نهاية الخدمة", to: "/end-of-service-requests" },
+            ],
+          },
+        ],
         items: [
           { label: "تقرير الملف التاريخي لاجازات الموظفين", to: "/reports/historical-leaves" },
           { label: "الأرشيف", to: "/reports/archive" },

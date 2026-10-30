@@ -305,6 +305,7 @@ export function EmployeeDataTab({
   const [docForm, setDocForm] = useState({
     doc_type: "",
     doc_no: "",
+    has_dates: true,
     issue_date: "2026-04-12",
     expiry_date: "2026-04-12",
     attachment: "",
@@ -355,13 +356,14 @@ export function EmployeeDataTab({
       emp_no: employee.emp_no,
       doc_type: docForm.doc_type,
       doc_no: docForm.doc_no,
-      issue_date: docForm.issue_date || null,
-      expiry_date: docForm.expiry_date || null,
+      issue_date: docForm.has_dates ? docForm.issue_date || null : null,
+      expiry_date: docForm.has_dates ? docForm.expiry_date || null : null,
       notes: docForm.attachment || null,
     });
     setDocForm({
       doc_type: "",
       doc_no: "",
+      has_dates: true,
       issue_date: "2026-04-12",
       expiry_date: "2026-04-12",
       attachment: "",
@@ -1495,19 +1497,35 @@ export function EmployeeDataTab({
               <>
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <ProfileField label="اسم المستند">
+                    <ProfileField label="اسم المستند" required>
                       <ClearableSelect
                         value={docForm.doc_type}
-                        onChange={(v) =>
-                          setDocForm((p) => ({ ...p, doc_type: v }))
-                        }
+                        onChange={(v) => {
+                          const noExpiryDocs = [
+                            "شهادة الآيبان البنكي",
+                            "مسوغات التعيين",
+                            "السيرة الذاتية",
+                            "إخلاء طرف",
+                          ];
+                          setDocForm((p) => ({
+                            ...p,
+                            doc_type: v,
+                            has_dates: v
+                              ? !noExpiryDocs.includes(v)
+                              : p.has_dates,
+                          }));
+                        }}
                         options={[
                           "الهوية الوطنية / الإقامة",
                           "جواز السفر",
                           "رخصة القيادة",
                           "الشهادة الصحية",
-                          "شهادة الآيبان البنكي",
                           "عقد العمل الموقع",
+                          "شهادة التأمينات الاجتماعية",
+                          "شهادة الآيبان البنكي",
+                          "مسوغات التعيين",
+                          "السيرة الذاتية",
+                          "إخلاء طرف",
                         ]}
                       />
                     </ProfileField>
@@ -1521,60 +1539,110 @@ export function EmployeeDataTab({
                         onChange={(e) =>
                           setDocForm((p) => ({ ...p, doc_no: e.target.value }))
                         }
+                        placeholder="أدخل رقم المستند (اختياري)"
                       />
                     </ProfileField>
 
-                    <ProfileField label="تاريخ البداية ميلادي">
-                      <input
-                        type="date"
-                        dir="ltr"
-                        className={fieldInputClass}
-                        value={docForm.issue_date}
-                        onChange={(e) =>
-                          setDocForm((p) => ({
-                            ...p,
-                            issue_date: e.target.value,
-                          }))
-                        }
-                      />
+                    {/* السؤال قبل إظهار تاريخ البداية وتاريخ النهاية */}
+                    <ProfileField
+                      label="هل المستند له تاريخ بداية وتاريخ نهاية؟"
+                      className="md:col-span-2"
+                    >
+                      <div className="grid h-9 grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDocForm((p) => ({ ...p, has_dates: true }))
+                          }
+                          className={`flex items-center justify-center gap-1.5 rounded-md text-xs font-bold transition ${
+                            docForm.has_dates
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-slate-600 hover:bg-white/80"
+                          }`}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>نعم، له تاريخ بداية ونهاية</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDocForm((p) => ({ ...p, has_dates: false }))
+                          }
+                          className={`flex items-center justify-center gap-1.5 rounded-md text-xs font-bold transition ${
+                            !docForm.has_dates
+                              ? "bg-slate-700 text-white shadow-xs"
+                              : "text-slate-600 hover:bg-white/80"
+                          }`}
+                        >
+                          <span>لا (بدون تاريخ صلاحية)</span>
+                        </button>
+                      </div>
                     </ProfileField>
 
-                    <ProfileField label="تاريخ النهاية ميلادي">
-                      <input
-                        type="date"
-                        dir="ltr"
-                        className={fieldInputClass}
-                        value={docForm.expiry_date}
-                        onChange={(e) =>
-                          setDocForm((p) => ({
-                            ...p,
-                            expiry_date: e.target.value,
-                          }))
-                        }
-                      />
-                    </ProfileField>
+                    {docForm.has_dates ? (
+                      <>
+                        <ProfileField label="تاريخ البداية ميلادي">
+                          <input
+                            type="date"
+                            dir="ltr"
+                            className={fieldInputClass}
+                            value={docForm.issue_date}
+                            onChange={(e) =>
+                              setDocForm((p) => ({
+                                ...p,
+                                issue_date: e.target.value,
+                              }))
+                            }
+                          />
+                        </ProfileField>
 
-                    <ProfileField label="تاريخ البداية هجري">
-                      <input
-                        type="text"
-                        dir="ltr"
-                        readOnly
-                        className={`${fieldInputClass} bg-slate-50`}
-                        value={toHijriDate(docForm.issue_date)}
-                      />
-                    </ProfileField>
+                        <ProfileField label="تاريخ النهاية ميلادي">
+                          <input
+                            type="date"
+                            dir="ltr"
+                            className={fieldInputClass}
+                            value={docForm.expiry_date}
+                            onChange={(e) =>
+                              setDocForm((p) => ({
+                                ...p,
+                                expiry_date: e.target.value,
+                              }))
+                            }
+                          />
+                        </ProfileField>
 
-                    <ProfileField label="تاريخ النهاية هجري">
-                      <input
-                        type="text"
-                        dir="ltr"
-                        readOnly
-                        className={`${fieldInputClass} bg-slate-50`}
-                        value={toHijriDate(docForm.expiry_date)}
-                      />
-                    </ProfileField>
+                        <ProfileField label="تاريخ البداية هجري">
+                          <input
+                            type="text"
+                            dir="ltr"
+                            readOnly
+                            className={`${fieldInputClass} bg-slate-50`}
+                            value={toHijriDate(docForm.issue_date)}
+                          />
+                        </ProfileField>
 
-                    <ProfileField label="المرفقات" className="lg:col-span-2">
+                        <ProfileField label="تاريخ النهاية هجري">
+                          <input
+                            type="text"
+                            dir="ltr"
+                            readOnly
+                            className={`${fieldInputClass} bg-slate-50`}
+                            value={toHijriDate(docForm.expiry_date)}
+                          />
+                        </ProfileField>
+                      </>
+                    ) : (
+                      <div className="md:col-span-2 flex items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-3.5 py-2 text-xs font-semibold text-slate-500">
+                        هذا المستند دائم وغير مرتبط بتاريخ بداية أو انتهاء صلاحية.
+                      </div>
+                    )}
+
+                    <ProfileField
+                      label="المرفقات"
+                      className={
+                        docForm.has_dates ? "lg:col-span-4" : "md:col-span-2"
+                      }
+                    >
                       <FileUploadBox
                         fileName={docForm.attachment}
                         onFileSelect={(name) =>
@@ -1600,8 +1668,30 @@ export function EmployeeDataTab({
                   columns={[
                     { key: "doc_type", label: "اسم المستند" },
                     { key: "doc_no", label: "رقم المستند" },
-                    { key: "issue_date", label: "تاريخ البداية" },
-                    { key: "expiry_date", label: "تاريخ النهاية" },
+                    {
+                      key: "has_validity",
+                      label: "صلاحية المستند",
+                      render: (r) =>
+                        r.issue_date || r.expiry_date ? (
+                          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-700">
+                            محدد بتاريخ
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
+                            بدون تاريخ صلاحية
+                          </span>
+                        ),
+                    },
+                    {
+                      key: "issue_date",
+                      label: "تاريخ البداية",
+                      render: (r) => r.issue_date || "لا يوجد",
+                    },
+                    {
+                      key: "expiry_date",
+                      label: "تاريخ النهاية",
+                      render: (r) => r.expiry_date || "لا يوجد",
+                    },
                     { key: "notes", label: "المرفقات" },
                     {
                       key: "actions",

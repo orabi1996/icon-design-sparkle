@@ -24,6 +24,7 @@ import {
   ProfileField,
   ClearableSelect,
   FileUploadBox,
+  AttachmentPreviewCell,
   ProfileGridTable,
   fieldInputClass,
   toHijriDate,
@@ -1692,7 +1693,11 @@ export function EmployeeDataTab({
                       label: "تاريخ النهاية",
                       render: (r) => r.expiry_date || "لا يوجد",
                     },
-                    { key: "notes", label: "المرفقات" },
+                    {
+                      key: "notes",
+                      label: "المرفقات",
+                      render: (r) => <AttachmentPreviewCell value={r.notes} />,
+                    },
                     {
                       key: "actions",
                       label: "حذف",
@@ -2551,9 +2556,13 @@ export function EmployeeDataTab({
                     {
                       key: "attachment",
                       label: "صورة جواز السفر - الهوية",
-                      render: (r) =>
-                        profileExtras.relatives_meta?.[r.name]?.attachment ||
-                        "—",
+                      render: (r) => (
+                        <AttachmentPreviewCell
+                          value={
+                            profileExtras.relatives_meta?.[r.name]?.attachment
+                          }
+                        />
+                      ),
                     },
                     {
                       key: "del",

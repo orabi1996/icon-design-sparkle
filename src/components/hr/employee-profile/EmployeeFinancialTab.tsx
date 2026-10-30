@@ -17,6 +17,7 @@ import {
   ProfileField,
   ClearableSelect,
   FileUploadBox,
+  AttachmentPreviewCell,
   ProfileGridTable,
   fieldInputClass,
   formatNumber,
@@ -263,7 +264,7 @@ export function EmployeeFinancialTab({
       deduction_name: dedForm.deduction_name,
       amount: Number(dedForm.amount) || 0,
       is_percentage: false,
-      notes: `${dedForm.year}-${dedForm.months} | ${dedForm.notes || ""}`.trim(),
+      notes: `${dedForm.year}-${dedForm.months} | ${dedForm.notes || ""} | ${dedForm.attachment || ""}`.trim(),
     });
     setDedForm({
       ...dedForm,
@@ -896,7 +897,18 @@ export function EmployeeFinancialTab({
                   render: (r) =>
                     String(r.notes || "").split("|")[1] || r.notes || "—",
                 },
-                { key: "attachment", label: "المرفقات", render: () => "—" },
+                {
+                  key: "attachment",
+                  label: "المرفقات",
+                  render: (r) => (
+                    <AttachmentPreviewCell
+                      value={
+                        (String(r.notes || "").split("|")[2] || "").trim() ||
+                        r.attachment
+                      }
+                    />
+                  ),
+                },
                 {
                   key: "del",
                   label: "حذف",
@@ -1150,7 +1162,11 @@ export function EmployeeFinancialTab({
                 ),
               },
               { key: "notes", label: "ملاحظات" },
-              { key: "attachment", label: "المرفقات", render: () => "—" },
+              {
+                key: "attachment",
+                label: "المرفقات",
+                render: (r) => <AttachmentPreviewCell value={r.attachment} />,
+              },
             ]}
             rows={empLoans}
           />

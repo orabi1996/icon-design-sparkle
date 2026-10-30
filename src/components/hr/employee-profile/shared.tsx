@@ -92,6 +92,245 @@ export function ClearableSelect({
   );
 }
 
+const attachmentMemoryStore = new Map<string, string>();
+
+export function saveAttachmentData(fileName: string, dataUrl: string): void {
+  if (!fileName || !dataUrl) return;
+  attachmentMemoryStore.set(fileName, dataUrl);
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem("hr_attachments_store");
+    const map: Record<string, string> = raw ? JSON.parse(raw) : {};
+    map[fileName] = dataUrl;
+    window.localStorage.setItem("hr_attachments_store", JSON.stringify(map));
+  } catch {
+    // If localStorage quota is exceeded, memory store still holds it for the session
+  }
+}
+
+export function getAttachmentData(value: string): string | null {
+  if (!value) return null;
+  const str = String(value).trim();
+  if (str.startsWith("data:") || str.startsWith("blob:") || str.startsWith("http")) {
+    return str;
+  }
+  const mem = attachmentMemoryStore.get(str);
+  if (mem) return mem;
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem("hr_attachments_store");
+      if (raw) {
+        const map: Record<string, string> = JSON.parse(raw);
+        if (map[str]) return map[str];
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+export function isImageAttachment(nameOrUrl: string): boolean {
+  if (!nameOrUrl) return false;
+  const lower = String(nameOrUrl).toLowerCase();
+  return (
+    lower.startsWith("data:image/") ||
+    /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i.test(lower)
+  );
+}
+
+export function AttachmentPreviewModal({
+  isOpen,
+  fileName,
+  fileUrl,
+  onClose,
+}: {
+  isOpen: boolean;
+  fileName: string;
+  fileUrl: string | null;
+  onClose: () => void;
+}) {
+  if (!isOpen) return null;
+  const isImg = isImageAttachment(fileUrl || fileName);
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in"
+      onClick={onClose}
+      dir="rtl"
+    >
+      <div
+        className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <div className="flex items-center gap-2.5">
+            <div className="grid size-9 place-items-center rounded-xl bg-blue-100 text-[#0b57d0]">
+              <MaterialIcon name={isImg ? "image" : "description"} size={20} />
+            </div>
+            <div className="text-right">
+              <h3 className="text-sm font-bold text-slate-800 truncate max-w-md">{fileName || "عرض المرفق"}</h3>
+              <p className="text-[11px] text-slate-500">{isImg ? "ملف صورة معتمد" : "مستند رسمي"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {fileUrl ? (
+              <a
+                href={fileUrl}
+                download={fileName || "attachment"}
+                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100"
+              >
+                <MaterialIcon name="download" size={16} />
+                <span>تحميل</span>
+              </a>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-8 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+            >
+              <MaterialIcon name="close" size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex min-h-[320px] max-h-[75vh] items-center justify-center overflow-auto bg-slate-100/60 p-6">
+          {fileUrl && isImg ? (
+            <img
+              src={fileUrl}
+              alt={fileName}
+              className="max-h-[68vh] max-w-full rounded-xl object-contain shadow-md"
+            />
+          ) : fileUrl && !isImg ? (
+            <iframe
+              src={fileUrl}
+              title={fileName}
+              className="h-[65vh] w-full rounded-xl border border-slate-200 bg-white shadow-sm"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8 text-center shadow-xs">
+              <div className="grid size-16 place-items-center rounded-2xl bg-blue-50 text-blue-600">
+                <MaterialIcon name={isImg ? "image" : "insert_drive_file"} size={36} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-slate-800">{fileName}</p>
+                <p className="text-xs text-slate-500">تم تسجيل هذا المرفق مسبقاً في النظام</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-slate-200 bg-white px-5 py-2.5 text-xs text-slate-500">
+          <span>الحالة: مرفق معتمد</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-slate-100 px-4 py-1.5 font-bold text-slate-700 hover:bg-slate-200 cursor-pointer"
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AttachmentPreviewCell({
+  value,
+  label = "عرض المرفق",
+}: {
+  value?: string | null | undefined;
+  label?: string | undefined;
+}) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const trimmed = String(value ?? "").trim();
+
+  if (
+    !trimmed ||
+    trimmed === "—" ||
+    trimmed === "-" ||
+    trimmed === "لا يوجد" ||
+    trimmed === "null" ||
+    trimmed === "undefined"
+  ) {
+    return <span className="text-slate-400 text-[11px]">لا يوجد مرفق</span>;
+  }
+
+  const dataUrl = getAttachmentData(trimmed);
+  const isImg = isImageAttachment(dataUrl || trimmed);
+
+  return (
+    <>
+      <div className="inline-flex items-center justify-center gap-2 py-0.5">
+        {/* Visual Thumbnail */}
+        {isImg ? (
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            title="اضغط لتكبير ومعاينة الصورة"
+            className="group relative size-8 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-2xs transition hover:border-[#1d6fa5] hover:scale-105 cursor-pointer"
+          >
+            {dataUrl ? (
+              <img
+                src={dataUrl}
+                alt={trimmed}
+                className="size-full object-cover"
+              />
+            ) : (
+              <div className="grid size-full place-items-center bg-blue-50 text-[#1d6fa5]">
+                <MaterialIcon name="image" size={16} />
+              </div>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            title="معاينة المستند"
+            className="grid size-8 shrink-0 place-items-center rounded-lg border border-slate-200 bg-amber-50 text-amber-700 shadow-2xs hover:border-amber-400 hover:scale-105 transition cursor-pointer"
+          >
+            <MaterialIcon name="description" size={16} />
+          </button>
+        )}
+
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-bold text-[#1d6fa5] transition hover:bg-sky-100 hover:border-sky-300 cursor-pointer shadow-2xs"
+        >
+          <MaterialIcon name={isImg ? "visibility" : "file_open"} size={13} />
+          <span>{label}</span>
+        </button>
+
+        {/* Download Button (if fileUrl available) */}
+        {dataUrl && (
+          <a
+            href={dataUrl}
+            download={trimmed}
+            title="تحميل المرفق"
+            className="grid size-6 place-items-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 hover:border-emerald-300"
+          >
+            <MaterialIcon name="download" size={13} />
+          </a>
+        )}
+      </div>
+
+      {modalOpen && (
+        <AttachmentPreviewModal
+          isOpen={modalOpen}
+          fileName={trimmed}
+          fileUrl={dataUrl}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
 export function FileUploadBox({
   fileName,
   onFileSelect,
@@ -101,16 +340,96 @@ export function FileUploadBox({
   onFileSelect: (fileName: string) => void;
   label?: string | undefined;
 }) {
+  const previewUrl = fileName ? getAttachmentData(fileName) : null;
+  const isImg = fileName ? isImageAttachment(previewUrl || fileName) : false;
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      onFileSelect("");
+      return;
+    }
+    const objUrl = URL.createObjectURL(file);
+    saveAttachmentData(file.name, objUrl);
+    onFileSelect(file.name);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        saveAttachmentData(file.name, reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
-    <label className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-sky-300 bg-sky-50/30 px-3 text-xs font-bold text-[#1d6fa5] transition hover:bg-sky-50">
-      <MaterialIcon name="cloud_upload" size={20} className="text-[#1d6fa5]" />
-      <span className="truncate">{fileName || label}</span>
-      <input
-        type="file"
-        className="hidden"
-        onChange={(e) => onFileSelect(e.target.files?.[0]?.name ?? "")}
-      />
-    </label>
+    <div className="relative">
+      {fileName ? (
+        <div className="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-sky-300 bg-sky-50/60 px-3 text-xs">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            {isImg && previewUrl ? (
+              <img
+                src={previewUrl}
+                alt={fileName}
+                onClick={() => setModalOpen(true)}
+                className="size-8 cursor-pointer rounded-lg border border-sky-200 object-cover shadow-2xs transition hover:scale-105"
+                title="اضغط لمعاينة الصورة"
+              />
+            ) : (
+              <div className="grid size-8 place-items-center rounded-lg bg-sky-100 text-[#1d6fa5]">
+                <MaterialIcon name={isImg ? "image" : "description"} size={18} />
+              </div>
+            )}
+            <div className="flex flex-col overflow-hidden text-right">
+              <span className="truncate font-bold text-slate-800 text-[11px]" title={fileName}>
+                {fileName}
+              </span>
+              <span className="text-[10px] text-sky-700">تم اختيار المرفق بنجاح</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-white px-2.5 py-1 text-[11px] font-bold text-[#1d6fa5] hover:bg-sky-100 transition cursor-pointer"
+            >
+              <MaterialIcon name="visibility" size={13} />
+              <span>معاينة</span>
+            </button>
+            <label className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+              <MaterialIcon name="sync" size={13} />
+              <span>تغيير</span>
+              <input type="file" className="hidden" onChange={handleChange} />
+            </label>
+            <button
+              type="button"
+              onClick={() => onFileSelect("")}
+              title="إزالة المرفق"
+              className="grid size-7 place-items-center rounded-lg text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+            >
+              <MaterialIcon name="close" size={16} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <label className="flex h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-dashed border-sky-300 bg-sky-50/30 px-3 text-xs font-bold text-[#1d6fa5] transition hover:bg-sky-50 hover:border-sky-400">
+          <MaterialIcon name="cloud_upload" size={20} className="text-[#1d6fa5]" />
+          <span className="truncate">{label}</span>
+          <input type="file" className="hidden" onChange={handleChange} />
+        </label>
+      )}
+
+      {modalOpen && (
+        <AttachmentPreviewModal
+          isOpen={modalOpen}
+          fileName={fileName || ""}
+          fileUrl={previewUrl}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -191,7 +510,7 @@ export function ProfileGridTable({
   columns: {
     key: string;
     label: string;
-    type?: "text" | "date" | "action";
+    type?: "text" | "date" | "action" | "attachment";
     render?: (row: any, idx: number) => ReactNode;
   }[];
   rows: any[];
@@ -336,14 +655,35 @@ export function ProfileGridTable({
                   key={String(row["id"] ?? idx)}
                   className="border-b border-slate-200/70 odd:bg-white even:bg-slate-50/60 hover:bg-sky-50/40"
                 >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className="h-9 whitespace-nowrap border-l border-slate-200/60 px-2.5 font-medium text-slate-700"
-                    >
-                      {col.render ? col.render(row, idx) : String(row[col.key] ?? "—") || "—"}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const isAttachment =
+                      col.type === "attachment" ||
+                      col.key === "attachment" ||
+                      col.key === "file" ||
+                      col.label.includes("المرفق") ||
+                      col.label.includes("المرفقات") ||
+                      col.label.includes("جواز السفر") ||
+                      (col.key === "notes" &&
+                        (col.label.includes("مرفق") || col.label.includes("المرفقات")));
+
+                    let content: ReactNode;
+                    if (col.render) {
+                      content = col.render(row, idx);
+                    } else if (isAttachment) {
+                      content = <AttachmentPreviewCell value={row[col.key]} />;
+                    } else {
+                      content = String(row[col.key] ?? "—") || "—";
+                    }
+
+                    return (
+                      <td
+                        key={col.key}
+                        className="h-9 whitespace-nowrap border-l border-slate-200/60 px-2.5 font-medium text-slate-700"
+                      >
+                        {content}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}

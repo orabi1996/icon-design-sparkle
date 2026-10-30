@@ -72,6 +72,17 @@ export function EmployeeDataTab({
   const deleteRelative = useDeleteRow("employee_relatives");
 
   const { data: allShiftGroups = [] } = useRows("work_shift_groups") as { data?: any[] };
+  const { data: idTypeLookups = [] } = useRows("basic_lookups", {
+    filters: { category: "نوع الهوية" },
+  }) as { data?: any[] };
+
+  const idTypeOptions = React.useMemo(() => {
+    const list = idTypeLookups
+      .filter((l: any) => l.active !== false && l.name)
+      .map((l: any) => String(l.name));
+    if (list.length > 0) return list;
+    return ["الهوية الوطنية", "الإقامة", "جواز سفر", "الرقم القومي"];
+  }, [idTypeLookups]);
 
   const empDocuments = allDocuments.filter(
     (d) =>
@@ -593,9 +604,9 @@ export function EmployeeDataTab({
 
                   <ProfileField label="نوع الهويه" required>
                     <ClearableSelect
-                      value={form.id_type || "هوية وطنية"}
+                      value={form.id_type || idTypeOptions[0] || "الهوية الوطنية"}
                       onChange={(v) => updateField("id_type", v)}
-                      options={["هوية وطنية", "إقامة", "جواز سفر", "هوية خليجية"]}
+                      options={idTypeOptions}
                     />
                   </ProfileField>
 

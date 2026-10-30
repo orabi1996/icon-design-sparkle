@@ -13,6 +13,11 @@ import { Breadcrumbs } from "@/components/hr/ui";
 import { useRows, useSaveRow, type Row } from "@/lib/hr-db";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidSaudiNationalId, isValidIban } from "@/lib/employee-core.mjs";
+import {
+  DEFAULT_ID_TYPES,
+  validateIdNumberAgainstRule,
+  type IdTypeRule,
+} from "@/components/hr/IdTypeSettings";
 
 type Value = string | number | boolean;
 
@@ -58,6 +63,7 @@ const emptyForm = {
   full_name: "",
   employee_name_en: "",
   social_status: "",
+  id_type: "الهوية الوطنية",
   national_id: "",
   fingerprint_no: "",
   nationality: "",
@@ -138,6 +144,7 @@ type EmployeeForm = { [K in keyof typeof emptyForm]: Value };
 const labels: Record<string, string> = {
   emp_no: "الرقم الوظيفي",
   full_name: "اسم الموظف رباعي",
+  id_type: "نوع الهوية",
   national_id: "رقم الهوية",
   nationality: "الجنسية",
   religion: "الديانة",
@@ -168,7 +175,7 @@ const labels: Record<string, string> = {
 };
 
 const requiredByStep: (keyof EmployeeForm)[][] = [
-  ["emp_no", "full_name", "national_id", "nationality", "religion", "gender"],
+  ["emp_no", "full_name", "id_type", "national_id", "nationality", "religion", "gender"],
   [
     "region",
     "branch",
@@ -381,6 +388,66 @@ export function EmployeeWizard() {
   const [photoPreview, setPhotoPreview] = useState("");
   const [dupAlert, setDupAlert] = useState<{ field: string; name: string; empNo: string } | null>(null);
 
+  const { data: rawIdTypes = [] } = useRows("basic_lookups", {
+    filters: { category: "نوع الهوية" },
+    orderBy: "created_at",
+    ascending: true,
+  });
+
+  const { idTypeOptions, idTypeRulesMap, defaultIdType } = useMemo(() => {
+    const records: { name_ar: string; rule: IdTypeRule }[] = [];
+    if (rawIdTypes.length > 0) {
+      for (const r of rawIdTypes) {
+        if (r["active"] === false) continue;
+        let rule: IdTypeRule = {
+          formatType: "أرقام فقط",
+          startsWith: "",
+          minDigits: "",
+          maxDigits: "",
+          sortOrder: 0,
+          ruleSummary: "أرقام فقط",
+        };
+        if (typeof r["details"] === "string" && r["details"].startsWith("{")) {
+          try {
+            const parsed = JSON.parse(r["details"]);
+            rule = {
+              formatType: parsed.formatType || "أرقام فقط",
+              startsWith: parsed.startsWith || "",
+              minDigits: String(parsed.minDigits ?? ""),
+              maxDigits: String(parsed.maxDigits ?? ""),
+              sortOrder: Number(parsed.sortOrder ?? 0),
+              ruleSummary: parsed.ruleSummary || "",
+            };
+          } catch {}
+        }
+        records.push({
+          name_ar: String(r["name"] ?? "").trim(),
+          rule,
+        });
+      }
+    }
+    if (records.length === 0) {
+      for (const d of DEFAULT_ID_TYPES) {
+        if (d.isActive) {
+          records.push({ name_ar: d.name_ar, rule: d.rule });
+        }
+      }
+    }
+    const map = new Map<string, IdTypeRule>();
+    const options: string[] = [];
+    for (const item of records) {
+      if (item.name_ar && !options.includes(item.name_ar)) {
+        options.push(item.name_ar);
+        map.set(item.name_ar, item.rule);
+      }
+    }
+    return {
+      idTypeOptions: options,
+      idTypeRulesMap: map,
+      defaultIdType: options[0] || "الهوية الوطنية",
+    };
+  }, [rawIdTypes]);
+
   const departmentOptions = useMemo(
     () => departments.map((row) => String(row["name"] ?? "")).filter(Boolean),
     [departments],
@@ -460,6 +527,15 @@ export function EmployeeWizard() {
     }
     if (index === 0 && form.national_id) {
       const nid = String(form.national_id).trim();
+      const currentIdType = String(form.id_type || defaultIdType).trim();
+      const rule = idTypeRulesMap.get(currentIdType);
+      if (rule) {
+        const valRes = validateIdNumberAgainstRule(nid, rule);
+        if (!valRes.valid) {
+          toast.error(`${currentIdType || "رقم الهوية"}: ${valRes.message}`);
+          return false;
+        }
+      }
       if (/^[12]\d{9}$/.test(nid) && !isValidSaudiNationalId(nid)) {
         toast.error("رقم الهوية الوطنية / الإقامة غير صحيح وفق خوارزمية التدقيق الرسمية");
         return false;
@@ -589,6 +665,13 @@ export function EmployeeWizard() {
             </Field>
             <Field label="الحالة الاجتماعية">
               <SelectControl value={form.social_status} onChange={(value) => set("social_status", value)} options={socialStatuses} />
+            </Field>
+            <Field label="نوع الهوية" required>
+              <SelectControl
+                value={form.id_type || defaultIdType}
+                onChange={(value) => set("id_type", value)}
+                options={idTypeOptions}
+              />
             </Field>
             <Field label="رقم الهوية" required>
               <InputControl value={form.national_id} onChange={(value) => set("national_id", value)} />

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { Breadcrumbs, PageBanner } from "@/components/hr/ui";
 import { CrudTable, type FieldDef } from "@/components/hr/CrudTable";
+import { IdTypeSettingsSection } from "@/components/hr/IdTypeSettings";
 
 export const Route = createFileRoute("/settings/basic")({
   head: () => ({
@@ -92,6 +93,12 @@ const SECTIONS: Section[] = [
       { key: "sabb_code", label: "رمز البنك الخاص ب SABB" },
       { key: "flag", label: "بنك صرف الرواتب", type: "checkbox" },
     ],
+  },
+  {
+    key: "نوع الهوية",
+    label: "نوع الهوية",
+    icon: "badge",
+    group: "اعدادات اساسية",
   },
   {
     key: "نوع العقد",
@@ -271,17 +278,21 @@ function BasicData() {
         </aside>
 
         <div>
-          <CrudTable
-            key={section.key}
-            table="basic_lookups"
-            title={section.label}
-            addLabel={`إضافة ${section.label}`}
-            filters={{ category: section.key }}
-            orderBy="created_at"
-            ascending
-            searchKeys={["name_ar", "name_en"]}
-            fields={[...nameFields(section.label), ...(section.extra ?? [])]}
-          />
+          {section.key === "نوع الهوية" ? (
+            <IdTypeSettingsSection />
+          ) : (
+            <CrudTable
+              key={section.key}
+              table="basic_lookups"
+              title={section.label}
+              addLabel={`إضافة ${section.label}`}
+              filters={{ category: section.key }}
+              orderBy="created_at"
+              ascending
+              searchKeys={["name_ar", "name_en"]}
+              fields={[...nameFields(section.label), ...(section.extra ?? [])]}
+            />
+          )}
         </div>
       </div>
     </div>

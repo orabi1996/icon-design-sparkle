@@ -56,26 +56,6 @@ export function EmployeeProfileHeader({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      {/* Top breadcrumb / back link */}
-      <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2.5">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Link
-            to="/staff"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
-          >
-            <ArrowRight className="h-3.5 w-3.5" />
-            عودة إلى قائمة الموظفين
-          </Link>
-          <span>/</span>
-          <span className="font-bold text-slate-800">
-            ملف الموظف: {employee.full_name || "—"}
-          </span>
-        </div>
-        <span className="text-[11px] font-medium text-slate-400">
-          الرقم الوظيفي: #{employee.emp_no || "—"}
-        </span>
-      </div>
-
       {/* Main Hero Row */}
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
         {/* Right Side (RTL): Avatar + Name + Status */}

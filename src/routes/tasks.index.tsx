@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell } from "@/components/hr/AppShell";
-import { Breadcrumbs, Btn, Chip } from "@/components/hr/ui";
+import { Breadcrumbs, Btn } from "@/components/hr/ui";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { TasksModuleShell } from "@/components/hr/TasksModuleShell";
 import { useRows, useSaveRow, useDeleteRow, type Row } from "@/lib/hr-db";
@@ -15,9 +15,12 @@ import {
   isTaskOverdue,
   exportTasksToExcel,
   printTasksReport,
+  printTaskJobOrder,
   type TaskStatus,
   type TaskPriority,
   type TaskCategory,
+  type SubtaskItem,
+  type TaskComment,
 } from "@/lib/task-core";
 
 export const Route = createFileRoute("/tasks/")({
@@ -26,7 +29,7 @@ export const Route = createFileRoute("/tasks/")({
       { title: "المهام | إدارة المهام الإضافية" },
       {
         name: "description",
-        content: "قائمة كاملة بالمهام مع البحث والفلاتر والكانبان والحالة والأولوية.",
+        content: "قائمة كاملة بالمهام مع البحث والفلاتر والكانبان التفاعلي والحالة والأولوية.",
       },
     ],
   }),
@@ -115,6 +118,54 @@ function ProgressBar({ progress = 0 }: { progress: number }) {
   );
 }
 
+function DueDateBadge({
+  endDate,
+  statusCode,
+}: {
+  endDate?: string;
+  statusCode?: string;
+}) {
+  if (!endDate) return null;
+  if (["finished", "closed", "cancelled"].includes(statusCode || "")) {
+    return null;
+  }
+  const end = new Date(endDate);
+  if (Number.isNaN(end.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  const diffTime = end.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+        <MaterialIcon name="warning" size={12} />
+        متأخرة ({Math.abs(diffDays)} يوم)
+      </span>
+    );
+  }
+  if (diffDays === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+        <MaterialIcon name="schedule" size={12} />
+        اليوم الموعد النهائي
+      </span>
+    );
+  }
+  if (diffDays <= 3) {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+        <MaterialIcon name="event" size={12} />
+        متبقي {diffDays} أيام
+      </span>
+    );
+  }
+  return null;
+}
+
 function TasksListPage() {
   const { data: rawTasks = [], isLoading } = useRows("tasks", {
     orderBy: "created_at",
@@ -133,10 +184,6 @@ function TasksListPage() {
   });
   const { data: employees = [] } = useRows("employees", {
     orderBy: "full_name",
-    ascending: true,
-  });
-  const { data: departments = [] } = useRows("departments", {
-    orderBy: "name",
     ascending: true,
   });
 
@@ -198,10 +245,13 @@ function TasksListPage() {
   const [priorityFilter, setPriorityFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [draggingOverCol, setDraggingOverCol] = useState<string | null>(null);
 
   // Modals state
   const [draft, setDraft] = useState<Row | null>(null);
+  const [newCheckItem, setNewCheckItem] = useState("");
   const [viewingTask, setViewingTask] = useState<Row | null>(null);
+  const [newCommentText, setNewCommentText] = useState("");
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -240,6 +290,7 @@ function TasksListPage() {
   const openNew = () => {
     const nextNumber = generateNextTaskNumber(tasks);
     const today = new Date().toISOString().slice(0, 10);
+    setNewCheckItem("");
     setDraft({
       task_number: nextNumber,
       title: "",
@@ -258,6 +309,8 @@ function TasksListPage() {
       end_date: "",
       duration_days: 0,
       progress: 0,
+      checklist: [],
+      comments: [],
       notes: "",
       attachment_url: "",
       attachment_name: "",
@@ -288,6 +341,113 @@ function TasksListPage() {
     if (viewingTask && viewingTask["id"] === task["id"]) {
       setViewingTask(patch);
     }
+  };
+
+  // Drag and Drop Handler in Kanban
+  const handleDrop = async (taskId: string, targetStatusCode: string) => {
+    setDraggingOverCol(null);
+    const task = tasks.find((t) => String(t["id"]) === taskId);
+    if (!task) return;
+    if (task["status_code"] === targetStatusCode) return;
+    await updateTaskStatus(task, targetStatusCode);
+  };
+
+  // Subtask Checklist Helpers
+  const addChecklistItemToDraft = () => {
+    if (!newCheckItem.trim() || !draft) return;
+    const currentList: SubtaskItem[] = Array.isArray(draft["checklist"])
+      ? [...(draft["checklist"] as SubtaskItem[])]
+      : [];
+    const item: SubtaskItem = {
+      id: crypto.randomUUID(),
+      text: newCheckItem.trim(),
+      done: false,
+    };
+    currentList.push(item);
+
+    const doneCount = currentList.filter((c) => c.done).length;
+    const prog = Math.round((doneCount / currentList.length) * 100);
+
+    setDraft({ ...draft, checklist: currentList, progress: prog });
+    setNewCheckItem("");
+  };
+
+  const removeChecklistItemFromDraft = (id: string) => {
+    if (!draft) return;
+    const currentList: SubtaskItem[] = Array.isArray(draft["checklist"])
+      ? [...(draft["checklist"] as SubtaskItem[])]
+      : [];
+    const updated = currentList.filter((c) => c.id !== id);
+    const doneCount = updated.filter((c) => c.done).length;
+    const prog = updated.length > 0 ? Math.round((doneCount / updated.length) * 100) : draft["progress"];
+    setDraft({ ...draft, checklist: updated, progress: prog });
+  };
+
+  const toggleChecklistItemInDraft = (id: string) => {
+    if (!draft) return;
+    const currentList: SubtaskItem[] = Array.isArray(draft["checklist"])
+      ? [...(draft["checklist"] as SubtaskItem[])]
+      : [];
+    const updated = currentList.map((c) => (c.id === id ? { ...c, done: !c.done } : c));
+    const doneCount = updated.filter((c) => c.done).length;
+    const prog = Math.round((doneCount / updated.length) * 100);
+    setDraft({ ...draft, checklist: updated, progress: prog });
+  };
+
+  // Toggle checklist inside Viewing Task modal (and persist immediately)
+  const toggleChecklistInView = async (id: string) => {
+    if (!viewingTask) return;
+    const list: SubtaskItem[] = Array.isArray(viewingTask["checklist"])
+      ? [...(viewingTask["checklist"] as SubtaskItem[])]
+      : [];
+    const updated = list.map((c) => (c.id === id ? { ...c, done: !c.done } : c));
+    const doneCount = updated.filter((c) => c.done).length;
+    const prog = updated.length > 0 ? Math.round((doneCount / updated.length) * 100) : viewingTask["progress"];
+    let status = viewingTask["status_code"];
+    if (prog >= 100 && status !== "closed") {
+      status = "finished";
+    }
+
+    const patch: Row = {
+      ...viewingTask,
+      checklist: updated,
+      progress: prog,
+      status_code: status,
+      updated_at: new Date().toISOString(),
+    };
+    setViewingTask(patch);
+    await save.mutateAsync(patch);
+  };
+
+  // Add Comment inside Viewing Task modal
+  const addCommentToView = async () => {
+    if (!newCommentText.trim() || !viewingTask) return;
+    const comments: TaskComment[] = Array.isArray(viewingTask["comments"])
+      ? [...(viewingTask["comments"] as TaskComment[])]
+      : [];
+    const newComment: TaskComment = {
+      id: crypto.randomUUID(),
+      author: "المسؤول / المشرف",
+      text: newCommentText.trim(),
+      created_at: new Date().toLocaleDateString("ar-SA", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+    comments.push(newComment);
+
+    const patch: Row = {
+      ...viewingTask,
+      comments,
+      updated_at: new Date().toISOString(),
+    };
+    setViewingTask(patch);
+    setNewCommentText("");
+    await save.mutateAsync(patch);
+    toast.success("تم إضافة الملاحظة بنجاح");
   };
 
   // Submit Task (Create / Edit)
@@ -351,8 +511,8 @@ function TasksListPage() {
       <Breadcrumbs trail={["إدارة المهام الإضافية", "المهام"]} />
       <TasksModuleShell
         icon="task"
-        title="إدارة المهام"
-        subtitle="متابعة وتنفيذ وتوزيع المهام الإضافية مع لوحة كانبان والتقارير الفورية"
+        title="إدارة المهام والعمليات"
+        subtitle="متابعة وتنفيذ وتوزيع المهام الإضافية مع لوحة كانبان التفاعلية وقوائم التحقق والتقارير الفورية"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-xl bg-white/20 p-1">
@@ -376,7 +536,7 @@ function TasksListPage() {
                 }`}
               >
                 <MaterialIcon name="view_kanban" size={16} />
-                كانبان
+                كانبان (سحب وإفلات)
               </button>
             </div>
             <Btn icon="add" variant="onDark" onClick={openNew}>
@@ -599,7 +759,7 @@ function TasksListPage() {
                       "الفرع / القسم",
                       "تاريخ البداية",
                       "تاريخ النهاية",
-                      "المدة",
+                      "الموعد والتنبيه",
                       "نسبة الإنجاز",
                       "الحالة",
                       "إجراءات",
@@ -648,11 +808,6 @@ function TasksListPage() {
                           >
                             {String(r["title"] ?? "—")}
                           </button>
-                          {overdue && (
-                            <span className="ms-2 inline-flex items-center gap-0.5 rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                              متأخرة
-                            </span>
-                          )}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[13px]">
                           {String(r["category_name"] ?? "—")}
@@ -686,7 +841,15 @@ function TasksListPage() {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-[12px]">
-                          {r["duration_days"] ? `${r["duration_days"]} يوم` : "—"}
+                          <DueDateBadge
+                            endDate={r["end_date"] as string}
+                            statusCode={r["status_code"] as string}
+                          />
+                          {!overdue && r["duration_days"] && (
+                            <span className="text-[11px] text-muted-foreground block">
+                              {r["duration_days"]} يوم
+                            </span>
+                          )}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <ProgressBar progress={Number(r["progress"] ?? 0)} />
@@ -714,6 +877,13 @@ function TasksListPage() {
                               <MaterialIcon name="visibility" size={17} />
                             </button>
                             <button
+                              title="طباعة أمر تكليف بالمهمة"
+                              onClick={() => printTaskJobOrder(r, statuses, priorities)}
+                              className="grid size-8 place-items-center rounded-lg bg-secondary text-blue-700 transition-colors hover:bg-blue-600 hover:text-white"
+                            >
+                              <MaterialIcon name="print" size={17} />
+                            </button>
+                            <button
                               title="تعديل"
                               onClick={() => setDraft({ ...r })}
                               className="grid size-8 place-items-center rounded-lg bg-secondary text-primary transition-colors hover:bg-accent"
@@ -736,7 +906,7 @@ function TasksListPage() {
               </table>
             </div>
           ) : (
-            /* VIEW: Kanban Mode */
+            /* VIEW: Interactive Kanban Mode (Drag & Drop) */
             <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
               {[
                 { code: "pending", title: "قيد الانتظار", color: "#3b82f6" },
@@ -745,10 +915,29 @@ function TasksListPage() {
                 { code: "finished", title: "تم الإنجاز", color: "#10b981" },
               ].map((col) => {
                 const colTasks = filtered.filter((t) => t["status_code"] === col.code);
+                const isOver = draggingOverCol === col.code;
+
                 return (
                   <div
                     key={col.code}
-                    className="flex flex-col rounded-2xl border border-border bg-secondary/30 p-3"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (draggingOverCol !== col.code) setDraggingOverCol(col.code);
+                    }}
+                    onDragLeave={() => {
+                      if (draggingOverCol === col.code) setDraggingOverCol(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const taskId = e.dataTransfer.getData("text/plain");
+                      if (taskId) handleDrop(taskId, col.code);
+                    }}
+                    className={`flex min-h-[420px] flex-col rounded-2xl border p-3 transition-colors ${
+                      isOver
+                        ? "border-primary bg-primary/10 ring-2 ring-primary/25"
+                        : "border-border bg-secondary/30"
+                    }`}
                   >
                     <div className="mb-3 flex items-center justify-between border-b border-border pb-2.5">
                       <span className="flex items-center gap-2 text-xs font-bold text-foreground">
@@ -765,8 +954,8 @@ function TasksListPage() {
 
                     <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[70vh]">
                       {colTasks.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
-                          لا توجد مهام
+                        <div className="rounded-xl border border-dashed border-border py-12 text-center text-xs text-muted-foreground">
+                          اسحب المهمة وأفلتها هنا
                         </div>
                       ) : (
                         colTasks.map((t) => {
@@ -774,7 +963,11 @@ function TasksListPage() {
                           return (
                             <div
                               key={String(t["id"])}
-                              className={`rounded-xl border border-border bg-card p-3 shadow-xs transition-all hover:border-primary/50 hover:shadow-sm ${
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("text/plain", String(t["id"]));
+                              }}
+                              className={`cursor-grab active:cursor-grabbing rounded-xl border border-border bg-card p-3 shadow-xs transition-all hover:border-primary/50 hover:shadow-sm ${
                                 overdue ? "border-rose-400 bg-rose-50/30 dark:bg-rose-950/10" : ""
                               }`}
                             >
@@ -802,21 +995,15 @@ function TasksListPage() {
                                 </span>
                               )}
 
-                              <div className="mt-2.5 flex items-center justify-between text-[11px]">
+                              <div className="mt-2 flex items-center justify-between text-[11px]">
                                 <span className="flex items-center gap-1 font-semibold text-foreground/80">
                                   <MaterialIcon name="person" size={14} className="text-muted-foreground" />
                                   {String(t["assignee_name"] || "غير محدد")}
                                 </span>
-                                {t["end_date"] && (
-                                  <span
-                                    className={`flex items-center gap-0.5 ${
-                                      overdue ? "font-bold text-rose-600" : "text-muted-foreground"
-                                    }`}
-                                  >
-                                    <MaterialIcon name="event" size={13} />
-                                    {String(t["end_date"])}
-                                  </span>
-                                )}
+                                <DueDateBadge
+                                  endDate={t["end_date"] as string}
+                                  statusCode={t["status_code"] as string}
+                                />
                               </div>
 
                               <div className="mt-2.5 pt-2 border-t border-border/60">
@@ -826,11 +1013,18 @@ function TasksListPage() {
                               <div className="mt-2 flex items-center justify-between pt-1 text-[11px]">
                                 <div className="flex gap-1">
                                   <button
-                                    title="عرض"
+                                    title="عرض التفاصيل"
                                     onClick={() => setViewingTask(t)}
                                     className="p-1 text-muted-foreground hover:text-primary"
                                   >
                                     <MaterialIcon name="visibility" size={15} />
+                                  </button>
+                                  <button
+                                    title="أمر تكليف"
+                                    onClick={() => printTaskJobOrder(t, statuses, priorities)}
+                                    className="p-1 text-muted-foreground hover:text-blue-600"
+                                  >
+                                    <MaterialIcon name="print" size={15} />
                                   </button>
                                   <button
                                     title="تعديل"
@@ -841,7 +1035,7 @@ function TasksListPage() {
                                   </button>
                                 </div>
 
-                                {/* Next Status Button */}
+                                {/* Next Status Quick Action */}
                                 {col.code === "pending" && (
                                   <button
                                     onClick={() => updateTaskStatus(t, "in_progress")}
@@ -886,7 +1080,7 @@ function TasksListPage() {
       {/* ===================== VIEW TASK DETAILS MODAL ===================== */}
       {viewingTask && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="flex items-start justify-between border-b border-border pb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -902,11 +1096,10 @@ function TasksListPage() {
                     priorityName={viewingTask["priority_name"] as string}
                     priorities={priorities}
                   />
-                  {isTaskOverdue(viewingTask) && (
-                    <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                      متأخرة عن الموعد المحدد
-                    </span>
-                  )}
+                  <DueDateBadge
+                    endDate={viewingTask["end_date"] as string}
+                    statusCode={viewingTask["status_code"] as string}
+                  />
                 </div>
                 <h2 className="mt-2 text-lg font-extrabold text-foreground">
                   {String(viewingTask["title"] ?? "—")}
@@ -915,24 +1108,34 @@ function TasksListPage() {
                   التصنيف: {String(viewingTask["category_name"] ?? "—")}
                 </span>
               </div>
-              <button
-                onClick={() => setViewingTask(null)}
-                className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                <MaterialIcon name="close" size={20} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => printTaskJobOrder(viewingTask, statuses, priorities)}
+                  title="طباعة أمر تكليف"
+                  className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 py-1.5 text-xs font-bold text-primary hover:bg-blue-50 hover:text-blue-700"
+                >
+                  <MaterialIcon name="print" size={16} />
+                  أمر تكليف
+                </button>
+                <button
+                  onClick={() => setViewingTask(null)}
+                  className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <MaterialIcon name="close" size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="mt-5 space-y-4">
               {/* Progress Bar */}
               <div className="rounded-xl border border-border bg-secondary/30 p-4">
                 <div className="mb-2 flex items-center justify-between text-xs font-bold">
-                  <span>نسبة الإنجاز</span>
-                  <span className="text-primary">{Number(viewingTask["progress"] ?? 0)}%</span>
+                  <span>نسبة الإنجاز الإجمالية</span>
+                  <span className="text-primary font-mono text-sm">{Number(viewingTask["progress"] ?? 0)}%</span>
                 </div>
                 <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
                   <div
-                    className="h-full rounded-full bg-primary transition-all"
+                    className="h-full rounded-full bg-primary transition-all duration-300"
                     style={{ width: `${Math.min(Number(viewingTask["progress"] ?? 0), 100)}%` }}
                   />
                 </div>
@@ -946,7 +1149,7 @@ function TasksListPage() {
                     {String(viewingTask["assignee_name"] || "غير محدد")}
                   </p>
                   {viewingTask["assignee_emp_no"] && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="font-mono text-xs text-muted-foreground">
                       الرقم الوظيفي: #{String(viewingTask["assignee_emp_no"])}
                     </span>
                   )}
@@ -979,22 +1182,107 @@ function TasksListPage() {
               {/* Description */}
               {viewingTask["description"] && (
                 <div className="rounded-xl border border-border bg-card p-4">
-                  <h4 className="mb-1 text-xs font-bold text-muted-foreground">الوصف</h4>
+                  <h4 className="mb-1 text-xs font-bold text-muted-foreground">الوصف والمتطلبات</h4>
                   <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
                     {String(viewingTask["description"])}
                   </p>
                 </div>
               )}
 
-              {/* Notes */}
-              {viewingTask["notes"] && (
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <h4 className="mb-1 text-xs font-bold text-muted-foreground">الملاحظات</h4>
-                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
-                    {String(viewingTask["notes"])}
-                  </p>
+              {/* Subtasks / Checklist (Interactive) */}
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <MaterialIcon name="checklist" size={17} className="text-primary" />
+                    قائمة بنود ومراحل التنفيذ (انقر لإكمال البند)
+                  </h4>
+                  {Array.isArray(viewingTask["checklist"]) && viewingTask["checklist"].length > 0 && (
+                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                      {(viewingTask["checklist"] as SubtaskItem[]).filter((c) => c.done).length} من{" "}
+                      {(viewingTask["checklist"] as SubtaskItem[]).length} مكتمل
+                    </span>
+                  )}
                 </div>
-              )}
+
+                {Array.isArray(viewingTask["checklist"]) && viewingTask["checklist"].length > 0 ? (
+                  <div className="divide-y divide-border/60">
+                    {(viewingTask["checklist"] as SubtaskItem[]).map((item) => (
+                      <label
+                        key={item.id}
+                        className="flex cursor-pointer items-center gap-3 py-2 text-[13px] hover:bg-secondary/40 px-2 rounded-lg transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.done}
+                          onChange={() => toggleChecklistInView(item.id)}
+                          className="size-4 accent-primary cursor-pointer"
+                        />
+                        <span
+                          className={`flex-1 ${
+                            item.done ? "line-through text-muted-foreground font-medium" : "font-semibold text-foreground"
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                        {item.done && (
+                          <span className="text-[10.5px] font-bold text-emerald-600">منجز ✓</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">لا توجد بنود فرعية مسجلة لهذه المهمة.</p>
+                )}
+              </div>
+
+              {/* Comments & Activity Log */}
+              <div className="rounded-xl border border-border bg-card p-4">
+                <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <MaterialIcon name="forum" size={17} className="text-primary" />
+                  سجل الملاحظات والمتابعة اليومية
+                </h4>
+
+                <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                  {Array.isArray(viewingTask["comments"]) && viewingTask["comments"].length > 0 ? (
+                    (viewingTask["comments"] as TaskComment[]).map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="rounded-lg bg-secondary/50 p-2.5 text-xs border border-border/50"
+                      >
+                        <div className="flex items-center justify-between text-[11px] font-bold text-primary mb-1">
+                          <span>{comment.author}</span>
+                          <span className="text-muted-foreground font-normal">{comment.created_at}</span>
+                        </div>
+                        <p className="text-foreground whitespace-pre-wrap">{comment.text}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground">لا توجد تعليقات أو تحديثات بعد.</p>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addCommentToView();
+                      }
+                    }}
+                    placeholder="اكتب ملاحظة أو توجيه جديد..."
+                    className={`${control} h-9 text-xs`}
+                  />
+                  <button
+                    onClick={addCommentToView}
+                    className="flex shrink-0 items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-xs"
+                  >
+                    <MaterialIcon name="send" size={15} />
+                    إرسال
+                  </button>
+                </div>
+              </div>
 
               {/* Quick status transition actions */}
               <div className="rounded-xl border border-border bg-secondary/30 p-4">
@@ -1070,7 +1358,7 @@ function TasksListPage() {
                   {draft["id"] ? `تعديل المهمة (${draft["task_number"]})` : "إضافة مهمة جديدة"}
                 </h3>
                 <p className="text-[11px] font-semibold text-muted-foreground">
-                  أدخل تفاصيل المهمة وحدد المستلم والأولوية والمواعيد ونسبة الإنجاز
+                  أدخل تفاصيل المهمة وحدد المستلم والأولوية والمواعيد وقوائم التحقق
                 </p>
               </div>
               <button
@@ -1303,7 +1591,7 @@ function TasksListPage() {
                 <input
                   type="number"
                   readOnly
-                  className={`${control} bg-secondary/50`}
+                  className={`${control} bg-secondary/50 font-bold`}
                   value={Number(draft["duration_days"] ?? 0)}
                 />
               </label>
@@ -1338,6 +1626,76 @@ function TasksListPage() {
                 </div>
               </div>
 
+              {/* Subtasks / Checklist Builder */}
+              <div className="sm:col-span-2 xl:col-span-3 rounded-xl border border-border bg-secondary/20 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <MaterialIcon name="checklist" size={17} className="text-primary" />
+                    قائمة البنود والمهام الفرعية (Checklist)
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    تُحسب نسبة الإنجاز تلقائياً عند تحديد البنود
+                  </span>
+                </div>
+
+                <div className="flex gap-2 mb-3">
+                  <input
+                    value={newCheckItem}
+                    onChange={(e) => setNewCheckItem(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addChecklistItemToDraft();
+                      }
+                    }}
+                    placeholder="أدخل بنداً فرعياً للمهمة ثم اضغط إضافة..."
+                    className={`${control} h-9 text-xs`}
+                  />
+                  <button
+                    type="button"
+                    onClick={addChecklistItemToDraft}
+                    className="flex shrink-0 items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90"
+                  >
+                    <MaterialIcon name="add" size={16} />
+                    إضافة بند
+                  </button>
+                </div>
+
+                {Array.isArray(draft["checklist"]) && draft["checklist"].length > 0 ? (
+                  <div className="space-y-1.5">
+                    {(draft["checklist"] as SubtaskItem[]).map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-2 rounded-lg bg-card border border-border p-2 text-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.done}
+                          onChange={() => toggleChecklistItemInDraft(item.id)}
+                          className="size-4 accent-primary cursor-pointer"
+                        />
+                        <span
+                          className={`flex-1 ${
+                            item.done ? "line-through text-muted-foreground" : "font-semibold text-foreground"
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeChecklistItemFromDraft(item.id)}
+                          className="p-1 text-muted-foreground hover:text-rose-600"
+                        >
+                          <MaterialIcon name="close" size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">لم يتم إضافة بنود فرعية بعد.</p>
+                )}
+              </div>
+
               {/* Description */}
               <label className="sm:col-span-2 xl:col-span-3">
                 <span className="mb-1.5 block text-[12px] font-bold text-foreground/80">
@@ -1355,11 +1713,11 @@ function TasksListPage() {
               {/* Notes */}
               <label className="sm:col-span-2 xl:col-span-3">
                 <span className="mb-1.5 block text-[12px] font-bold text-foreground/80">
-                  ملاحظات إضافية
+                  ملاحظات وتوجيهات إضافية
                 </span>
                 <textarea
                   rows={2}
-                  placeholder="أي ملاحظات أو توجيهات إضافية للموظف..."
+                  placeholder="أي ملاحظات أو توجيهات للموظف..."
                   className={`${control} h-auto py-2`}
                   value={String(draft["notes"] ?? "")}
                   onChange={(e) => setDraft({ ...draft, notes: e.target.value })}

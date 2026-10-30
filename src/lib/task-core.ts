@@ -27,6 +27,19 @@ export interface TaskCategory {
   is_active: boolean;
 }
 
+export interface SubtaskItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface TaskComment {
+  id: string;
+  author: string;
+  text: string;
+  created_at: string;
+}
+
 export const DEFAULT_TASK_STATUSES: TaskStatus[] = [
   {
     id: "status-pending",
@@ -362,6 +375,161 @@ export function printTasksReport(
         window.onload = function() {
           window.print();
         };
+      </script>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
+/** Print official Job Order / Task Assignment Sheet for a single task */
+export function printTaskJobOrder(
+  task: Row,
+  statuses: TaskStatus[] = DEFAULT_TASK_STATUSES,
+  priorities: TaskPriority[] = DEFAULT_TASK_PRIORITIES,
+): void {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const statusMap = new Map(statuses.map((s) => [s.code, s.name_ar]));
+  const priorityMap = new Map(priorities.map((p) => [p.id, p.name_ar]));
+
+  const statusCode = String(task["status_code"] ?? "pending");
+  const statusName = statusMap.get(statusCode) || statusCode;
+  const priId = String(task["priority_id"] ?? "");
+  const priName = String(task["priority_name"] ?? priorityMap.get(priId) ?? "متوسط");
+
+  let checklist: SubtaskItem[] = [];
+  if (Array.isArray(task["checklist"])) {
+    checklist = task["checklist"] as SubtaskItem[];
+  } else if (typeof task["checklist"] === "string" && task["checklist"].startsWith("[")) {
+    try {
+      checklist = JSON.parse(task["checklist"]);
+    } catch {}
+  }
+
+  const checklistHtml = checklist.length
+    ? checklist
+        .map(
+          (c, idx) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
+          <input type="checkbox" ${c.done ? "checked" : ""} disabled style="width:16px;height:16px;" />
+          <span style="${c.done ? "text-decoration:line-through;color:#94a3b8;" : "color:#0f172a;"}">${idx + 1}. ${c.text}</span>
+        </div>`,
+        )
+        .join("")
+    : "<div style='color:#94a3b8;font-style:italic;'>لا توجد بنود فرعية مسجلة</div>";
+
+  const todayStr = new Date().toLocaleDateString("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="utf-8">
+      <title>أمر تكليف بمهمة - ${String(task["task_number"] || "")}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #1e293b; background: #fff; line-height: 1.6; }
+        .order-box { max-width: 800px; margin: 0 auto; border: 2px solid #cbd5e1; padding: 25px; border-radius: 12px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0284c7; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-title h1 { margin: 0; font-size: 20px; color: #0f172a; }
+        .logo-title p { margin: 4px 0 0; font-size: 12px; color: #64748b; font-weight: bold; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #e0f2fe; color: #0369a1; }
+        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; font-size: 13px; }
+        .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 8px; }
+        .info-card strong { color: #475569; font-size: 11px; display: block; margin-bottom: 2px; }
+        .section-title { font-size: 14px; font-weight: bold; color: #0369a1; margin: 18px 0 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+        .description-box { background: #fafafa; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; font-size: 13px; min-height: 50px; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 2px dashed #cbd5e1; }
+        .sign-block { text-align: center; width: 40%; font-size: 13px; font-weight: bold; }
+        .sign-line { margin-top: 45px; border-bottom: 1px solid #94a3b8; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="order-box">
+        <div class="header">
+          <div class="logo-title">
+            <h1>أمر تكليف بمهمة عمل رسمية</h1>
+            <p>إدارة الموارد البشرية والعمليات</p>
+          </div>
+          <div style="text-align:left;">
+            <span class="badge">رقم المهمة: ${String(task["task_number"] || "—")}</span>
+            <div style="font-size:11px;color:#64748b;margin-top:5px;">تاريخ الإصدار: ${todayStr}</div>
+          </div>
+        </div>
+
+        <div class="grid-info">
+          <div class="info-card">
+            <strong>الموظف المكلف بالاستلام:</strong>
+            ${String(task["assignee_name"] || "غير محدد")} ${task["assignee_emp_no"] ? `(#${task["assignee_emp_no"]})` : ""}
+          </div>
+          <div class="info-card">
+            <strong>الفرع / القسم:</strong>
+            ${String(task["branch"] || "—")} / ${String(task["department"] || "—")}
+          </div>
+          <div class="info-card">
+            <strong>عنوان المهمة:</strong>
+            ${String(task["title"] || "—")}
+          </div>
+          <div class="info-card">
+            <strong>التصنيف والأولوية:</strong>
+            ${String(task["category_name"] || "—")} — ${priName}
+          </div>
+          <div class="info-card">
+            <strong>تاريخ البداية المقرر:</strong>
+            ${String(task["start_date"] || "—")}
+          </div>
+          <div class="info-card">
+            <strong>تاريخ التسليم النهائي:</strong>
+            ${String(task["end_date"] || "—")} (${Number(task["duration_days"] || 0)} يوم عمل)
+          </div>
+        </div>
+
+        <div class="section-title">تفاصيل ومتطلبات المهمة</div>
+        <div class="description-box">
+          ${String(task["description"] || "لا توجد تفاصيل إضافية مسجلة.")}
+        </div>
+
+        ${
+          checklist.length
+            ? `
+          <div class="section-title">قائمة بنود ومراحل التنفيذ</div>
+          <div style="background:#fff;border:1px solid #e2e8f0;padding:10px 14px;border-radius:8px;">
+            ${checklistHtml}
+          </div>`
+            : ""
+        }
+
+        ${
+          task["notes"]
+            ? `
+          <div class="section-title">توجيهات وملاحظات المشرف</div>
+          <div class="description-box">${String(task["notes"])}</div>`
+            : ""
+        }
+
+        <div class="signatures">
+          <div class="sign-block">
+            اعتماد منشئ المهمة / المشرف
+            <div class="sign-line"></div>
+            التوقيع: ............................
+          </div>
+          <div class="sign-block">
+            إقرار استلام الموظف المكلف
+            <div class="sign-line"></div>
+            التوقيع: ............................
+          </div>
+        </div>
+      </div>
+      <script>
+        window.onload = function() { window.print(); };
       </script>
     </body>
     </html>

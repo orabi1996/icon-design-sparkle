@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { AppShell } from "@/components/hr/AppShell";
 import { Breadcrumbs, Btn, Chip } from "@/components/hr/ui";
 import { MaterialIcon } from "@/components/MaterialIcon";
@@ -56,7 +57,7 @@ function TasksPermissionsPage() {
       <TasksModuleShell
         icon="shield_person"
         title="إدارة الصلاحيات"
-        subtitle="إدارة صلاحيات مستخدمي النظام من منشئي المهام والمستلمين"
+        subtitle="إدارة وتحديد صلاحيات مستخدمي النظام من منشئي المهام والمستلمين ونطاق وصولهم"
       >
         <TabBar tabs={TABS} value={tab} onChange={setTab} />
         {tab === "creators" ? <CreatorsPanel /> : <ReceiversPanel />}
@@ -70,6 +71,10 @@ function CreatorsPanel() {
   const { data: rows = [], isLoading } = useRows("task_creator_permissions", {
     orderBy: "created_at",
   });
+  const { data: employees = [] } = useRows("employees", {
+    orderBy: "full_name",
+    ascending: true,
+  });
   const save = useSaveRow("task_creator_permissions");
   const del = useDeleteRow("task_creator_permissions");
   const [draft, setDraft] = useState<Row | null>(null);
@@ -77,15 +82,17 @@ function CreatorsPanel() {
 
   const filtered = useMemo(() => {
     if (!term.trim()) return rows;
+    const t = term.trim().toLowerCase();
     return rows.filter((r) =>
       ["employee_name", "emp_no", "branch", "department"].some((k) =>
-        String(r[k] ?? "").includes(term.trim()),
+        String(r[k] ?? "").toLowerCase().includes(t),
       ),
     );
   }, [rows, term]);
 
   const openNew = () =>
     setDraft({
+      employee_id: "",
       employee_name: "",
       emp_no: "",
       branch: "",
@@ -100,11 +107,33 @@ function CreatorsPanel() {
       is_active: true,
     });
 
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
+    const data = filtered.map((r, i) => ({
+      "م": i + 1,
+      "اسم الموظف": r["employee_name"] ?? "—",
+      "الرقم الوظيفي": r["emp_no"] ?? "—",
+      "الفرع": r["branch"] ?? "—",
+      "القسم": r["department"] ?? "—",
+      "إنشاء مهمة": r["can_create"] ? "نعم" : "لا",
+      "تعديل مهمة": r["can_edit"] ? "نعم" : "لا",
+      "حذف مهمة": r["can_delete"] ? "نعم" : "لا",
+      "عرض التقارير": r["can_view_reports"] ? "نعم" : "لا",
+      "نطاق الفرع": scopeLabel(String(r["branch_scope"] ?? "own")),
+      "نطاق القسم": scopeLabel(String(r["department_scope"] ?? "own")),
+      "نطاق التقارير": reportsLabel(String(r["reports_scope"] ?? "own_only")),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "منشئي_المهام");
+    XLSX.writeFile(wb, "صلاحيات_منشئي_المهام.xlsx");
+  };
+
   return (
     <>
       <div className="flex items-center gap-2 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
         <MaterialIcon name="person_add" size={19} className="text-primary" filled />
-        <h3 className="text-sm font-bold">منشئي المهام</h3>
+        <h3 className="text-sm font-bold text-foreground">منشئي المهام</h3>
       </div>
 
       <div
@@ -114,7 +143,7 @@ function CreatorsPanel() {
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
           <h2 className="me-auto flex items-center gap-2 text-sm font-bold">
             <MaterialIcon name="table_rows" size={19} className="text-primary" filled />
-            المنشئين
+            المنشئين المصرح لهم
             <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
               {rows.length}
             </span>
@@ -123,8 +152,8 @@ function CreatorsPanel() {
             <input
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              placeholder="ابحث..."
-              className={`${control} h-9 w-48 pe-9`}
+              placeholder="ابحث بالاسم أو الرقم الوظيفي..."
+              className={`${control} h-9 w-60 pe-9`}
             />
             <MaterialIcon
               name="search"
@@ -132,8 +161,15 @@ function CreatorsPanel() {
               className="pointer-events-none absolute inset-y-0 left-3 my-auto h-fit text-muted-foreground"
             />
           </div>
+          <button
+            onClick={exportExcel}
+            title="تصدير Excel"
+            className="grid size-9 place-items-center rounded-xl border border-border bg-secondary text-primary hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            <MaterialIcon name="table_view" size={17} />
+          </button>
           <Btn icon="person_add" onClick={openNew}>
-            إضافة موظف
+            إضافة منشئ
           </Btn>
         </div>
 
@@ -145,7 +181,7 @@ function CreatorsPanel() {
                   "المستخدم",
                   "الفرع",
                   "القسم",
-                  "الصلاحيات",
+                  "الصلاحيات الممنوحة",
                   "نطاق الفرع",
                   "نطاق القسم",
                   "نطاق التقارير",
@@ -167,7 +203,7 @@ function CreatorsPanel() {
                     colSpan={8}
                     className="px-4 py-14 text-center text-sm font-semibold text-muted-foreground"
                   >
-                    {isLoading ? "جارٍ التحميل..." : "لم يتم إضافة أي موظف"}
+                    {isLoading ? "جارٍ التحميل..." : "لم يتم إضافة أي منشئ مهام حتى الآن"}
                   </td>
                 </tr>
               )}
@@ -182,21 +218,21 @@ function CreatorsPanel() {
                         <MaterialIcon name="person" size={16} filled />
                       </span>
                       <span>
-                        <span className="block text-[13px] font-bold">
+                        <span className="block text-[13px] font-bold text-foreground">
                           {String(r["employee_name"] ?? "—")}
                         </span>
                         {r["emp_no"] && (
-                          <span className="block text-[10px] font-semibold text-muted-foreground">
+                          <span className="block font-mono text-[10px] text-muted-foreground">
                             #{String(r["emp_no"])}
                           </span>
                         )}
                       </span>
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-muted-foreground">
                     {String(r["branch"] ?? "—")}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-muted-foreground">
                     {String(r["department"] ?? "—")}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
@@ -219,17 +255,21 @@ function CreatorsPanel() {
                   <td className="whitespace-nowrap px-4 py-3">
                     <span className="flex items-center gap-1">
                       <button
+                        title="تعديل"
                         onClick={() => setDraft({ ...r })}
                         className="grid size-8 place-items-center rounded-lg bg-secondary text-primary hover:bg-accent"
                       >
                         <MaterialIcon name="edit" size={17} />
                       </button>
                       <button
+                        title="حذف"
                         onClick={() => {
-                          if (confirm("هل تريد حذف صلاحية هذا الموظف؟"))
+                          if (confirm(`هل تريد حذف صلاحية منشئ للموظف "${r["employee_name"]}"؟`)) {
                             del.mutate(String(r["id"]));
+                            toast.success("تم حذف الصلاحية");
+                          }
                         }}
-                        className="grid size-8 place-items-center rounded-lg bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground"
+                        className="grid size-8 place-items-center rounded-lg bg-secondary text-muted-foreground hover:bg-rose-100 hover:text-rose-700"
                       >
                         <MaterialIcon name="delete" size={17} />
                       </button>
@@ -245,10 +285,15 @@ function CreatorsPanel() {
       {draft && (
         <CreatorModal
           draft={draft}
+          employees={employees}
           onChange={setDraft}
           onSave={async () => {
-            if (!String(draft["employee_name"] ?? "").trim()) return;
+            if (!String(draft["employee_name"] ?? "").trim()) {
+              toast.error("يرجى اختيار الموظف أو كتابة اسمه");
+              return;
+            }
             await save.mutateAsync(draft);
+            toast.success("تم حفظ صلاحيات المنشئ بنجاح");
             setDraft(null);
           }}
           onClose={() => setDraft(null)}
@@ -261,28 +306,30 @@ function CreatorsPanel() {
 
 function CreatorModal({
   draft,
+  employees,
   onChange,
   onSave,
   onClose,
   saving,
 }: {
   draft: Row;
+  employees: Row[];
   onChange: (r: Row) => void;
   onSave: () => void;
   onClose: () => void;
   saving: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-topbar/50 p-4">
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-xs">
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl">
         <div className="flex items-center gap-3 border-b border-border px-5 py-4">
           <MaterialIcon name="person_add" size={22} className="text-primary" filled />
           <div>
-            <h3 className="text-sm font-extrabold">
-              {draft["id"] ? "تعديل صلاحيات منشئ" : "إضافة موظف جديد"}
+            <h3 className="text-sm font-extrabold text-foreground">
+              {draft["id"] ? "تعديل صلاحيات منشئ" : "إضافة منشئ مهام جديد"}
             </h3>
             <p className="text-[11px] font-semibold text-muted-foreground">
-              أدخل بيانات الموظف وحدد صلاحياته على إدارة المهام
+              اختر الموظف وحدد نطاق الفروع والأقسام والتقارير المسموح له بها
             </p>
           </div>
           <button
@@ -294,44 +341,81 @@ function CreatorModal({
         </div>
 
         <div className="space-y-5 p-5">
-          {/* Filter */}
+          {/* Employee Picker */}
+          <section className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <h4 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold text-primary">
+              <MaterialIcon name="badge" size={17} filled />
+              الموظف (تعبئة تلقائية للرقم والفرع والقسم)
+            </h4>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-foreground">
+                  اختيار من الموظفين
+                </span>
+                <select
+                  className={control}
+                  value={String(draft["employee_id"] ?? "")}
+                  onChange={(e) => {
+                    const empId = e.target.value;
+                    const emp = employees.find((x) => String(x["id"]) === empId);
+                    if (emp) {
+                      onChange({
+                        ...draft,
+                        employee_id: empId,
+                        employee_name: String(emp["full_name"] ?? ""),
+                        emp_no: String(emp["emp_no"] ?? ""),
+                        branch: String(emp["branch"] ?? draft["branch"] ?? ""),
+                        department: String(emp["department"] ?? draft["department"] ?? ""),
+                      });
+                    }
+                  }}
+                >
+                  <option value="">اختر الموظف...</option>
+                  {employees.map((emp) => (
+                    <option key={String(emp["id"])} value={String(emp["id"])}>
+                      {String(emp["full_name"])} {emp["emp_no"] ? `(#${emp["emp_no"]})` : ""}{" "}
+                      - {String(emp["department"] || "")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FieldText
+                  label="اسم الموظف"
+                  required
+                  placeholder="الاسم"
+                  value={String(draft["employee_name"] ?? "")}
+                  onChange={(v) => onChange({ ...draft, employee_name: v })}
+                />
+                <FieldText
+                  label="الرقم الوظيفي"
+                  placeholder="10001"
+                  value={String(draft["emp_no"] ?? "")}
+                  onChange={(v) => onChange({ ...draft, emp_no: v })}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Branch & Department */}
           <section className="rounded-2xl border border-border bg-secondary/40 p-4">
             <h4 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold">
-              <MaterialIcon name="filter_alt" size={17} className="text-primary" filled />
-              تصفية
+              <MaterialIcon name="business" size={17} className="text-primary" filled />
+              الفرع والقسم التابع له
             </h4>
             <div className="grid gap-3 sm:grid-cols-2">
               <FieldText
                 label="الفرع"
+                placeholder="الفرع الرئيسي"
                 value={String(draft["branch"] ?? "")}
                 onChange={(v) => onChange({ ...draft, branch: v })}
               />
               <FieldText
                 label="القسم"
+                placeholder="الموارد البشرية"
                 value={String(draft["department"] ?? "")}
                 onChange={(v) => onChange({ ...draft, department: v })}
-              />
-            </div>
-          </section>
-
-          {/* Employee */}
-          <section className="rounded-2xl border border-border bg-secondary/40 p-4">
-            <h4 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold">
-              <MaterialIcon name="badge" size={17} className="text-primary" filled />
-              الموظف
-            </h4>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <FieldText
-                label="اسم الموظف"
-                required
-                placeholder="ابحث بالاسم"
-                value={String(draft["employee_name"] ?? "")}
-                onChange={(v) => onChange({ ...draft, employee_name: v })}
-              />
-              <FieldText
-                label="رقم الموظف"
-                value={String(draft["emp_no"] ?? "")}
-                onChange={(v) => onChange({ ...draft, emp_no: v })}
               />
             </div>
           </section>
@@ -396,13 +480,13 @@ function CreatorModal({
         <div className="flex flex-wrap gap-2 border-t border-border px-5 py-4">
           <button
             onClick={onSave}
-            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-[13px] font-bold text-white hover:bg-emerald-700"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-bold text-primary-foreground hover:opacity-90 shadow-sm"
           >
-            <MaterialIcon name="save" size={18} /> {saving ? "جارٍ الحفظ..." : "إضافة"}
+            <MaterialIcon name="save" size={18} /> {saving ? "جارٍ الحفظ..." : "حفظ الصلاحيات"}
           </button>
           <button
             onClick={onClose}
-            className="flex items-center gap-2 rounded-xl bg-rose-100 px-4 py-2.5 text-[13px] font-bold text-rose-700 hover:bg-rose-200 dark:bg-rose-500/15 dark:text-rose-200"
+            className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-bold hover:bg-secondary"
           >
             <MaterialIcon name="close" size={18} /> إلغاء
           </button>
@@ -417,6 +501,10 @@ function ReceiversPanel() {
   const { data: rows = [], isLoading } = useRows("task_receiver_permissions", {
     orderBy: "created_at",
   });
+  const { data: employees = [] } = useRows("employees", {
+    orderBy: "full_name",
+    ascending: true,
+  });
   const save = useSaveRow("task_receiver_permissions");
   const del = useDeleteRow("task_receiver_permissions");
   const [draft, setDraft] = useState<Row | null>(null);
@@ -424,15 +512,17 @@ function ReceiversPanel() {
 
   const filtered = useMemo(() => {
     if (!term.trim()) return rows;
+    const t = term.trim().toLowerCase();
     return rows.filter((r) =>
       ["employee_name", "emp_no", "branch", "department"].some((k) =>
-        String(r[k] ?? "").includes(term.trim()),
+        String(r[k] ?? "").toLowerCase().includes(t),
       ),
     );
   }, [rows, term]);
 
   const openNew = () =>
     setDraft({
+      employee_id: "",
       employee_name: "",
       emp_no: "",
       branch: "",
@@ -442,11 +532,28 @@ function ReceiversPanel() {
       is_active: true,
     });
 
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
+    const data = filtered.map((r, i) => ({
+      "م": i + 1,
+      "اسم الموظف": r["employee_name"] ?? "—",
+      "الرقم الوظيفي": r["emp_no"] ?? "—",
+      "الفرع": r["branch"] ?? "—",
+      "القسم": r["department"] ?? "—",
+      "نطاق الفرع": scopeLabel(String(r["branch_scope"] ?? "own")),
+      "نطاق القسم": scopeLabel(String(r["department_scope"] ?? "own")),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "مستلمي_المهام");
+    XLSX.writeFile(wb, "صلاحيات_مستلمي_المهام.xlsx");
+  };
+
   return (
     <>
       <div className="flex items-center gap-2 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
         <MaterialIcon name="assignment_ind" size={19} className="text-primary" filled />
-        <h3 className="text-sm font-bold">مستلمي المهام</h3>
+        <h3 className="text-sm font-bold text-foreground">مستلمي المهام</h3>
       </div>
 
       <div
@@ -456,7 +563,7 @@ function ReceiversPanel() {
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
           <h2 className="me-auto flex items-center gap-2 text-sm font-bold">
             <MaterialIcon name="table_rows" size={19} className="text-primary" filled />
-            المستلمين
+            المستلمين المصرح لهم
             <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
               {rows.length}
             </span>
@@ -465,8 +572,8 @@ function ReceiversPanel() {
             <input
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              placeholder="ابحث..."
-              className={`${control} h-9 w-48 pe-9`}
+              placeholder="ابحث بالاسم أو الرقم الوظيفي..."
+              className={`${control} h-9 w-60 pe-9`}
             />
             <MaterialIcon
               name="search"
@@ -474,8 +581,15 @@ function ReceiversPanel() {
               className="pointer-events-none absolute inset-y-0 left-3 my-auto h-fit text-muted-foreground"
             />
           </div>
+          <button
+            onClick={exportExcel}
+            title="تصدير Excel"
+            className="grid size-9 place-items-center rounded-xl border border-border bg-secondary text-primary hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            <MaterialIcon name="table_view" size={17} />
+          </button>
           <Btn icon="person_add" onClick={openNew}>
-            إضافة موظف
+            إضافة مستلم
           </Btn>
         </div>
 
@@ -483,24 +597,26 @@ function ReceiversPanel() {
           <table className="w-full min-w-max border-collapse text-right">
             <thead>
               <tr className="bg-secondary">
-                {["المستخدم", "الفرع", "القسم", "نطاق الفرع", "نطاق القسم", "إجراءات"].map((c) => (
-                  <th
-                    key={c}
-                    className="whitespace-nowrap border-b border-border px-4 py-3 text-[12px] font-extrabold text-secondary-foreground"
-                  >
-                    {c}
-                  </th>
-                ))}
+                {["المستخدم", "الفرع", "القسم", "نطاق الفرع", "نطاق القسم", "الحالة", "إجراءات"].map(
+                  (c) => (
+                    <th
+                      key={c}
+                      className="whitespace-nowrap border-b border-border px-4 py-3 text-[12px] font-extrabold text-secondary-foreground"
+                    >
+                      {c}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
               {(isLoading || filtered.length === 0) && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-14 text-center text-sm font-semibold text-muted-foreground"
                   >
-                    {isLoading ? "جارٍ التحميل..." : "لم يتم إضافة أي موظف"}
+                    {isLoading ? "جارٍ التحميل..." : "لم يتم إضافة أي مستلم للمهام حتى الآن"}
                   </td>
                 </tr>
               )}
@@ -515,21 +631,21 @@ function ReceiversPanel() {
                         <MaterialIcon name="person" size={16} filled />
                       </span>
                       <span>
-                        <span className="block text-[13px] font-bold">
+                        <span className="block text-[13px] font-bold text-foreground">
                           {String(r["employee_name"] ?? "—")}
                         </span>
                         {r["emp_no"] && (
-                          <span className="block text-[10px] font-semibold text-muted-foreground">
+                          <span className="block font-mono text-[10px] text-muted-foreground">
                             #{String(r["emp_no"])}
                           </span>
                         )}
                       </span>
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-muted-foreground">
                     {String(r["branch"] ?? "—")}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-[13px]">
+                  <td className="whitespace-nowrap px-4 py-3 text-[13px] text-muted-foreground">
                     {String(r["department"] ?? "—")}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-[12px] font-semibold">
@@ -539,19 +655,30 @@ function ReceiversPanel() {
                     {scopeLabel(String(r["department_scope"] ?? "own"))}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
+                    {r["is_active"] !== false ? (
+                      <Chip label="مفعّل" tone="green" />
+                    ) : (
+                      <Chip label="معطّل" tone="muted" />
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3">
                     <span className="flex items-center gap-1">
                       <button
+                        title="تعديل"
                         onClick={() => setDraft({ ...r })}
                         className="grid size-8 place-items-center rounded-lg bg-secondary text-primary hover:bg-accent"
                       >
                         <MaterialIcon name="edit" size={17} />
                       </button>
                       <button
+                        title="حذف"
                         onClick={() => {
-                          if (confirm("هل تريد حذف صلاحية هذا الموظف؟"))
+                          if (confirm(`هل تريد حذف صلاحية مستلم للموظف "${r["employee_name"]}"؟`)) {
                             del.mutate(String(r["id"]));
+                            toast.success("تم حذف الصلاحية");
+                          }
                         }}
-                        className="grid size-8 place-items-center rounded-lg bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground"
+                        className="grid size-8 place-items-center rounded-lg bg-secondary text-muted-foreground hover:bg-rose-100 hover:text-rose-700"
                       >
                         <MaterialIcon name="delete" size={17} />
                       </button>
@@ -565,15 +692,17 @@ function ReceiversPanel() {
       </div>
 
       {draft && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-topbar/50 p-4">
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
             <div className="flex items-center gap-3 border-b border-border px-5 py-4">
               <MaterialIcon name="assignment_ind" size={22} className="text-primary" filled />
               <div>
-                <h3 className="text-sm font-extrabold">
-                  {draft["id"] ? "تعديل مستلم" : "إضافة موظف جديد"}
+                <h3 className="text-sm font-extrabold text-foreground">
+                  {draft["id"] ? "تعديل صلاحيات مستلم" : "إضافة مستلم مهام جديد"}
                 </h3>
-                <p className="text-[11px] font-semibold text-muted-foreground">مستلمي المهام</p>
+                <p className="text-[11px] font-semibold text-muted-foreground">
+                  تحديد نطاق استلام المهام للموظف
+                </p>
               </div>
               <button
                 onClick={() => setDraft(null)}
@@ -584,10 +713,66 @@ function ReceiversPanel() {
             </div>
 
             <div className="space-y-5 p-5">
+              {/* Employee selection */}
+              <section className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <h4 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold text-primary">
+                  <MaterialIcon name="badge" size={17} filled />
+                  الموظف المستلم
+                </h4>
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-foreground">
+                      اختيار من الموظفين
+                    </span>
+                    <select
+                      className={control}
+                      value={String(draft["employee_id"] ?? "")}
+                      onChange={(e) => {
+                        const empId = e.target.value;
+                        const emp = employees.find((x) => String(x["id"]) === empId);
+                        if (emp) {
+                          setDraft({
+                            ...draft,
+                            employee_id: empId,
+                            employee_name: String(emp["full_name"] ?? ""),
+                            emp_no: String(emp["emp_no"] ?? ""),
+                            branch: String(emp["branch"] ?? draft["branch"] ?? ""),
+                            department: String(emp["department"] ?? draft["department"] ?? ""),
+                          });
+                        }
+                      }}
+                    >
+                      <option value="">اختر الموظف...</option>
+                      {employees.map((emp) => (
+                        <option key={String(emp["id"])} value={String(emp["id"])}>
+                          {String(emp["full_name"])} {emp["emp_no"] ? `(#${emp["emp_no"]})` : ""}{" "}
+                          - {String(emp["department"] || "")}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <FieldText
+                      label="اسم الموظف"
+                      required
+                      placeholder="ابحث بالاسم"
+                      value={String(draft["employee_name"] ?? "")}
+                      onChange={(v) => setDraft({ ...draft, employee_name: v })}
+                    />
+                    <FieldText
+                      label="رقم الموظف"
+                      value={String(draft["emp_no"] ?? "")}
+                      onChange={(v) => setDraft({ ...draft, emp_no: v })}
+                    />
+                  </div>
+                </div>
+              </section>
+
               <section className="rounded-2xl border border-border bg-secondary/40 p-4">
                 <h4 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold">
-                  <MaterialIcon name="filter_alt" size={17} className="text-primary" filled />
-                  تصفية
+                  <MaterialIcon name="business" size={17} className="text-primary" filled />
+                  الفرع والقسم
                 </h4>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FieldText
@@ -605,29 +790,8 @@ function ReceiversPanel() {
 
               <section className="rounded-2xl border border-border bg-secondary/40 p-4">
                 <h4 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold">
-                  <MaterialIcon name="badge" size={17} className="text-primary" filled />
-                  الموظف
-                </h4>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <FieldText
-                    label="اسم الموظف"
-                    required
-                    placeholder="ابحث بالاسم"
-                    value={String(draft["employee_name"] ?? "")}
-                    onChange={(v) => setDraft({ ...draft, employee_name: v })}
-                  />
-                  <FieldText
-                    label="رقم الموظف"
-                    value={String(draft["emp_no"] ?? "")}
-                    onChange={(v) => setDraft({ ...draft, emp_no: v })}
-                  />
-                </div>
-              </section>
-
-              <section className="rounded-2xl border border-border bg-secondary/40 p-4">
-                <h4 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold">
                   <MaterialIcon name="hub" size={17} className="text-primary" filled />
-                  نطاق الصلاحيات
+                  نطاق استلام المهام
                 </h4>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FieldSelect
@@ -649,17 +813,21 @@ function ReceiversPanel() {
             <div className="flex flex-wrap gap-2 border-t border-border px-5 py-4">
               <button
                 onClick={async () => {
-                  if (!String(draft["employee_name"] ?? "").trim()) return;
+                  if (!String(draft["employee_name"] ?? "").trim()) {
+                    toast.error("يرجى اختيار الموظف أو كتابة اسمه");
+                    return;
+                  }
                   await save.mutateAsync(draft);
+                  toast.success("تم حفظ صلاحيات المستلم بنجاح");
                   setDraft(null);
                 }}
-                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-[13px] font-bold text-white hover:bg-emerald-700"
+                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-bold text-primary-foreground hover:opacity-90 shadow-sm"
               >
-                <MaterialIcon name="save" size={18} /> {save.isPending ? "جارٍ الحفظ..." : "إضافة"}
+                <MaterialIcon name="save" size={18} /> حفظ
               </button>
               <button
                 onClick={() => setDraft(null)}
-                className="flex items-center gap-2 rounded-xl bg-rose-100 px-4 py-2.5 text-[13px] font-bold text-rose-700 hover:bg-rose-200"
+                className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-bold hover:bg-secondary"
               >
                 <MaterialIcon name="close" size={18} /> إلغاء
               </button>

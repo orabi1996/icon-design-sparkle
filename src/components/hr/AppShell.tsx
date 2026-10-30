@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { MaterialIcon } from "@/components/MaterialIcon";
@@ -7,6 +7,7 @@ import { nav } from "@/components/hr/nav-data";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyWorkspaceProvider, useCompanyWorkspace } from "@/components/hr/CompanyWorkspace";
 import { ScreenDirectory } from "@/components/hr/ScreenDirectory";
+import { useRows } from "@/lib/hr-db";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,6 +22,99 @@ const ShellContext = createContext(false);
 function CompanyName() {
   const { selectedCompany } = useCompanyWorkspace();
   return <>{selectedCompany?.display_name || "نظام الموارد البشرية"}</>;
+}
+
+function QuickEmployeeSearch() {
+  const { data: employees = [] } = useRows("employees") as { data?: any[] };
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? employees
+        .filter(
+          (emp) =>
+            String(emp.full_name || "").toLowerCase().includes(q) ||
+            String(emp.emp_no || "").toLowerCase().includes(q) ||
+            String(emp.national_id || "").toLowerCase().includes(q),
+        )
+        .slice(0, 8)
+    : [];
+
+  return (
+    <div ref={containerRef} className="relative hidden md:block w-64 lg:w-72">
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          value={query}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          placeholder="اسم، هوية، رقم وظيفي..."
+          className="h-9 w-full rounded-full border border-white/20 bg-white/10 pe-9 ps-4 text-xs font-semibold text-white placeholder:text-white/60 outline-none transition focus:border-white/40 focus:bg-white/20"
+        />
+        <MaterialIcon
+          name="search"
+          size={17}
+          className="pointer-events-none absolute left-3 text-white/75"
+        />
+      </div>
+
+      {open && q.length > 0 && (
+        <div className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-xl">
+          {matches.length === 0 ? (
+            <div className="px-4 py-3 text-center text-xs text-slate-400">
+              لا توجد نتائج مطابقة
+            </div>
+          ) : (
+            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+              {matches.map((emp) => (
+                <button
+                  key={String(emp.id || emp.emp_no)}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setQuery("");
+                    navigate({
+                      to: "/staff/$employeeId",
+                      params: { employeeId: String(emp.id || emp.emp_no) },
+                    });
+                  }}
+                  className="flex w-full items-center justify-between px-3.5 py-2.5 text-right text-xs transition hover:bg-blue-50"
+                >
+                  <div>
+                    <div className="font-extrabold text-slate-900">
+                      {String(emp.full_name || "—")}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {String(emp.job_title || emp.department || "موظف")}
+                    </div>
+                  </div>
+                  <div className="text-left font-mono text-[11px] font-bold text-blue-600">
+                    #{String(emp.emp_no || "—")}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function useSession() {
@@ -102,9 +196,10 @@ function AuthenticatedShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
+          {/* Top Actions, Quick Employee Search & Profile */}
+          <div className="ms-auto flex items-center gap-2">
+            <QuickEmployeeSearch />
 
-          {/* Top Actions & Profile */}
-          <div className="ms-auto flex items-center gap-1.5">
             <TopAction icon="notifications" title="التعميمات وإشعارات الطلبات" to="/request-notifications" />
             <TopAction icon="task_alt" title="المهام والطلبات" to="/tasks" />
 

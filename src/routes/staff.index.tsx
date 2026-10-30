@@ -156,7 +156,7 @@ function StaffList() {
   const company = workspace.selectedCompany;
 
   const [filters, setFilters] = useState<Filters>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
+  const [appliedFilters, setAppliedFilters] = useState<Filters | null>(emptyFilters);
   const [globalSearch, setGlobalSearch] = useState("");
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [pageSize, setPageSize] = useState(10);
@@ -668,17 +668,21 @@ function StaffList() {
                     {tableColumns.map((column) => (
                       <td key={column.key} className="h-10 whitespace-nowrap border-l border-border/60 px-2.5 text-foreground font-medium">
                         {column.key === "attendance" ? (
-                          <button
-                            type="button"
-                            title="عرض الحضور والانصراف"
-                            className="text-[#0b57d0] hover:text-[#0842a0] transition hover:scale-110 cursor-pointer"
+                          <Link
+                            to="/staff/$employeeId"
+                            params={{ employeeId: String(row["id"] ?? row["emp_no"]) }}
+                            search={{ tab: "attendance" }}
+                            title="عرض الحضور والانصراف للموظف"
+                            className="inline-flex text-[#0b57d0] hover:text-[#0842a0] transition hover:scale-110 cursor-pointer"
                           >
                             <MaterialIcon name="schedule" size={17} />
-                          </button>
+                          </Link>
                         ) : column.key === "financial" ? (
                           <Link
-                            to="/payroll"
-                            title="عرض البيانات المالية"
+                            to="/staff/$employeeId"
+                            params={{ employeeId: String(row["id"] ?? row["emp_no"]) }}
+                            search={{ tab: "financial" }}
+                            title="عرض البيانات المالية للموظف"
                             className="inline-flex text-[#0b57d0] hover:text-[#0842a0] transition hover:scale-110 cursor-pointer"
                           >
                             <MaterialIcon name="payments" size={17} />
@@ -707,7 +711,25 @@ function StaffList() {
                               </span>
                             );
                           })()
-                        ) : column.key === "emp_no" || column.key === "national_id" ? (
+                        ) : column.key === "emp_no" ? (
+                          <Link
+                            to="/staff/$employeeId"
+                            params={{ employeeId: String(row["id"] ?? row["emp_no"]) }}
+                            title="فتح ملف الموظف"
+                            className="font-mono font-extrabold text-[#0b57d0] hover:text-[#0842a0] hover:underline"
+                          >
+                            {column.value(row) || "—"}
+                          </Link>
+                        ) : column.key === "full_name" ? (
+                          <Link
+                            to="/staff/$employeeId"
+                            params={{ employeeId: String(row["id"] ?? row["emp_no"]) }}
+                            title="اضغط لعرض ملف الموظف الكامل"
+                            className="inline-flex items-center gap-1 font-extrabold text-[#0b57d0] hover:text-[#0842a0] hover:underline"
+                          >
+                            {column.value(row) || "—"}
+                          </Link>
+                        ) : column.key === "national_id" ? (
                           <span className="font-mono">{column.value(row) || "—"}</span>
                         ) : (
                           column.value(row) || "—"

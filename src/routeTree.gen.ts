@@ -114,6 +114,7 @@ import { Route as ShiftsRequestsRouteImport } from './routes/shifts.requests'
 import { Route as ShiftsRostersRouteImport } from './routes/shifts.rosters'
 import { Route as ShiftsTemplatesRouteImport } from './routes/shifts.templates'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
+import { Route as StaffEmployeeIdRouteImport } from './routes/staff.$employeeId'
 import { Route as StaffAddRouteImport } from './routes/staff.add'
 import { Route as StaffBankBlockRouteImport } from './routes/staff.bank-block'
 import { Route as StaffContractsRouteImport } from './routes/staff.contracts'
@@ -666,6 +667,11 @@ const StaffIndexRoute = StaffIndexRouteImport.update({
   path: '/',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffEmployeeIdRoute = StaffEmployeeIdRouteImport.update({
+  id: '/$employeeId',
+  path: '/$employeeId',
+  getParentRoute: () => StaffRoute,
+} as any)
 const StaffAddRoute = StaffAddRouteImport.update({
   id: '/add',
   path: '/add',
@@ -821,6 +827,7 @@ export interface FileRoutesByFullPath {
   '/shifts/requests': typeof ShiftsRequestsRoute
   '/shifts/rosters': typeof ShiftsRostersRoute
   '/shifts/templates': typeof ShiftsTemplatesRoute
+  '/staff/$employeeId': typeof StaffEmployeeIdRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -936,6 +943,7 @@ export interface FileRoutesByTo {
   '/shifts/requests': typeof ShiftsRequestsRoute
   '/shifts/rosters': typeof ShiftsRostersRoute
   '/shifts/templates': typeof ShiftsTemplatesRoute
+  '/staff/$employeeId': typeof StaffEmployeeIdRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -1054,6 +1062,7 @@ export interface FileRoutesById {
   '/shifts/requests': typeof ShiftsRequestsRoute
   '/shifts/rosters': typeof ShiftsRostersRoute
   '/shifts/templates': typeof ShiftsTemplatesRoute
+  '/staff/$employeeId': typeof StaffEmployeeIdRoute
   '/staff/add': typeof StaffAddRoute
   '/staff/bank-block': typeof StaffBankBlockRoute
   '/staff/contracts': typeof StaffContractsRoute
@@ -1173,6 +1182,7 @@ export interface FileRouteTypes {
     | '/shifts/requests'
     | '/shifts/rosters'
     | '/shifts/templates'
+    | '/staff/$employeeId'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -1288,6 +1298,7 @@ export interface FileRouteTypes {
     | '/shifts/requests'
     | '/shifts/rosters'
     | '/shifts/templates'
+    | '/staff/$employeeId'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -1405,6 +1416,7 @@ export interface FileRouteTypes {
     | '/shifts/requests'
     | '/shifts/rosters'
     | '/shifts/templates'
+    | '/staff/$employeeId'
     | '/staff/add'
     | '/staff/bank-block'
     | '/staff/contracts'
@@ -2244,6 +2256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffIndexRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/staff/$employeeId': {
+      id: '/staff/$employeeId'
+      path: '/$employeeId'
+      fullPath: '/staff/$employeeId'
+      preLoaderRoute: typeof StaffEmployeeIdRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/staff/add': {
       id: '/staff/add'
       path: '/add'
@@ -2393,6 +2412,7 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 )
 
 interface StaffRouteChildren {
+  StaffEmployeeIdRoute: typeof StaffEmployeeIdRoute
   StaffAddRoute: typeof StaffAddRoute
   StaffBankBlockRoute: typeof StaffBankBlockRoute
   StaffContractsRoute: typeof StaffContractsRoute
@@ -2403,6 +2423,7 @@ interface StaffRouteChildren {
 }
 
 const StaffRouteChildren: StaffRouteChildren = {
+  StaffEmployeeIdRoute: StaffEmployeeIdRoute,
   StaffAddRoute: StaffAddRoute,
   StaffBankBlockRoute: StaffBankBlockRoute,
   StaffContractsRoute: StaffContractsRoute,

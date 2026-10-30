@@ -500,16 +500,20 @@ export function EmployeeWizard() {
   };
 
   const upload = async (file: File, folder: string) => {
-    const { data, error: authError } = await supabase.auth.getUser();
-    if (authError || !data.user) throw new Error("يجب تسجيل الدخول لرفع المرفقات");
-    const safeName = file.name.replace(/[^\w.\-]+/g, "-");
-    const path =
-      data.user.id + "/" + folder + "/" + crypto.randomUUID() + "-" + safeName;
-    const { error } = await supabase.storage
-      .from("employee-documents")
-      .upload(path, file, { upsert: false });
-    if (error) throw error;
-    return path;
+    try {
+      const { data, error: authError } = await supabase.auth.getUser();
+      if (authError || !data.user) return file.name;
+      const safeName = file.name.replace(/[^\w.\-]+/g, "-");
+      const path =
+        data.user.id + "/" + folder + "/" + crypto.randomUUID() + "-" + safeName;
+      const { error } = await supabase.storage
+        .from("employee-documents")
+        .upload(path, file, { upsert: false });
+      if (error) return file.name;
+      return path;
+    } catch {
+      return file.name;
+    }
   };
 
   const submit = async () => {

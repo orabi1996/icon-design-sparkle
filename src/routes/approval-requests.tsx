@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/hr/AppShell";
 import { Breadcrumbs } from "@/components/hr/ui";
 import { MaterialIcon } from "@/components/MaterialIcon";
@@ -36,6 +36,7 @@ const REQUEST_TYPES = [
   "طلب إجازة",
   "طلب سلفة",
   "طلب تعديل بصمة",
+  "طلب تحديث بيانات",
   "طلب مراسلة",
   "طلب استقالة",
 ];
@@ -378,10 +379,28 @@ function ApprovalRequestsPage() {
         <Breadcrumbs trail={["طلبات الاعتماد"]} />
       </div>
 
-      <h1 className="mt-3 flex items-center gap-2 text-lg font-extrabold text-foreground">
-        <MaterialIcon name="task_alt" size={22} className="text-primary" filled />
-        طلبات الاعتماد
-      </h1>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="flex items-center gap-2 text-lg font-extrabold text-foreground">
+          <MaterialIcon name="task_alt" size={22} className="text-primary" filled />
+          طلبات الاعتماد
+        </h1>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/requests/data-update"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0070c0] px-3 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005fa3]"
+          >
+            <MaterialIcon name="manage_accounts" size={16} />
+            طلبات تحديث البيانات
+          </Link>
+          <Link
+            to="/regulations/data-update"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#0070c0] bg-blue-50 px-3 py-2 text-xs font-bold text-[#0070c0] hover:bg-blue-100"
+          >
+            <MaterialIcon name="settings" size={16} />
+            تهيئة تحديث البيانات
+          </Link>
+        </div>
+      </div>
 
       {/* Toolbar: search + export buttons + add */}
       <div className="mt-3 flex flex-wrap items-center gap-2">

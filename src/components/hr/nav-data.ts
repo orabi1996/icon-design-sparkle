@@ -289,6 +289,7 @@ export const nav: NavItem[] = [
         title: "الموافقة على الطلبات",
         items: [
           { label: "الطلبات", to: "/approval-requests" },
+          { label: "تحديث البيانات", to: "/requests/data-update" },
           { label: "ميزانية الشراء", to: "/requests/purchase-budget" },
           { label: "تهيئة الطلبات", to: "/requests/setup" },
         ],
@@ -317,6 +318,7 @@ export const nav: NavItem[] = [
           { label: "تهيئة السلف", to: "/regulations/loans" },
           { label: "تهيئة سلاسل الموافقات", to: "/regulations/approvals" },
           { label: "تهيئة لائحة الأذونات", to: "/regulations/permits" },
+          { label: "تهيئة تحديث البيانات", to: "/regulations/data-update" },
         ],
       },
       {

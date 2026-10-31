@@ -32,6 +32,7 @@ import { Route as PayrollBankFileRouteImport } from './routes/payroll.bank-file'
 import { Route as RegulationsIndexRouteImport } from './routes/regulations.index'
 import { Route as RegulationsApprovalsRouteImport } from './routes/regulations.approvals'
 import { Route as RegulationsBankFeesRouteImport } from './routes/regulations.bank-fees'
+import { Route as RegulationsDataUpdateRouteImport } from './routes/regulations.data-update'
 import { Route as RegulationsDeductionsRouteImport } from './routes/regulations.deductions'
 import { Route as RegulationsEosRouteImport } from './routes/regulations.eos'
 import { Route as RegulationsFingerprintRouteImport } from './routes/regulations.fingerprint'
@@ -85,6 +86,7 @@ import { Route as ReportsPayrollSheetRouteImport } from './routes/reports.payrol
 import { Route as ReportsPettyCashRouteImport } from './routes/reports.petty-cash'
 import { Route as ReportsRequestsSummaryRouteImport } from './routes/reports.requests-summary'
 import { Route as ReportsSurveysReportRouteImport } from './routes/reports.surveys-report'
+import { Route as RequestsDataUpdateRouteImport } from './routes/requests.data-update'
 import { Route as RequestsPurchaseBudgetRouteImport } from './routes/requests.purchase-budget'
 import { Route as RequestsSetupRouteImport } from './routes/requests.setup'
 import { Route as SettingsAccountLinksRouteImport } from './routes/settings.account-links'
@@ -239,6 +241,11 @@ const RegulationsApprovalsRoute = RegulationsApprovalsRouteImport.update({
 const RegulationsBankFeesRoute = RegulationsBankFeesRouteImport.update({
   id: '/bank-fees',
   path: '/bank-fees',
+  getParentRoute: () => RegulationsRoute,
+} as any)
+const RegulationsDataUpdateRoute = RegulationsDataUpdateRouteImport.update({
+  id: '/data-update',
+  path: '/data-update',
   getParentRoute: () => RegulationsRoute,
 } as any)
 const RegulationsDeductionsRoute = RegulationsDeductionsRouteImport.update({
@@ -520,6 +527,11 @@ const ReportsSurveysReportRoute = ReportsSurveysReportRouteImport.update({
   path: '/reports/surveys-report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RequestsDataUpdateRoute = RequestsDataUpdateRouteImport.update({
+  id: '/requests/data-update',
+  path: '/requests/data-update',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsPurchaseBudgetRoute = RequestsPurchaseBudgetRouteImport.update({
   id: '/requests/purchase-budget',
   path: '/requests/purchase-budget',
@@ -746,6 +758,7 @@ export interface FileRoutesByFullPath {
   '/payroll/bank-file': typeof PayrollBankFileRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
+  '/regulations/data-update': typeof RegulationsDataUpdateRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/regulations/eos': typeof RegulationsEosRoute
   '/regulations/fingerprint': typeof RegulationsFingerprintRoute
@@ -799,6 +812,7 @@ export interface FileRoutesByFullPath {
   '/reports/petty-cash': typeof ReportsPettyCashRoute
   '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
   '/reports/surveys-report': typeof ReportsSurveysReportRoute
+  '/requests/data-update': typeof RequestsDataUpdateRoute
   '/requests/purchase-budget': typeof RequestsPurchaseBudgetRoute
   '/requests/setup': typeof RequestsSetupRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
@@ -862,6 +876,7 @@ export interface FileRoutesByTo {
   '/payroll/bank-file': typeof PayrollBankFileRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
+  '/regulations/data-update': typeof RegulationsDataUpdateRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/regulations/eos': typeof RegulationsEosRoute
   '/regulations/fingerprint': typeof RegulationsFingerprintRoute
@@ -915,6 +930,7 @@ export interface FileRoutesByTo {
   '/reports/petty-cash': typeof ReportsPettyCashRoute
   '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
   '/reports/surveys-report': typeof ReportsSurveysReportRoute
+  '/requests/data-update': typeof RequestsDataUpdateRoute
   '/requests/purchase-budget': typeof RequestsPurchaseBudgetRoute
   '/requests/setup': typeof RequestsSetupRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
@@ -981,6 +997,7 @@ export interface FileRoutesById {
   '/payroll/bank-file': typeof PayrollBankFileRoute
   '/regulations/approvals': typeof RegulationsApprovalsRoute
   '/regulations/bank-fees': typeof RegulationsBankFeesRoute
+  '/regulations/data-update': typeof RegulationsDataUpdateRoute
   '/regulations/deductions': typeof RegulationsDeductionsRoute
   '/regulations/eos': typeof RegulationsEosRoute
   '/regulations/fingerprint': typeof RegulationsFingerprintRoute
@@ -1034,6 +1051,7 @@ export interface FileRoutesById {
   '/reports/petty-cash': typeof ReportsPettyCashRoute
   '/reports/requests-summary': typeof ReportsRequestsSummaryRoute
   '/reports/surveys-report': typeof ReportsSurveysReportRoute
+  '/requests/data-update': typeof RequestsDataUpdateRoute
   '/requests/purchase-budget': typeof RequestsPurchaseBudgetRoute
   '/requests/setup': typeof RequestsSetupRoute
   '/settings/account-links': typeof SettingsAccountLinksRoute
@@ -1101,6 +1119,7 @@ export interface FileRouteTypes {
     | '/payroll/bank-file'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
+    | '/regulations/data-update'
     | '/regulations/deductions'
     | '/regulations/eos'
     | '/regulations/fingerprint'
@@ -1154,6 +1173,7 @@ export interface FileRouteTypes {
     | '/reports/petty-cash'
     | '/reports/requests-summary'
     | '/reports/surveys-report'
+    | '/requests/data-update'
     | '/requests/purchase-budget'
     | '/requests/setup'
     | '/settings/account-links'
@@ -1217,6 +1237,7 @@ export interface FileRouteTypes {
     | '/payroll/bank-file'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
+    | '/regulations/data-update'
     | '/regulations/deductions'
     | '/regulations/eos'
     | '/regulations/fingerprint'
@@ -1270,6 +1291,7 @@ export interface FileRouteTypes {
     | '/reports/petty-cash'
     | '/reports/requests-summary'
     | '/reports/surveys-report'
+    | '/requests/data-update'
     | '/requests/purchase-budget'
     | '/requests/setup'
     | '/settings/account-links'
@@ -1335,6 +1357,7 @@ export interface FileRouteTypes {
     | '/payroll/bank-file'
     | '/regulations/approvals'
     | '/regulations/bank-fees'
+    | '/regulations/data-update'
     | '/regulations/deductions'
     | '/regulations/eos'
     | '/regulations/fingerprint'
@@ -1388,6 +1411,7 @@ export interface FileRouteTypes {
     | '/reports/petty-cash'
     | '/reports/requests-summary'
     | '/reports/surveys-report'
+    | '/requests/data-update'
     | '/requests/purchase-budget'
     | '/requests/setup'
     | '/settings/account-links'
@@ -1496,6 +1520,7 @@ export interface RootRouteChildren {
   ReportsPettyCashRoute: typeof ReportsPettyCashRoute
   ReportsRequestsSummaryRoute: typeof ReportsRequestsSummaryRoute
   ReportsSurveysReportRoute: typeof ReportsSurveysReportRoute
+  RequestsDataUpdateRoute: typeof RequestsDataUpdateRoute
   RequestsPurchaseBudgetRoute: typeof RequestsPurchaseBudgetRoute
   RequestsSetupRoute: typeof RequestsSetupRoute
   ShiftsApprovalsRoute: typeof ShiftsApprovalsRoute
@@ -1680,6 +1705,13 @@ declare module '@tanstack/react-router' {
       path: '/bank-fees'
       fullPath: '/regulations/bank-fees'
       preLoaderRoute: typeof RegulationsBankFeesRouteImport
+      parentRoute: typeof RegulationsRoute
+    }
+    '/regulations/data-update': {
+      id: '/regulations/data-update'
+      path: '/data-update'
+      fullPath: '/regulations/data-update'
+      preLoaderRoute: typeof RegulationsDataUpdateRouteImport
       parentRoute: typeof RegulationsRoute
     }
     '/regulations/deductions': {
@@ -2053,6 +2085,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsSurveysReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/requests/data-update': {
+      id: '/requests/data-update'
+      path: '/requests/data-update'
+      fullPath: '/requests/data-update'
+      preLoaderRoute: typeof RequestsDataUpdateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests/purchase-budget': {
       id: '/requests/purchase-budget'
       path: '/requests/purchase-budget'
@@ -2350,6 +2389,7 @@ const PayrollRouteWithChildren =
 interface RegulationsRouteChildren {
   RegulationsApprovalsRoute: typeof RegulationsApprovalsRoute
   RegulationsBankFeesRoute: typeof RegulationsBankFeesRoute
+  RegulationsDataUpdateRoute: typeof RegulationsDataUpdateRoute
   RegulationsDeductionsRoute: typeof RegulationsDeductionsRoute
   RegulationsEosRoute: typeof RegulationsEosRoute
   RegulationsFingerprintRoute: typeof RegulationsFingerprintRoute
@@ -2364,6 +2404,7 @@ interface RegulationsRouteChildren {
 const RegulationsRouteChildren: RegulationsRouteChildren = {
   RegulationsApprovalsRoute: RegulationsApprovalsRoute,
   RegulationsBankFeesRoute: RegulationsBankFeesRoute,
+  RegulationsDataUpdateRoute: RegulationsDataUpdateRoute,
   RegulationsDeductionsRoute: RegulationsDeductionsRoute,
   RegulationsEosRoute: RegulationsEosRoute,
   RegulationsFingerprintRoute: RegulationsFingerprintRoute,
@@ -2500,6 +2541,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsPettyCashRoute: ReportsPettyCashRoute,
   ReportsRequestsSummaryRoute: ReportsRequestsSummaryRoute,
   ReportsSurveysReportRoute: ReportsSurveysReportRoute,
+  RequestsDataUpdateRoute: RequestsDataUpdateRoute,
   RequestsPurchaseBudgetRoute: RequestsPurchaseBudgetRoute,
   RequestsSetupRoute: RequestsSetupRoute,
   ShiftsApprovalsRoute: ShiftsApprovalsRoute,

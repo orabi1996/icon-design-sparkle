@@ -317,13 +317,117 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     active: true,
   },
   {
-    key: "current_address",
-    label: "العنوان الوطني / الحالي",
+    key: "short_address",
+    label: "العنوان الوطني (العنوان المختصر)",
     category: "بيانات التواصل والبنك",
     inputType: "text",
     isCoreRequested: true,
     updateMode: "direct",
     linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "postal_code",
+    label: "بريد السكن (الرمز البريدي)",
+    category: "بيانات التواصل والبنك",
+    inputType: "text",
+    isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "building_no",
+    label: "رقم المبنى",
+    category: "بيانات التواصل والبنك",
+    inputType: "text",
+    isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "street",
+    label: "الشارع",
+    category: "بيانات التواصل والبنك",
+    inputType: "text",
+    isCoreRequested: false,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "district",
+    label: "الحي",
+    category: "بيانات التواصل والبنك",
+    inputType: "text",
+    isCoreRequested: false,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "city",
+    label: "المدينة",
+    category: "بيانات التواصل والبنك",
+    inputType: "text",
+    isCoreRequested: false,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "current_address",
+    label: "العنوان التفصيلي للسكن",
+    category: "بيانات التواصل والبنك",
+    inputType: "text",
+    isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "iqama_expiry",
+    label: "بيانات الإقامة (تاريخ انتهاء الإقامة)",
+    category: "البيانات الشخصية والهوية",
+    inputType: "date",
+    isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-branch-ops",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "iqama_issue_place",
+    label: "مكان إصدار الإقامة / الهوية",
+    category: "البيانات الشخصية والهوية",
+    inputType: "text",
+    isCoreRequested: false,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-branch-ops",
     allowDirectManager: false,
     requiresAttachment: false,
     requiresDeclaration: true,
@@ -420,6 +524,32 @@ export interface FieldCustomConfigOverride {
   active: boolean;
 }
 
+export interface DataUpdatePublishedRequest {
+  id: string;
+  code: string;
+  title: string;
+  description?: string | undefined;
+  isPublic: boolean;
+  targetScopeType: "public" | "department" | "branch" | "specific_employees";
+  targetScopeValue: string;
+  targetEmployeeIds: string[];
+  fieldKeys: string[];
+  requiresApprovalChain: boolean; // false = لا يخضع لسلسلة موافقة | true = يخضع لسلسلة موافقة
+  approvalGroupId: string;
+  allowDirectManager: boolean;
+  requiresAttachment: boolean;
+  declarationText: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface DataUpdateFieldChange {
+  fieldKey: string;
+  fieldLabel: string;
+  oldValue: string;
+  newValue: string;
+}
+
 export interface DataUpdateConfigState {
   globalAllowDirectManager: boolean;
   autoApplyOnApproval: boolean;
@@ -430,6 +560,7 @@ export interface DataUpdateConfigState {
   fieldConfigs: Record<string, FieldCustomConfigOverride>;
   approvalGroups: DataUpdateApprovalGroup[];
   userPermissionGroups: UserFieldPermissionGroup[];
+  publishedRequests?: DataUpdatePublishedRequest[] | undefined;
 }
 
 export interface DataUpdateReplyItem {
@@ -452,6 +583,9 @@ export interface DataUpdateRequestItem {
   directManagerName: string;
   userGroupId: string;
   userGroupName: string;
+  publishedRequestId?: string | undefined;
+  publishedRequestTitle?: string | undefined;
+  fieldChanges?: DataUpdateFieldChange[] | undefined;
   /**
    * آلية التحديث لهذا الحقل:
    * - "direct": تحديث فوري مباشر بإقرار الموظف
@@ -537,6 +671,48 @@ export const DEFAULT_DECLARATION_TITLE = "إقرار وتأكيد صحة الب�
 export const DEFAULT_DECLARATION_TEXT =
   "أقر أنا الموظف بأنني قد راجعت وتأكدت من صحة ودقة جميع البيانات التي تم تعبئتها بشكل عام، وأنها مطابقة للوثائق والمستندات الرسمية، وأتحمل كامل المسؤولية النظامية عن صحتها.";
 
+export const DEFAULT_PUBLISHED_REQUESTS: DataUpdatePublishedRequest[] = [
+  {
+    id: "pub-req-contact-address",
+    code: "REQ-01",
+    title: "طلب تحديث بيانات التواصل والعنوان الوطني والسكن",
+    description:
+      "تحديث أرقام الجوال، البريد الإلكتروني، العنوان الوطني المختصر، بريد السكن (الرمز البريدي)، ورقم المبنى",
+    isPublic: true,
+    targetScopeType: "public",
+    targetScopeValue: "الكل",
+    targetEmployeeIds: [],
+    fieldKeys: ["phone", "email", "short_address", "postal_code", "building_no", "street", "district", "city"],
+    requiresApprovalChain: false, // لا يخضع لسلسلة موافقة (تحديث مباشر بإقرار الموظف)
+    approvalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    declarationText:
+      "أقر بأنني قمت بمراجعة وتعبئة بيانات التواصل والعنوان الوطني الموضحة أعلاه والتأكد من صحتها، وأوافق على إضافتها وتحديثها في النظام.",
+    active: true,
+    createdAt: "2026-11-01",
+  },
+  {
+    id: "pub-req-iqama-identity",
+    code: "REQ-02",
+    title: "طلب تحديث بيانات الإقامة والهوية والحالة الاجتماعية",
+    description: "تحديث رقم الهوية/الإقامة، تاريخ انتهاء الإقامة، مكان الإصدار، والحالة الاجتماعية",
+    isPublic: true,
+    targetScopeType: "public",
+    targetScopeValue: "الكل",
+    targetEmployeeIds: [],
+    fieldKeys: ["national_id", "id_type", "iqama_expiry", "iqama_issue_place", "social_status"],
+    requiresApprovalChain: true, // يخضع لسلسلة موافقة
+    approvalGroupId: "ag-branch-ops",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    declarationText:
+      "أقر بأن بيانات الإقامة والهوية المدخلة صحيحة ومطابقة للمستندات الرسمية، وأوافق على رفعها للاعتماد وتحديثها في النظام.",
+    active: true,
+    createdAt: "2026-11-01",
+  },
+];
+
 export const DEFAULT_DATA_UPDATE_CONFIG: DataUpdateConfigState = {
   globalAllowDirectManager: true,
   autoApplyOnApproval: true,
@@ -545,6 +721,7 @@ export const DEFAULT_DATA_UPDATE_CONFIG: DataUpdateConfigState = {
   declarationText: DEFAULT_DECLARATION_TEXT,
   customFields: [],
   fieldConfigs: buildDefaultFieldConfigs(),
+  publishedRequests: DEFAULT_PUBLISHED_REQUESTS,
   approvalGroups: [
     {
       id: "ag-hr-main",
@@ -865,6 +1042,11 @@ function normalizeConfig(input: Partial<DataUpdateConfigState>): DataUpdateConfi
     };
   });
 
+  const publishedRequests: DataUpdatePublishedRequest[] =
+    Array.isArray(input.publishedRequests) && input.publishedRequests.length > 0
+      ? input.publishedRequests
+      : DEFAULT_PUBLISHED_REQUESTS;
+
   return {
     globalAllowDirectManager: input.globalAllowDirectManager ?? true,
     autoApplyOnApproval: input.autoApplyOnApproval ?? true,
@@ -875,6 +1057,7 @@ function normalizeConfig(input: Partial<DataUpdateConfigState>): DataUpdateConfi
     fieldConfigs: mergedFieldConfigs,
     approvalGroups,
     userPermissionGroups,
+    publishedRequests,
   };
 }
 
@@ -958,7 +1141,67 @@ export function getEmployeeFieldValue(employee: Row | null | undefined, fieldKey
   if (fieldKey === "phone") {
     return readKey("phone") || readKey("mobile") || "غير محدد";
   }
+  if (fieldKey === "short_address") {
+    return readKey("short_address") || readKey("national_address") || "غير محدد";
+  }
   return readKey(fieldKey) || "غير محدد";
+}
+
+/**
+ * بناء حزمة تحديث لعدة حقول دفعة واحدة عند تعبئة طلب تحديث بيانات من الموظف أو اعتماده
+ */
+export function buildMultiFieldEmployeeUpdatePatch(
+  employee: Row,
+  changes: DataUpdateFieldChange[],
+  requestNumber: string,
+  approverName: string,
+): Record<string, any> {
+  const combinedPatch: Record<string, any> = {};
+  for (const ch of changes) {
+    if (!ch.fieldKey || !ch.newValue.trim()) continue;
+    const singlePatch = buildEmployeeUpdatePatch(
+      employee,
+      ch.fieldKey,
+      ch.newValue.trim(),
+      requestNumber,
+      approverName,
+      ch.fieldLabel,
+    );
+    Object.assign(combinedPatch, singlePatch);
+  }
+  return combinedPatch;
+}
+
+/**
+ * استرجاع طلبات التحديث المنشورة (Public أو المخصصة) المتاحة لموظف معين
+ */
+export function getPublishedRequestsForEmployee(
+  employee: Row | null | undefined,
+  config: DataUpdateConfigState,
+): DataUpdatePublishedRequest[] {
+  const list = Array.isArray(config.publishedRequests)
+    ? config.publishedRequests
+    : DEFAULT_PUBLISHED_REQUESTS;
+
+  return list.filter((req) => {
+    if (!req.active) return false;
+    if (req.isPublic || req.targetScopeType === "public") return true;
+    if (!employee) return true;
+    const empId = String(employee["id"] || "");
+    const empDept = String(employee["department"] || "").trim();
+    const empBranch = String(employee["branch"] || "").trim();
+
+    if (req.targetScopeType === "specific_employees") {
+      return req.targetEmployeeIds.includes(empId);
+    }
+    if (req.targetScopeType === "department") {
+      return !req.targetScopeValue || req.targetScopeValue === "الكل" || req.targetScopeValue === empDept;
+    }
+    if (req.targetScopeType === "branch") {
+      return !req.targetScopeValue || req.targetScopeValue === "الكل" || req.targetScopeValue === empBranch;
+    }
+    return true;
+  });
 }
 
 /**

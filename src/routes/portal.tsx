@@ -58,8 +58,10 @@ import {
 import {
   DATA_UPDATE_FIELDS,
   buildEmployeeUpdatePatch,
+  buildMultiFieldEmployeeUpdatePatch,
   getAllDataUpdateFields,
   getEmployeeFieldValue,
+  getPublishedRequestsForEmployee,
   loadDataUpdateConfig,
   loadDataUpdateRequests,
   resolveEmployeePermissionGroup,
@@ -67,6 +69,8 @@ import {
   saveDataUpdateRequestsLocal,
   type DataUpdateRequestItem,
   type DataUpdateConfigState,
+  type DataUpdatePublishedRequest,
+  type DataUpdateFieldChange,
 } from "@/lib/data-update-config";
 
 export const Route = createFileRoute("/portal")({
@@ -1025,6 +1029,170 @@ export function EmployeePortalPage() {
   };
 
   const employeeName = currentEmployee.full_name || "أحمد محمد السيد السيد";
+
+  // الطلبات المنشأة والمرسلة للموظفين (Public أو مخصصة) من شاشة تحديث البيانات
+  const availablePublishedRequests = useMemo(
+    () => getPublishedRequestsForEmployee(currentEmployee, config),
+    [currentEmployee, config],
+  );
+
+  const [activePublishedReq, setActivePublishedReq] =
+    useState<DataUpdatePublishedRequest | null>(null);
+  const [pubFieldValues, setPubFieldValues] = useState<Record<string, string>>({});
+  const [pubDeclarationChecked, setPubDeclarationChecked] = useState(false);
+  const [isSubmittingPubReq, setIsSubmittingPubReq] = useState(false);
+
+  const handleOpenPublishedRequest = (req: DataUpdatePublishedRequest) => {
+    setActivePublishedReq(req);
+    setPubDeclarationChecked(false);
+    const initial: Record<string, string> = {};
+    for (const fk of req.fieldKeys) {
+      const cur =
+        formData[fk] !== undefined && String(formData[fk]).trim() !== ""
+          ? String(formData[fk])
+          : getEmployeeFieldValue(currentEmployee, fk);
+      initial[fk] = cur === "غير محدد" ? "" : cur;
+    }
+    setPubFieldValues(initial);
+  };
+
+  const handleSubmitPublishedRequest = async () => {
+    if (!activePublishedReq) return;
+    const changes: DataUpdateFieldChange[] = [];
+    for (const fk of activePublishedReq.fieldKeys) {
+      const fDef = allDataUpdateFields.find((f) => f.key === fk);
+      const label = fDef?.label || fk;
+      const oldVal = getEmployeeFieldValue(currentEmployee, fk);
+      const newVal = (pubFieldValues[fk] || "").trim();
+      if (newVal && newVal !== oldVal) {
+        changes.push({
+          fieldKey: fk,
+          fieldLabel: label,
+          oldValue: oldVal,
+          newValue: newVal,
+        });
+      }
+    }
+
+    if (changes.length === 0) {
+      toast.error("يرجى تعديل أو إدخال قيمة جديدة واحدة على الأقل");
+      return;
+    }
+
+    if (!pubDeclarationChecked) {
+      toast.error("يرجى التأشير على إقرار صحة البيانات قبل الضغط على موافق");
+      return;
+    }
+
+    setIsSubmittingPubReq(true);
+    try {
+      const reqNumber = `DU-${String(allRequests.length + 101).padStart(4, "0")}`;
+      const isDirect = !activePublishedReq.requiresApprovalChain;
+      const appGroup =
+        config.approvalGroups.find((g) => g.id === activePublishedReq.approvalGroupId) ||
+        config.approvalGroups[0];
+      const nowIso = new Date().toISOString();
+
+      if (isDirect) {
+        const patch = buildMultiFieldEmployeeUpdatePatch(
+          currentEmployee,
+          changes,
+          reqNumber,
+          `${employeeName} (تحديث مباشر بإقرار الموظف)`,
+        );
+        setFormData((prev) => ({ ...prev, ...patch }));
+        try {
+          if (currentEmployee.id && !String(currentEmployee.id).startsWith("emp-")) {
+            await saveEmployee.mutateAsync({
+              ...currentEmployee,
+              ...patch,
+              id: currentEmployee.id,
+            });
+          }
+        } catch {
+          // saved in localStorage
+        }
+      }
+
+      const summaryLabels = changes.map((c) => c.fieldLabel).join(" + ");
+      const summaryOld = changes.map((c) => `${c.fieldLabel}: ${c.oldValue}`).join(" | ");
+      const summaryNew = changes.map((c) => `${c.fieldLabel}: ${c.newValue}`).join(" | ");
+
+      const newReqItem: DataUpdateRequestItem = {
+        id: `du-${Date.now()}`,
+        requestNumber: reqNumber,
+        employeeId: String(currentEmployee.id || "emp-10078"),
+        empNo: String(currentEmployee.emp_no || "10078"),
+        employeeName,
+        branch: String(currentEmployee.branch || "المتقدمة الاهلية - فرع قرطبة"),
+        department: String(currentEmployee.department || "ابتدائي"),
+        directManagerName: String(currentEmployee.manager_name || "حمدان مانع العمري"),
+        userGroupId: resolvedGroup.id,
+        userGroupName: activePublishedReq.isPublic ? "طلب عام (Public)" : "طلب مخصص",
+        publishedRequestId: activePublishedReq.id,
+        publishedRequestTitle: activePublishedReq.title,
+        fieldChanges: changes,
+        updateMode: isDirect ? "direct" : "approval_required",
+        employeeDeclared: true,
+        declaredAt: nowIso.slice(0, 10),
+        declarationTextSnapshot: activePublishedReq.declarationText,
+        approvalGroupId: appGroup?.id || "ag-hr-main",
+        approvalGroupName: isDirect
+          ? "لا يخضع لسلسلة موافقة (تحديث مباشر بإقرار الموظف)"
+          : appGroup?.name || "سلسلة الموافقة",
+        allowDirectManager: isDirect ? false : activePublishedReq.allowDirectManager,
+        directManagerStatus: isDirect
+          ? "not_required"
+          : activePublishedReq.allowDirectManager
+            ? "pending"
+            : "not_required",
+        fieldKey: changes[0]!.fieldKey,
+        fieldLabel:
+          changes.length === 1
+            ? changes[0]!.fieldLabel
+            : `${activePublishedReq.title} (${summaryLabels})`,
+        oldValue: changes.length === 1 ? changes[0]!.oldValue : summaryOld,
+        newValue: changes.length === 1 ? changes[0]!.newValue : summaryNew,
+        reason: `رد الموظف على: ${activePublishedReq.title}`,
+        status: isDirect ? "approved" : "pending",
+        awaitingText: isDirect
+          ? "تم التحديث في النظام فوراً بإقرار الموظف ✓"
+          : `بانتظار موافقة: ${appGroup?.name || "سلسلة الموافقة"}`,
+        authorizedApproverNames: (appGroup?.approvers || []).map((a) => a.name),
+        appliedToEmployeeRecord: isDirect,
+        decisionBy: isDirect ? `${employeeName} (إقرار مباشر OK)` : undefined,
+        decisionAt: isDirect ? nowIso.slice(0, 10) : undefined,
+        replies: [
+          {
+            id: `rep-${Date.now()}`,
+            authorName: employeeName,
+            authorRole: "الموظف",
+            message: `أقر بصحة البيانات المدخلة (${summaryNew}) والموافقة على إضافتها في النظام.`,
+            actionType: isDirect ? "direct_self_update" : "reply",
+            createdAt: nowIso.slice(0, 16).replace("T", " "),
+          },
+        ],
+        createdAt: nowIso.slice(0, 10),
+      };
+
+      const updatedList = [newReqItem, ...allRequests];
+      const json = saveDataUpdateRequestsLocal(updatedList);
+      try {
+        await saveRequests.mutateAsync({ requests_json: json });
+      } catch {
+        // saved locally
+      }
+
+      setActivePublishedReq(null);
+      if (isDirect) {
+        toast.success(`تم تحديث بياناتك في النظام فوراً بناءً على إقرارك (${changes.length} بيانات)`);
+      } else {
+        toast.success(`تم إرسال بياناتك لسلسلة الموافقة (${appGroup?.name}) للاعتماد`);
+      }
+    } finally {
+      setIsSubmittingPubReq(false);
+    }
+  };
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f1f5f9] text-slate-800 font-sans antialiased">
@@ -2014,6 +2182,71 @@ export function EmployeePortalPage() {
             {/* SUB-TAB 2: طلبات متنوعة (تحديث البيانات والموافقات) */}
             {reqSubTab === "misc" && (
               <div className="space-y-4">
+                {/* الطلبات المنشورة من الإدارة للموظفين (Public أو مخصصة) */}
+                {availablePublishedRequests.length > 0 && (
+                  <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <div>
+                        <h3 className="text-sm font-black text-[#004e82]">
+                          طلبات تحديث البيانات الواردة لك من الإدارة ({availablePublishedRequests.length})
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          اضغط على «تعبئة وتحديث البيانات» لإدخال بياناتك والموافقة على إقرار صحتها ليتم تحديثها في النظام
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {availablePublishedRequests.map((pubReq) => (
+                        <div
+                          key={pubReq.id}
+                          className="flex flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 gap-3"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-black text-xs text-slate-900">
+                                {pubReq.title}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  !pubReq.requiresApprovalChain
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-amber-100 text-amber-800"
+                                }`}
+                              >
+                                {!pubReq.requiresApprovalChain
+                                  ? "يتحدث فوراً بإقرارك"
+                                  : "يخضع لسلسلة موافقة"}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {pubReq.fieldKeys.map((fk) => {
+                                const fDef = allDataUpdateFields.find((f) => f.key === fk);
+                                return (
+                                  <span
+                                    key={fk}
+                                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600"
+                                  >
+                                    {fDef?.label || fk}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPublishedRequest(pubReq)}
+                            className="w-full rounded-lg bg-[#0070c0] py-2 text-xs font-black text-white hover:bg-[#005fa3] transition cursor-pointer"
+                          >
+                            تعبئة وتحديث البيانات الآن
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-white p-4 shadow-xs">
                   <div>
                     <h3 className="text-sm font-black text-[#004e82]">
@@ -3524,6 +3757,103 @@ export function EmployeePortalPage() {
                   : effectiveFieldWorkflow.updateMode === "direct"
                     ? "موافق (OK) — تحديث فوري بالنظام والتقرير"
                     : "موافق (OK) — تأكيد وإرسال لمراحل الموافقة"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          MODAL: تعبئة طلب تحديث بيانات منشور للموظف (متعدد الحقول + إقرار الموظف)
+         ===================================================================== */}
+      {activePublishedReq && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+          dir="rtl"
+        >
+          <div className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-[#0070c0]">
+                  طلب تحديث بيانات الموظف
+                </span>
+                <h3 className="text-sm font-black text-slate-900 mt-0.5">
+                  {activePublishedReq.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivePublishedReq(null)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {activePublishedReq.fieldKeys.map((fk) => {
+                const fDef = allDataUpdateFields.find((f) => f.key === fk);
+                const oldVal = getEmployeeFieldValue(currentEmployee, fk);
+                return (
+                  <div key={fk} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-slate-800">{fDef?.label || fk}</span>
+                      <span className="text-[10px] text-slate-400">الحالي: {oldVal}</span>
+                    </div>
+                    <input
+                      type={
+                        fDef?.inputType === "date"
+                          ? "date"
+                          : fDef?.inputType === "number"
+                            ? "number"
+                            : "text"
+                      }
+                      value={pubFieldValues[fk] ?? ""}
+                      onChange={(e) =>
+                        setPubFieldValues((prev) => ({ ...prev, [fk]: e.target.value }))
+                      }
+                      placeholder={`أدخل ${fDef?.label || fk}...`}
+                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            <label className="flex items-start gap-2.5 rounded-xl border-2 border-emerald-300 bg-emerald-50/70 p-3.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pubDeclarationChecked}
+                onChange={(e) => setPubDeclarationChecked(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded accent-emerald-600"
+              />
+              <div className="text-xs">
+                <span className="font-black text-emerald-950 block">
+                  إقرار الموظف بصحة البيانات والموافقة على إضافتها في النظام:
+                </span>
+                <span className="text-[11px] font-semibold text-emerald-800">
+                  {activePublishedReq.declarationText}
+                </span>
+              </div>
+            </label>
+
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setActivePublishedReq(null)}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingPubReq}
+                onClick={() => void handleSubmitPublishedRequest()}
+                className="rounded-lg bg-emerald-600 px-5 py-2 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+              >
+                {!activePublishedReq.requiresApprovalChain
+                  ? "موافق وتحديث بياناتي في النظام فوراً (OK)"
+                  : "موافق وإرسال البيانات لسلسلة الموافقة (OK)"}
               </button>
             </div>
           </div>

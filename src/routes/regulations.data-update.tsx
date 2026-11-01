@@ -5,7 +5,6 @@ import { Breadcrumbs } from "@/components/hr/ui";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { useRows, useSaveSettings, useSettings, type Row } from "@/lib/hr-db";
 import {
-  DATA_UPDATE_FIELDS,
   buildDefaultFieldMap,
   getAllDataUpdateFields,
   loadDataUpdateConfig,
@@ -37,6 +36,12 @@ export const Route = createFileRoute("/regulations/data-update")({
 const inputCls =
   "h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-800 outline-none transition focus:border-[#0070c0] focus:ring-2 focus:ring-[#0070c0]/15";
 
+type ConfigTabKey =
+  | "direct_fields"
+  | "approval_fields"
+  | "approval_groups"
+  | "employee_groups";
+
 function DataUpdateRegulationPage() {
   const settingsQuery = useSettings("data_update_config");
   const saveSettings = useSaveSettings("data_update_config");
@@ -44,26 +49,23 @@ function DataUpdateRegulationPage() {
 
   const [config, setConfig] = useState<DataUpdateConfigState>(() => loadDataUpdateConfig());
   const [hydrated, setHydrated] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "fields_builder" | "approval_groups" | "allowed_fields"
-  >("fields_builder");
+  const [activeTab, setActiveTab] = useState<ConfigTabKey>("direct_fields");
 
-  // Selection state in Tab 2 & Tab 3
+  // Selection state in Tab 3 & Tab 4
   const [selectedApprovalGroupId, setSelectedApprovalGroupId] = useState<string>("");
   const [selectedUserGroupId, setSelectedUserGroupId] = useState<string>("");
 
-  // Filter inside Tab 1 (Fields Builder)
-  const [fieldModeFilter, setFieldModeFilter] = useState<"all" | "direct" | "approval_required" | "custom">("all");
+  // Search & category filter for tables
   const [fieldSearch, setFieldSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [quickConvertFieldKey, setQuickConvertFieldKey] = useState<string>("");
 
-  // Create New Field Modal / Card state
-  const [isCreateFieldOpen, setIsCreateFieldOpen] = useState(false);
+  // Draft for creating a new field (used in Tab 1 for Direct, Tab 2 for Approval-linked)
   const [newFieldDraft, setNewFieldDraft] = useState<{
     label: string;
     category: DataUpdateCategory;
     inputType: "text" | "select_or_text" | "date" | "number";
     optionsText: string;
-    updateMode: FieldUpdateMode;
     linkedApprovalGroupId: string;
     allowDirectManager: boolean;
     requiresAttachment: boolean;
@@ -73,7 +75,6 @@ function DataUpdateRegulationPage() {
     category: "حقول مخصصة لتحديث البيانات",
     inputType: "text",
     optionsText: "",
-    updateMode: "direct",
     linkedApprovalGroupId: "ag-hr-main",
     allowDirectManager: true,
     requiresAttachment: false,
@@ -144,31 +145,40 @@ function DataUpdateRegulationPage() {
 
   const allFields = useMemo(() => getAllDataUpdateFields(config), [config]);
 
-  const filteredBuilderFields = useMemo(() => {
-    return allFields.filter((f) => {
-      if (fieldModeFilter === "direct" && f.updateMode !== "direct") return false;
-      if (fieldModeFilter === "approval_required" && f.updateMode !== "approval_required") return false;
-      if (fieldModeFilter === "custom" && !f.isCustom) return false;
-      if (fieldSearch.trim()) {
-        const q = fieldSearch.trim().toLowerCase();
-        if (
-          !f.label.toLowerCase().includes(q) &&
-          !f.key.toLowerCase().includes(q) &&
-          !f.category.toLowerCase().includes(q)
-        ) {
-          return false;
+  const directFields = useMemo(
+    () =>
+      allFields.filter((f) => {
+        if (f.updateMode !== "direct") return false;
+        if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
+        if (fieldSearch.trim()) {
+          const q = fieldSearch.trim().toLowerCase();
+          return f.label.toLowerCase().includes(q) || f.category.toLowerCase().includes(q);
         }
-      }
-      return true;
-    });
-  }, [allFields, fieldModeFilter, fieldSearch]);
+        return true;
+      }),
+    [allFields, categoryFilter, fieldSearch],
+  );
 
-  const directFieldsCount = useMemo(
-    () => allFields.filter((f) => f.active !== false && f.updateMode === "direct").length,
+  const approvalFields = useMemo(
+    () =>
+      allFields.filter((f) => {
+        if (f.updateMode !== "approval_required") return false;
+        if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
+        if (fieldSearch.trim()) {
+          const q = fieldSearch.trim().toLowerCase();
+          return f.label.toLowerCase().includes(q) || f.category.toLowerCase().includes(q);
+        }
+        return true;
+      }),
+    [allFields, categoryFilter, fieldSearch],
+  );
+
+  const totalDirectCount = useMemo(
+    () => allFields.filter((f) => f.updateMode === "direct").length,
     [allFields],
   );
-  const approvalFieldsCount = useMemo(
-    () => allFields.filter((f) => f.active !== false && f.updateMode === "approval_required").length,
+  const totalApprovalCount = useMemo(
+    () => allFields.filter((f) => f.updateMode === "approval_required").length,
     [allFields],
   );
 
@@ -188,7 +198,6 @@ function DataUpdateRegulationPage() {
     [config.userPermissionGroups, selectedUserGroupId],
   );
 
-  // Extract unique branches and departments
   const branchOptions = useMemo(() => {
     const set = new Set<string>(["الفرع الرئيسي", "فرع الرياض", "فرع جدة", "فرع الدمام"]);
     employees.forEach((e: Row) => {
@@ -214,12 +223,12 @@ function DataUpdateRegulationPage() {
   }, [employees]);
 
   // =========================================================================
-  // Handlers for Tab 1: Creating & Configuring Fields + Update Modes
+  // Create & Update Field Handlers
   // =========================================================================
-  const handleCreateCustomField = () => {
+  const handleCreateCustomField = (targetMode: FieldUpdateMode) => {
     const label = newFieldDraft.label.trim();
     if (!label) {
-      toast.error("يرجى إدخال اسم الحقل المراد إنشاؤه");
+      toast.error("يرجى إدخال مسمى الحقل الجديد أولاً");
       return;
     }
 
@@ -237,6 +246,9 @@ function DataUpdateRegulationPage() {
             .filter(Boolean)
         : undefined;
 
+    const approvalGroupId =
+      newFieldDraft.linkedApprovalGroupId || config.approvalGroups[0]?.id || "ag-hr-main";
+
     const newField: DataUpdateFieldDef = {
       key,
       label,
@@ -245,8 +257,8 @@ function DataUpdateRegulationPage() {
       defaultOptions,
       isCoreRequested: true,
       isCustom: true,
-      updateMode: newFieldDraft.updateMode,
-      linkedApprovalGroupId: newFieldDraft.linkedApprovalGroupId || config.approvalGroups[0]?.id || "ag-hr-main",
+      updateMode: targetMode,
+      linkedApprovalGroupId: approvalGroupId,
       allowDirectManager: newFieldDraft.allowDirectManager,
       requiresAttachment: newFieldDraft.requiresAttachment,
       requiresDeclaration: newFieldDraft.requiresDeclaration,
@@ -259,15 +271,14 @@ function DataUpdateRegulationPage() {
       category: newFieldDraft.category,
       inputType: newFieldDraft.inputType,
       defaultOptions,
-      updateMode: newFieldDraft.updateMode,
-      linkedApprovalGroupId: newField.linkedApprovalGroupId,
+      updateMode: targetMode,
+      linkedApprovalGroupId: approvalGroupId,
       allowDirectManager: newFieldDraft.allowDirectManager,
       requiresAttachment: newFieldDraft.requiresAttachment,
       requiresDeclaration: newFieldDraft.requiresDeclaration,
       active: true,
     };
 
-    // Enable the new field across user permission groups automatically
     const nextUserGroups = config.userPermissionGroups.map((ug) => ({
       ...ug,
       allowedFields: {
@@ -276,8 +287,8 @@ function DataUpdateRegulationPage() {
           fieldKey: key,
           enabled: true,
           requiresAttachment: newFieldDraft.requiresAttachment,
-          updateMode: newFieldDraft.updateMode,
-          linkedApprovalGroupId: newField.linkedApprovalGroupId,
+          updateMode: targetMode,
+          linkedApprovalGroupId: approvalGroupId,
           allowDirectManager: newFieldDraft.allowDirectManager,
         },
       },
@@ -295,28 +306,22 @@ function DataUpdateRegulationPage() {
 
     void persistConfig(
       next,
-      newFieldDraft.updateMode === "direct"
-        ? `تم إنشاء الحقل "${label}" كحقل تحديث مباشر فوري بإقرار الموظف`
+      targetMode === "direct"
+        ? `تم إنشاء الحقل "${label}" وإضافته إلى حقول التحديث المباشر بإقرار الموظف (OK)`
         : `تم إنشاء الحقل "${label}" وربطه بمجموعة الموافقة ومراحل الاعتماد`,
     );
 
-    setIsCreateFieldOpen(false);
-    setNewFieldDraft({
+    setNewFieldDraft((p) => ({
+      ...p,
       label: "",
-      category: "حقول مخصصة لتحديث البيانات",
-      inputType: "text",
       optionsText: "",
-      updateMode: "direct",
-      linkedApprovalGroupId: config.approvalGroups[0]?.id || "ag-hr-main",
-      allowDirectManager: true,
-      requiresAttachment: false,
-      requiresDeclaration: true,
-    });
+    }));
   };
 
   const handleUpdateFieldConfig = (
     field: DataUpdateFieldDef,
     patch: Partial<FieldCustomConfigOverride>,
+    customToast?: string,
   ) => {
     const existingOv: FieldCustomConfigOverride = config.fieldConfigs?.[field.key] || {
       fieldKey: field.key,
@@ -325,7 +330,8 @@ function DataUpdateRegulationPage() {
       inputType: field.inputType,
       defaultOptions: field.defaultOptions,
       updateMode: field.updateMode || "approval_required",
-      linkedApprovalGroupId: field.linkedApprovalGroupId || config.approvalGroups[0]?.id || "ag-hr-main",
+      linkedApprovalGroupId:
+        field.linkedApprovalGroupId || config.approvalGroups[0]?.id || "ag-hr-main",
       allowDirectManager: field.allowDirectManager ?? true,
       requiresAttachment: Boolean(field.requiresAttachment),
       requiresDeclaration: field.requiresDeclaration ?? true,
@@ -337,7 +343,6 @@ function DataUpdateRegulationPage() {
       ...patch,
     };
 
-    // Sync with userPermissionGroups so all groups reflect the updated mode/approval group
     const nextUserGroups = config.userPermissionGroups.map((ug) => {
       const prevRule = ug.allowedFields[field.key] || {
         fieldKey: field.key,
@@ -387,7 +392,7 @@ function DataUpdateRegulationPage() {
       userPermissionGroups: nextUserGroups,
     };
 
-    void persistConfig(next);
+    void persistConfig(next, customToast);
   };
 
   const handleDeleteCustomField = (fieldKey: string, label: string) => {
@@ -404,7 +409,7 @@ function DataUpdateRegulationPage() {
   };
 
   // =========================================================================
-  // Handlers for Tab 2: Approval Groups
+  // Approval Groups Handlers
   // =========================================================================
   const handleUpdateApprovalGroup = (
     groupId: string,
@@ -524,7 +529,7 @@ function DataUpdateRegulationPage() {
   };
 
   // =========================================================================
-  // Handlers for Tab 3: User Field Permission Groups
+  // Employee Permission Groups Handlers
   // =========================================================================
   const handleUpdateUserGroup = (
     groupId: string,
@@ -575,7 +580,11 @@ function DataUpdateRegulationPage() {
       const nextFields = { ...prev.allowedFields };
       for (const f of allFields) {
         const shouldEnable =
-          mode === "all" ? true : mode === "core_11" ? Boolean(f.isCoreRequested || f.isCustom) : false;
+          mode === "all"
+            ? true
+            : mode === "core_11"
+              ? Boolean(f.isCoreRequested || f.isCustom)
+              : false;
         nextFields[f.key] = {
           ...prev.allowedFields[f.key],
           fieldKey: f.key,
@@ -654,413 +663,230 @@ function DataUpdateRegulationPage() {
     <div className="mt-2 space-y-4" dir="rtl">
       <Breadcrumbs trail={["اللوائح", "إعدادات متنوعة", "تهيئة تحديث البيانات"]} />
 
-      {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0070c0]/10 text-[#0070c0]">
-            <MaterialIcon name="manage_accounts" size={26} />
+      {/* =====================================================================
+          1. COMPACT ORGANIZED TOP HEADER + SUMMARY STRIP
+         ===================================================================== */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004e82] text-white shadow-xs">
+              <MaterialIcon name="manage_accounts" size={24} />
+            </div>
+            <div>
+              <h1 className="text-[16px] font-extrabold text-[#004e82]">
+                تهيئة تحديث البيانات
+              </h1>
+              <p className="text-[11px] text-slate-500">
+                إدارة حقول التحديث الفوري بإقرار الموظف (OK)، والحقول المربوطة بمجموعات الموافقات، وتقرير الإنجاز
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-[16px] font-extrabold text-[#004e82]">
-              تهيئة تحديث البيانات وإنشاء الحقول ومسارات الاعتماد
-            </h1>
-            <p className="text-[12px] text-slate-500">
-              إنشاء وتخصيص حقول تحديث البيانات (تحديث فوري بإقرار الموظف أو مربوط بمجموعات ومراحل موافقة) ومتابعة تقرير إنجاز تحديث البيانات
-            </p>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/reports/data-update-completion"
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-3.5 py-2 text-xs font-extrabold text-emerald-800 transition hover:bg-emerald-100"
+            >
+              <MaterialIcon name="fact_check" size={16} />
+              تقرير إنجاز لتحديث البيانات
+            </Link>
+            <Link
+              to="/requests/data-update"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+            >
+              <MaterialIcon name="assignment_ind" size={16} />
+              طلبات تحديث البيانات
+            </Link>
+            <button
+              type="button"
+              onClick={() =>
+                void persistConfig(config, "تم حفظ جميع إعدادات تهيئة تحديث البيانات بنجاح")
+              }
+              className="flex items-center gap-1.5 rounded-xl bg-[#0070c0] px-4 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-[#005fa3]"
+            >
+              <MaterialIcon name="save" size={16} />
+              حفظ التهيئة
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to={"/reports/data-update-completion" as string}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-50 px-3.5 py-2 text-xs font-extrabold text-emerald-800 transition hover:bg-emerald-100"
+        {/* Clean 4-Metric Summary Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100">
+          <div
+            onClick={() => setActiveTab("direct_fields")}
+            className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/50 px-3.5 py-2 cursor-pointer hover:bg-emerald-50 transition"
           >
-            <MaterialIcon name="fact_check" size={17} />
-            تقرير إنجاز لتحديث البيانات
-          </Link>
-          <Link
-            to="/requests/data-update"
-            className="flex items-center gap-1.5 rounded-lg border border-[#0070c0] bg-blue-50/70 px-3.5 py-2 text-xs font-bold text-[#0070c0] transition hover:bg-blue-100"
+            <div>
+              <div className="text-[11px] font-bold text-emerald-800">
+                حقول تحديث مباشر بإقرار (OK)
+              </div>
+              <div className="text-[10px] text-emerald-600">تسمع فوراً بالنظام والتقارير</div>
+            </div>
+            <span className="text-base font-black text-emerald-700 font-mono">
+              {totalDirectCount}
+            </span>
+          </div>
+
+          <div
+            onClick={() => setActiveTab("approval_fields")}
+            className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/50 px-3.5 py-2 cursor-pointer hover:bg-blue-50 transition"
           >
-            <MaterialIcon name="assignment_ind" size={17} />
-            شاشة طلبات تحديث البيانات
-          </Link>
-          <button
-            type="button"
-            onClick={() => void persistConfig(config, "تم حفظ جميع إعدادات تهيئة تحديث البيانات بنجاح")}
-            className="flex items-center gap-1.5 rounded-lg bg-[#0070c0] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#005fa3]"
+            <div>
+              <div className="text-[11px] font-bold text-[#004e82]">
+                حقول مربوطة بمراحل موافقة
+              </div>
+              <div className="text-[10px] text-slate-500">تمر على مجموعة الموافقات</div>
+            </div>
+            <span className="text-base font-black text-[#0070c0] font-mono">
+              {totalApprovalCount}
+            </span>
+          </div>
+
+          <div
+            onClick={() => setActiveTab("approval_groups")}
+            className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50/50 px-3.5 py-2 cursor-pointer hover:bg-indigo-50 transition"
           >
-            <MaterialIcon name="save" size={17} />
-            حفظ التهيئة
-          </button>
+            <div>
+              <div className="text-[11px] font-bold text-indigo-900">مجموعات الموافقات</div>
+              <div className="text-[10px] text-indigo-600">والمخولون بالاعتماد والرد</div>
+            </div>
+            <span className="text-base font-black text-indigo-700 font-mono">
+              {config.approvalGroups.length}
+            </span>
+          </div>
+
+          <div
+            onClick={() => setActiveTab("employee_groups")}
+            className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/50 px-3.5 py-2 cursor-pointer hover:bg-amber-50 transition"
+          >
+            <div>
+              <div className="text-[11px] font-bold text-amber-900">
+                مجموعات الموظفين والإقرار
+              </div>
+              <div className="text-[10px] text-amber-700">تخصيص الصلاحيات ونص القرار</div>
+            </div>
+            <span className="text-base font-black text-amber-700 font-mono">
+              {config.userPermissionGroups.length}
+            </span>
+          </div>
         </div>
-      </div>
-
-      {/* Global Controls & Declaration Settings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <label className="flex items-start gap-3 rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-3.5 cursor-pointer transition hover:border-emerald-500">
-          <input
-            type="checkbox"
-            checked={config.requireEmployeeDeclaration}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              void persistConfig(
-                { ...config, requireEmployeeDeclaration: checked },
-                checked
-                  ? "تم تفعيل إقرار وتأكيد الموظف على صحة البيانات عند التعبئة"
-                  : "تم إيقاف شرط الإقرار عند التعبئة",
-              );
-            }}
-            className="mt-0.5 h-5 w-5 rounded border-emerald-400 accent-emerald-600"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-extrabold text-emerald-900">
-                إظهار قرار/تأكيد صحة البيانات للموظف والضغط على (موافق OK)
-              </span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  config.requireEmployeeDeclaration
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {config.requireEmployeeDeclaration ? "مفعّل" : "غير مفعّل"}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-600 mt-0.5">
-              يظهر للموظف أثناء تحديث بياناته إقرار بأنه تأكد من صحة البيانات المعبأة بشكل عام، وبمجرد الضغط على موافق (OK) تسمع في النظام والتقارير أو تدخل مراحل الموافقة.
-            </p>
-          </div>
-        </label>
-
-        <label className="flex items-start gap-3 rounded-xl border-2 border-blue-200 bg-blue-50/50 p-3.5 cursor-pointer transition hover:border-[#0070c0]">
-          <input
-            type="checkbox"
-            checked={config.globalAllowDirectManager}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              const next: DataUpdateConfigState = {
-                ...config,
-                globalAllowDirectManager: checked,
-                approvalGroups: config.approvalGroups.map((g) => ({
-                  ...g,
-                  allowDirectManager: checked,
-                })),
-              };
-              void persistConfig(
-                next,
-                checked
-                  ? "تم تفعيل صلاحية المدير المباشر للموافقة والرد على طلبات تحديث البيانات"
-                  : "تم إيقاف صلاحية المدير المباشر للموافقة وحصرها بمجموعات الموافقات",
-              );
-            }}
-            className="mt-0.5 h-5 w-5 rounded border-blue-400 accent-[#0070c0]"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-extrabold text-[#004e82]">
-                السماح للمدير المباشر بالموافقة أو الرد في مراحل الاعتماد
-              </span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  config.globalAllowDirectManager
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {config.globalAllowDirectManager ? "مفعّل" : "غير مفعّل"}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-600 mt-0.5">
-              للحقول المربوطة بمراحل موافقة: يمر الطلب على المدير المباشر للموظف للموافقة أو الرد قبل أو بالتوازي مع مجموعة الموافقات.
-            </p>
-          </div>
-        </label>
-
-        <label className="flex items-start gap-3 rounded-xl border-2 border-sky-200 bg-sky-50/40 p-3.5 cursor-pointer transition hover:border-sky-500">
-          <input
-            type="checkbox"
-            checked={config.autoApplyOnApproval}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              void persistConfig(
-                { ...config, autoApplyOnApproval: checked },
-                checked
-                  ? "تم تفعيل التسميع التلقائي في النظام والتقارير"
-                  : "تم إيقاف التحديث التلقائي",
-              );
-            }}
-            className="mt-0.5 h-5 w-5 rounded border-sky-400 accent-sky-600"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-extrabold text-sky-900">
-                تسميع البيانات تلقائياً في النظام وتقرير الإنجاز
-              </span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  config.autoApplyOnApproval
-                    ? "bg-sky-100 text-sky-800"
-                    : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {config.autoApplyOnApproval ? "مفعّل" : "غير مفعّل"}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-600 mt-0.5">
-              الحقول المباشرة تسمع فوراً بعد إقرار الموظف، والحقول المربوطة بمجموعة موافقة تسمع فور اكتمال مراحل الموافقة وتظهر في تقرير إنجاز تحديث البيانات.
-            </p>
-          </div>
-        </label>
-      </div>
-
-      {/* Main 3 Tabs Switcher */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab("fields_builder")}
-          className={`flex items-center justify-between rounded-xl border-2 p-3.5 text-right transition ${
-            activeTab === "fields_builder"
-              ? "border-[#0070c0] bg-[#0070c0] text-white shadow-sm"
-              : "border-slate-200 bg-white text-slate-800 hover:border-blue-300"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <span
-              className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                activeTab === "fields_builder"
-                  ? "bg-white/20 text-white"
-                  : "bg-blue-50 text-[#0070c0]"
-              }`}
-            >
-              <MaterialIcon name="add_box" size={22} />
-            </span>
-            <div>
-              <div className="text-xs font-extrabold">
-                1. إنشاء الحقول وتحديد آلية التحديث (مباشر / بموافقة)
-              </div>
-              <div
-                className={`text-[11px] ${
-                  activeTab === "fields_builder" ? "text-blue-100" : "text-slate-500"
-                }`}
-              >
-                تحديث فوري بإقرار ({directFieldsCount}) · بمراحل موافقة ({approvalFieldsCount})
-              </div>
-            </div>
-          </div>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-              activeTab === "fields_builder"
-                ? "bg-white text-[#0070c0]"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            {allFields.length} حقل
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("approval_groups")}
-          className={`flex items-center justify-between rounded-xl border-2 p-3.5 text-right transition ${
-            activeTab === "approval_groups"
-              ? "border-[#0070c0] bg-[#0070c0] text-white shadow-sm"
-              : "border-slate-200 bg-white text-slate-800 hover:border-blue-300"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <span
-              className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                activeTab === "approval_groups"
-                  ? "bg-white/20 text-white"
-                  : "bg-blue-50 text-[#0070c0]"
-              }`}
-            >
-              <MaterialIcon name="verified_user" size={22} />
-            </span>
-            <div>
-              <div className="text-xs font-extrabold">
-                2. مجموعات الموافقات والمخولين بالرد والاعتماد
-              </div>
-              <div
-                className={`text-[11px] ${
-                  activeTab === "approval_groups" ? "text-blue-100" : "text-slate-500"
-                }`}
-              >
-                إعداد المجموعات التي تُربط بها الحقول الخاضعة للموافقة
-              </div>
-            </div>
-          </div>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-              activeTab === "approval_groups"
-                ? "bg-white text-[#0070c0]"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            {config.approvalGroups.length} مجموعات
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("allowed_fields")}
-          className={`flex items-center justify-between rounded-xl border-2 p-3.5 text-right transition ${
-            activeTab === "allowed_fields"
-              ? "border-[#0070c0] bg-[#0070c0] text-white shadow-sm"
-              : "border-slate-200 bg-white text-slate-800 hover:border-blue-300"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <span
-              className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                activeTab === "allowed_fields"
-                  ? "bg-white/20 text-white"
-                  : "bg-blue-50 text-[#0070c0]"
-              }`}
-            >
-              <MaterialIcon name="tune" size={22} />
-            </span>
-            <div>
-              <div className="text-xs font-extrabold">
-                3. مجموعات الموظفين وتخصيص صلاحيات الحقول
-              </div>
-              <div
-                className={`text-[11px] ${
-                  activeTab === "allowed_fields" ? "text-blue-100" : "text-slate-500"
-                }`}
-              >
-                تحديد الحقول المتاحة لكل فئة أو قسم أو فرع
-              </div>
-            </div>
-          </div>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-              activeTab === "allowed_fields"
-                ? "bg-white text-[#0070c0]"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            {config.userPermissionGroups.length} مجموعات
-          </span>
-        </button>
       </div>
 
       {/* =====================================================================
-          TAB 1: إنشاء الحقول وتحديد آلية التحديث (مباشر بإقرار / بمراحل موافقة)
+          2. CLEAN HORIZONTAL STEPPER / NAVIGATION TABS
          ===================================================================== */}
-      {activeTab === "fields_builder" && (
-        <div className="space-y-4">
-          {/* Card: Declaration Statement Configuration */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5">
+        {[
+          {
+            key: "direct_fields" as const,
+            step: "1",
+            title: "حقول التحديث المباشر بإقرار الموظف (OK)",
+            badge: `${totalDirectCount} حقل`,
+            icon: "bolt",
+          },
+          {
+            key: "approval_fields" as const,
+            step: "2",
+            title: "حقول مربوطة بمجموعة ومراحل موافقة",
+            badge: `${totalApprovalCount} حقل`,
+            icon: "route",
+          },
+          {
+            key: "approval_groups" as const,
+            step: "3",
+            title: "مجموعات الموافقات والمخولون بالرد",
+            badge: `${config.approvalGroups.length} مجموعات`,
+            icon: "verified_user",
+          },
+          {
+            key: "employee_groups" as const,
+            step: "4",
+            title: "صلاحيات الموظفين ونص إقرار التحديث",
+            badge: `${config.userPermissionGroups.length} مجموعات`,
+            icon: "tune",
+          },
+        ].map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.key);
+                setFieldSearch("");
+                setCategoryFilter("all");
+              }}
+              className={`flex-1 min-w-[210px] flex items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-right transition ${
+                isActive
+                  ? "bg-[#004e82] text-white shadow-xs"
+                  : "bg-transparent text-slate-700 hover:bg-white/80"
+              }`}
+            >
               <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                  <MaterialIcon name="gavel" size={19} />
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${
+                    isActive ? "bg-white text-[#004e82]" : "bg-slate-200 text-slate-700"
+                  }`}
+                >
+                  {tab.step}
+                </span>
+                <span className="text-xs font-extrabold">{tab.title}</span>
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  isActive ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-600"
+                }`}
+              >
+                {tab.badge}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* =====================================================================
+          TAB 1: حقول التحديث المباشر الفوري بإقرار الموظف (OK)
+         ===================================================================== */}
+      {activeTab === "direct_fields" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Right Column (4 cols): Create New Direct Field + Quick Convert */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Card 1: Create New Field for Direct Self-Update */}
+            <div className="rounded-2xl border-2 border-emerald-200 bg-white p-4 shadow-xs space-y-3.5">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                  <MaterialIcon name="add_circle" size={19} />
                 </span>
                 <div>
-                  <h2 className="text-xs font-extrabold text-[#004e82]">
-                    صيغة إقرار وتأكيد الموظف على صحة البيانات المدخلة
+                  <h2 className="text-xs font-extrabold text-emerald-900">
+                    إنشاء حقل جديد (تحديث مباشر بإقرار OK)
                   </h2>
-                  <p className="text-[11px] text-slate-500">
-                    النص الذي يظهر للموظف عند تعبئة البيانات ليؤكد صحتها ويضغط على زر (موافق / OK)
+                  <p className="text-[10px] text-slate-500">
+                    يظهر للموظف ليملأه ويؤكد الإقرار فيسمع فوراً بالنظام والتقارير
                   </p>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  عنوان نافذة الإقرار
+              <div className="space-y-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    مسمى الحقل الجديد (يظهر للموظف) *
+                  </span>
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="مثال: العنوان الوطني، رقم الآيبان، جوال الطوارئ..."
+                    value={newFieldDraft.label}
+                    onChange={(e) =>
+                      setNewFieldDraft((p) => ({ ...p, label: e.target.value }))
+                    }
+                  />
                 </label>
-                <input
-                  type="text"
-                  className={inputCls}
-                  value={config.declarationTitle}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, declarationTitle: e.target.value }))
-                  }
-                  onBlur={() => void persistConfig(config)}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  نص قرار تأكيد صحة البيانات التي تم تعبئتها بشكل عام
-                </label>
-                <input
-                  type="text"
-                  className={inputCls}
-                  value={config.declarationText}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, declarationText: e.target.value }))
-                  }
-                  onBlur={() => void persistConfig(config)}
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Card: Create Fields & Manage All Fields */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm font-extrabold text-[#004e82]">
-                  إدارة وإنشاء حقول تحديث البيانات وتحديد مسار كل حقل
-                </h2>
-                <p className="text-[11px] text-slate-500">
-                  يمكنك إنشاء حقول جديدة متاحة للموظفين لتحديثها مباشرة بإقرار (تسمع فوراً في النظام وفي تقرير الإنجاز)، أو ربط أي حقل بمجموعة موافقة ليمر بمراحل اعتماد بعد إقرار الموظف.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsCreateFieldOpen((v) => !v)}
-                className="flex items-center gap-1.5 rounded-xl bg-[#0070c0] px-4 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-[#005fa3]"
-              >
-                <MaterialIcon name={isCreateFieldOpen ? "expand_less" : "add_circle"} size={18} />
-                <span>إنشاء حقل جديد لتحديث البيانات</span>
-              </button>
-            </div>
-
-            {/* Expandable Form: Create a New Field */}
-            {isCreateFieldOpen && (
-              <div className="rounded-2xl border-2 border-[#0070c0]/30 bg-blue-50/30 p-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-blue-200/60 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <MaterialIcon name="post_add" size={20} className="text-[#0070c0]" />
-                    <span className="text-xs font-extrabold text-[#004e82]">
-                      إنشاء وتكوين حقل جديد متاح للموظفين لتحديث البيانات
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateFieldOpen(false)}
-                    className="text-slate-400 hover:text-slate-700"
-                  >
-                    <MaterialIcon name="close" size={18} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[11px] font-bold text-slate-700">
-                      مسمى الحقل (يظهر للموظف) *
-                    </span>
-                    <input
-                      type="text"
-                      className={inputCls}
-                      placeholder="مثال: العنوان الوطني، رقم الآيبان، المؤهل..."
-                      value={newFieldDraft.label}
-                      onChange={(e) =>
-                        setNewFieldDraft((p) => ({ ...p, label: e.target.value }))
-                      }
-                    />
-                  </label>
-
-                  <label className="flex flex-col gap-1">
-                    <span className="text-[11px] font-bold text-slate-700">تصنيف الحقل</span>
+                    <span className="text-[11px] font-bold text-slate-700">التصنيف</span>
                     <select
                       className={inputCls}
                       value={newFieldDraft.category}
@@ -1071,15 +897,15 @@ function DataUpdateRegulationPage() {
                         }))
                       }
                     >
-                      <option value="حقول مخصصة لتحديث البيانات">حقول مخصصة لتحديث البيانات</option>
-                      <option value="البيانات الشخصية والهوية">البيانات الشخصية والهوية</option>
-                      <option value="البيانات الوظيفية والتنظيمية">البيانات الوظيفية والتنظيمية</option>
-                      <option value="بيانات التواصل والبنك">بيانات التواصل والبنك</option>
+                      <option value="حقول مخصصة لتحديث البيانات">حقول مخصصة</option>
+                      <option value="البيانات الشخصية والهوية">بيانات شخصية</option>
+                      <option value="بيانات التواصل والبنك">تواصل وبنك</option>
+                      <option value="البيانات الوظيفية والتنظيمية">بيانات وظيفية</option>
                     </select>
                   </label>
 
                   <label className="flex flex-col gap-1">
-                    <span className="text-[11px] font-bold text-slate-700">نوع الإدخال</span>
+                    <span className="text-[11px] font-bold text-slate-700">نوع الحقل</span>
                     <select
                       className={inputCls}
                       value={newFieldDraft.inputType}
@@ -1090,416 +916,269 @@ function DataUpdateRegulationPage() {
                         }))
                       }
                     >
-                      <option value="text">نص حر (Text)</option>
-                      <option value="select_or_text">قائمة خيارات منسدلة (Dropdown)</option>
-                      <option value="date">تاريخ (Date)</option>
-                      <option value="number">رقم (Number)</option>
+                      <option value="text">نص حر</option>
+                      <option value="select_or_text">قائمة منسدلة</option>
+                      <option value="date">تاريخ</option>
+                      <option value="number">رقمي</option>
                     </select>
                   </label>
-
-                  {newFieldDraft.inputType === "select_or_text" ? (
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[11px] font-bold text-slate-700">
-                        خيارات القائمة (مفصولة بفاصلة ،)
-                      </span>
-                      <input
-                        type="text"
-                        className={inputCls}
-                        placeholder="مثال: خيار 1، خيار 2، خيار 3"
-                        value={newFieldDraft.optionsText}
-                        onChange={(e) =>
-                          setNewFieldDraft((p) => ({ ...p, optionsText: e.target.value }))
-                        }
-                      />
-                    </label>
-                  ) : (
-                    <div className="flex items-end pb-1">
-                      <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={newFieldDraft.requiresAttachment}
-                          onChange={(e) =>
-                            setNewFieldDraft((p) => ({
-                              ...p,
-                              requiresAttachment: e.target.checked,
-                            }))
-                          }
-                          className="h-4 w-4 rounded accent-[#0070c0]"
-                        />
-                        <span>يتطلب إرفاق مستند إثبات</span>
-                      </label>
-                    </div>
-                  )}
                 </div>
 
-                {/* Choosing Update Mode: Direct vs Linked to Approval Group */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                  <div
-                    onClick={() =>
-                      setNewFieldDraft((p) => ({ ...p, updateMode: "direct" }))
-                    }
-                    className={`rounded-xl border-2 p-3.5 cursor-pointer transition ${
-                      newFieldDraft.updateMode === "direct"
-                        ? "border-emerald-600 bg-emerald-50/70 shadow-2xs"
-                        : "border-slate-200 bg-white hover:border-emerald-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        checked={newFieldDraft.updateMode === "direct"}
-                        onChange={() =>
-                          setNewFieldDraft((p) => ({ ...p, updateMode: "direct" }))
-                        }
-                        className="h-4 w-4 accent-emerald-600"
-                      />
-                      <span className="text-xs font-extrabold text-emerald-900">
-                        الخيار (1): متاح للتحديث المباشر الفوري بإقرار الموظف (بدون انتظار موافقات)
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 mt-1 mr-6">
-                      يقوم الموظف بتعبئة الحقل، ويظهر له قرار تأكيد صحة البيانات ويضغط (موافق OK)، فتسمع البيانات فوراً في النظام وفي تقرير إنجاز تحديث البيانات.
-                    </p>
-                  </div>
+                {newFieldDraft.inputType === "select_or_text" && (
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] font-bold text-slate-700">
+                      خيارات القائمة المنسدلة (مفصولة بفاصلة ،)
+                    </span>
+                    <input
+                      type="text"
+                      className={inputCls}
+                      placeholder="مثال: خيار 1، خيار 2، خيار 3"
+                      value={newFieldDraft.optionsText}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({ ...p, optionsText: e.target.value }))
+                      }
+                    />
+                  </label>
+                )}
 
-                  <div
-                    onClick={() =>
-                      setNewFieldDraft((p) => ({ ...p, updateMode: "approval_required" }))
-                    }
-                    className={`rounded-xl border-2 p-3.5 cursor-pointer transition ${
-                      newFieldDraft.updateMode === "approval_required"
-                        ? "border-[#0070c0] bg-blue-50/70 shadow-2xs"
-                        : "border-slate-200 bg-white hover:border-blue-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        checked={newFieldDraft.updateMode === "approval_required"}
-                        onChange={() =>
-                          setNewFieldDraft((p) => ({ ...p, updateMode: "approval_required" }))
-                        }
-                        className="h-4 w-4 accent-[#0070c0]"
-                      />
-                      <span className="text-xs font-extrabold text-[#004e82]">
-                        الخيار (2): مربوط بمجموعة موافقة ويمر على مراحل اعتماد بعد إقرار الموظف
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 mt-1 mr-6">
-                      بعد تعبئة الموظف للبيانات وتأكيد الإقرار (OK)، يمر الطلب على مراحل الموافقة (المدير المباشر ومجموعة الموافقة المختارة) ليُعتمد ثم يسمع في النظام.
-                    </p>
+                <div className="rounded-xl bg-emerald-50/70 border border-emerald-200 p-2.5 space-y-2">
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-emerald-900 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newFieldDraft.requiresDeclaration}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({
+                          ...p,
+                          requiresDeclaration: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded accent-emerald-600"
+                    />
+                    <span>إلزام الموظف بإقرار صحة البيانات والضغط على (موافق OK)</span>
+                  </label>
 
-                    {newFieldDraft.updateMode === "approval_required" && (
-                      <div
-                        className="mt-3 mr-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-t border-blue-200 pt-2.5"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <label className="flex flex-col gap-1">
-                          <span className="text-[10px] font-bold text-[#004e82]">
-                            ربط بمجموعة الموافقة المختصة:
-                          </span>
-                          <select
-                            className="h-8 rounded-lg border border-blue-300 bg-white px-2 text-[11px] font-bold text-slate-800"
-                            value={newFieldDraft.linkedApprovalGroupId}
-                            onChange={(e) =>
-                              setNewFieldDraft((p) => ({
-                                ...p,
-                                linkedApprovalGroupId: e.target.value,
-                              }))
-                            }
-                          >
-                            {config.approvalGroups.map((ag) => (
-                              <option key={ag.id} value={ag.id}>
-                                {ag.name} ({ag.code})
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <label className="flex items-center gap-2 text-[11px] font-bold text-[#004e82] pt-4 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={newFieldDraft.allowDirectManager}
-                            onChange={(e) =>
-                              setNewFieldDraft((p) => ({
-                                ...p,
-                                allowDirectManager: e.target.checked,
-                              }))
-                            }
-                            className="h-4 w-4 rounded accent-[#0070c0]"
-                          />
-                          <span>يمر على المدير المباشر كمرحلة موافقة</span>
-                        </label>
-                      </div>
-                    )}
-                  </div>
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newFieldDraft.requiresAttachment}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({
+                          ...p,
+                          requiresAttachment: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded accent-emerald-600"
+                    />
+                    <span>يتطلب إرفاق مستند إثبات عند التحديث</span>
+                  </label>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 border-t border-blue-200/60 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateFieldOpen(false)}
-                    className="rounded-lg bg-white border border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCreateCustomField}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#0070c0] px-5 py-1.5 text-xs font-extrabold text-white shadow-xs hover:bg-[#005fa3]"
-                  >
-                    <MaterialIcon name="check_circle" size={16} />
-                    <span>حفظ وإدراج الحقل في النظام</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCreateCustomField("direct")}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-emerald-700"
+                >
+                  <MaterialIcon name="bolt" size={17} />
+                  <span>إضافة الحقل للتحديث الفوري بإقرار (OK)</span>
+                </button>
               </div>
-            )}
+            </div>
 
-            {/* Filter Bar for Fields */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {[
-                  { key: "all", label: `جميع الحقول (${allFields.length})` },
-                  {
-                    key: "direct",
-                    label: `تحديث مباشر بإقرار الموظف (${directFieldsCount})`,
-                  },
-                  {
-                    key: "approval_required",
-                    label: `مربوط بمجموعة ومراحل موافقة (${approvalFieldsCount})`,
-                  },
-                  {
-                    key: "custom",
-                    label: `الحقول المخصصة المضافة (${(config.customFields || []).length})`,
-                  },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setFieldModeFilter(tab.key as any)}
-                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
-                      fieldModeFilter === tab.key
-                        ? "bg-[#0070c0] text-white shadow-2xs"
-                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+            {/* Card 2: Quick Convert an Existing Field to Direct Update */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-2.5">
+              <h3 className="text-xs font-extrabold text-[#004e82] flex items-center gap-1.5">
+                <MaterialIcon name="swap_horiz" size={18} className="text-[#0070c0]" />
+                تحويل حقل حالي إلى (تحديث مباشر بإقرار OK)
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                اختر أي حقل من الحقول الخاضعة للموافقة لتحويله إلى تحديث مباشر فوري:
+              </p>
+              <div className="flex items-center gap-2">
+                <select
+                  className={inputCls}
+                  value={quickConvertFieldKey}
+                  onChange={(e) => setQuickConvertFieldKey(e.target.value)}
+                >
+                  <option value="">-- اختر حقلاً لتحويله --</option>
+                  {allFields
+                    .filter((f) => f.updateMode !== "direct")
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label} ({f.category})
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = allFields.find((f) => f.key === quickConvertFieldKey);
+                    if (!target) {
+                      toast.error("يرجى اختيار الحقل أولاً");
+                      return;
+                    }
+                    handleUpdateFieldConfig(
+                      target,
+                      { updateMode: "direct", active: true },
+                      `تم تحويل "${target.label}" إلى حقل تحديث مباشر فوري بإقرار الموظف (OK)`,
+                    );
+                    setQuickConvertFieldKey("");
+                  }}
+                  className="shrink-0 rounded-lg bg-[#0070c0] px-3 py-2 text-xs font-bold text-white hover:bg-[#005fa3]"
+                >
+                  تحويل
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Left Column (8 cols): Clean Table of Direct Self-Update Fields */}
+          <div className="lg:col-span-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-extrabold text-emerald-900 flex items-center gap-1.5">
+                  <MaterialIcon name="bolt" size={20} className="text-emerald-600" />
+                  <span>قائمة الحقول المتاحة للتحديث المباشر بإقرار الموظف ({directFields.length})</span>
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  هذه الحقول يحدثها الموظف بنفسه، ويظهر له قرار تأكيد صحة البيانات ويضغط (موافق OK) فتسمع فوراً في النظام وفي تقرير الإنجاز.
+                </p>
               </div>
 
-              <div className="w-full sm:w-64">
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="بحث باسم الحقل أو التصنيف..."
+                  placeholder="بحث في الحقول المباشرة..."
                   value={fieldSearch}
                   onChange={(e) => setFieldSearch(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold"
+                  className="h-8 w-48 rounded-lg border border-slate-300 bg-slate-50 px-3 text-xs font-semibold"
                 />
               </div>
             </div>
 
-            {/* Fields Table / Cards with Instant Mode & Approval Group Controls */}
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-right text-xs">
-                <thead className="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200">
+                <thead className="bg-emerald-900 text-white font-bold">
                   <tr>
-                    <th className="px-3 py-2.5">الحقل ومربوط بـ</th>
+                    <th className="px-3 py-2.5">تفعيل</th>
+                    <th className="px-3 py-2.5">مسمى الحقل</th>
                     <th className="px-3 py-2.5">التصنيف والنوع</th>
-                    <th className="px-3 py-2.5">آلية التحديث عند تأكيد الموظف (OK)</th>
-                    <th className="px-3 py-2.5">مجموعة الموافقة ومراحل الاعتماد</th>
-                    <th className="px-3 py-2.5 text-center">إقرار الموظف</th>
-                    <th className="px-3 py-2.5 text-center">المرفق</th>
-                    <th className="px-3 py-2.5 text-center">الحالة / إجراء</th>
+                    <th className="px-3 py-2.5 text-center">قرار تأكيد الموظف (OK)</th>
+                    <th className="px-3 py-2.5 text-center">إلزامية المرفق</th>
+                    <th className="px-3 py-2.5 text-center">تغيير المسار / إجراء</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredBuilderFields.map((field) => {
-                    const isDirect = field.updateMode === "direct";
-                    const isActive = field.active !== false;
-                    return (
-                      <tr
-                        key={field.key}
-                        className={`transition ${
-                          !isActive
-                            ? "bg-slate-50/60 opacity-60"
-                            : isDirect
-                              ? "bg-emerald-50/20 hover:bg-emerald-50/40"
-                              : "bg-white hover:bg-blue-50/30"
-                        }`}
-                      >
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-2">
+                  {directFields.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                        لا توجد حقول مطابقة حالياً — يمكنك إنشاء حقل جديد من النموذج الجانبي أو تحويل أي حقل حالي.
+                      </td>
+                    </tr>
+                  ) : (
+                    directFields.map((field) => {
+                      const isActive = field.active !== false;
+                      return (
+                        <tr
+                          key={field.key}
+                          className={`transition ${
+                            !isActive ? "bg-slate-50 opacity-60" : "hover:bg-emerald-50/40"
+                          }`}
+                        >
+                          <td className="px-3 py-2.5">
                             <input
                               type="checkbox"
                               checked={isActive}
                               onChange={(e) =>
                                 handleUpdateFieldConfig(field, { active: e.target.checked })
                               }
-                              className="h-4 w-4 rounded accent-[#0070c0]"
+                              className="h-4 w-4 rounded accent-emerald-600 cursor-pointer"
                             />
-                            <div>
-                              <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                                <span>{field.label}</span>
-                                {field.isCustom && (
-                                  <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-black text-purple-800">
-                                    حقل مخصص
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[10px] font-mono text-slate-400">
-                                {field.key}
-                              </div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                              <span>{field.label}</span>
+                              {field.isCustom && (
+                                <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-black text-purple-800">
+                                  جديد
+                                </span>
+                              )}
                             </div>
-                          </div>
-                        </td>
-
-                        <td className="px-3 py-3">
-                          <div className="font-semibold text-slate-700">{field.category}</div>
-                          <div className="text-[10px] text-slate-500">
-                            {field.inputType === "select_or_text"
-                              ? "قائمة خيارات / نص"
-                              : field.inputType === "date"
-                                ? "تاريخ"
-                                : field.inputType === "number"
-                                  ? "رقمي"
-                                  : "نص حر"}
-                          </div>
-                        </td>
-
-                        {/* Switch Update Mode: Direct vs Approval Required */}
-                        <td className="px-3 py-3">
-                          <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleUpdateFieldConfig(field, { updateMode: "direct" })
-                              }
-                              className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold transition ${
-                                isDirect
-                                  ? "bg-emerald-600 text-white shadow-2xs"
-                                  : "text-slate-600 hover:text-slate-900"
-                              }`}
-                            >
-                              تحديث مباشر فوري بإقرار
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleUpdateFieldConfig(field, {
-                                  updateMode: "approval_required",
-                                })
-                              }
-                              className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold transition ${
-                                !isDirect
-                                  ? "bg-[#0070c0] text-white shadow-2xs"
-                                  : "text-slate-600 hover:text-slate-900"
-                              }`}
-                            >
-                              مربوط بمراحل موافقة
-                            </button>
-                          </div>
-                        </td>
-
-                        {/* Approval Group & Direct Manager Configuration */}
-                        <td className="px-3 py-3">
-                          {isDirect ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-extrabold text-emerald-800">
-                              <MaterialIcon name="bolt" size={14} />
-                              يسمع فوراً في النظام والتقارير بعد ضغط الموظف (OK)
+                            <span className="text-[10px] text-emerald-700 font-bold">
+                              ⚡ يسمع فوراً بالنظام وتقرير الإنجاز
                             </span>
-                          ) : (
-                            <div className="flex flex-col gap-1.5 max-w-xs">
-                              <select
-                                value={
-                                  field.linkedApprovalGroupId ||
-                                  config.approvalGroups[0]?.id ||
-                                  "ag-hr-main"
-                                }
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="font-semibold text-slate-700">{field.category}</div>
+                            <div className="text-[10px] text-slate-400">
+                              {field.inputType === "select_or_text"
+                                ? "قائمة خيارات"
+                                : field.inputType === "date"
+                                  ? "تاريخ"
+                                  : field.inputType === "number"
+                                    ? "رقمي"
+                                    : "نص حر"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={field.requiresDeclaration !== false}
                                 onChange={(e) =>
                                   handleUpdateFieldConfig(field, {
-                                    linkedApprovalGroupId: e.target.value,
+                                    requiresDeclaration: e.target.checked,
                                   })
                                 }
-                                className="h-7 rounded border border-blue-300 bg-white px-2 text-[11px] font-bold text-[#004e82]"
+                                className="h-4 w-4 rounded accent-emerald-600"
+                              />
+                              <span>إقرار + OK</span>
+                            </label>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(field.requiresAttachment)}
+                                onChange={(e) =>
+                                  handleUpdateFieldConfig(field, {
+                                    requiresAttachment: e.target.checked,
+                                  })
+                                }
+                                className="h-4 w-4 rounded accent-amber-600"
+                              />
+                              <span>مرفق</span>
+                            </label>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateFieldConfig(
+                                    field,
+                                    { updateMode: "approval_required" },
+                                    `تم نقل "${field.label}" إلى الحقول المربوطة بمراحل موافقة`,
+                                  )
+                                }
+                                className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-[#004e82] hover:bg-blue-100"
                               >
-                                {config.approvalGroups.map((ag) => (
-                                  <option key={ag.id} value={ag.id}>
-                                    {ag.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <label className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-700 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={field.allowDirectManager !== false}
-                                  onChange={(e) =>
-                                    handleUpdateFieldConfig(field, {
-                                      allowDirectManager: e.target.checked,
-                                    })
-                                  }
-                                  className="h-3.5 w-3.5 rounded accent-[#0070c0]"
-                                />
-                                <span>مرحلة موافقة المدير المباشر أولاً</span>
-                              </label>
+                                ربط بموافقة ←
+                              </button>
+                              {field.isCustom && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomField(field.key, field.label)}
+                                  className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-700 hover:bg-rose-100"
+                                >
+                                  حذف
+                                </button>
+                              )}
                             </div>
-                          )}
-                        </td>
-
-                        {/* Declaration Required */}
-                        <td className="px-3 py-3 text-center">
-                          <label className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={field.requiresDeclaration !== false}
-                              onChange={(e) =>
-                                handleUpdateFieldConfig(field, {
-                                  requiresDeclaration: e.target.checked,
-                                })
-                              }
-                              className="h-4 w-4 rounded accent-emerald-600"
-                            />
-                            <span>إقرار + OK</span>
-                          </label>
-                        </td>
-
-                        {/* Attachment Required */}
-                        <td className="px-3 py-3 text-center">
-                          <label className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(field.requiresAttachment)}
-                              onChange={(e) =>
-                                handleUpdateFieldConfig(field, {
-                                  requiresAttachment: e.target.checked,
-                                })
-                              }
-                              className="h-4 w-4 rounded accent-amber-600"
-                            />
-                            <span>مرفق</span>
-                          </label>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-3 py-3 text-center">
-                          {field.isCustom ? (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCustomField(field.key, field.label)}
-                              className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-700 hover:bg-rose-100"
-                            >
-                              <MaterialIcon name="delete" size={14} />
-                              حذف
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-semibold text-slate-400">
-                              حقل نظام أساسي
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1508,15 +1187,397 @@ function DataUpdateRegulationPage() {
       )}
 
       {/* =====================================================================
-          TAB 2: مجموعات الموافقات واختيار المستخدمين المخولين بالموافقة أو الرد
+          TAB 2: الحقول المربوطة بمجموعات ومراحل الموافقة
+         ===================================================================== */}
+      {activeTab === "approval_fields" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Right Column (4 cols): Create New Approval-Linked Field + Quick Convert */}
+          <div className="lg:col-span-4 space-y-4">
+            <div className="rounded-2xl border-2 border-blue-200 bg-white p-4 shadow-xs space-y-3.5">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-[#0070c0]">
+                  <MaterialIcon name="add_moderator" size={19} />
+                </span>
+                <div>
+                  <h2 className="text-xs font-extrabold text-[#004e82]">
+                    إنشاء حقل جديد مربوط بمجموعة موافقة
+                  </h2>
+                  <p className="text-[10px] text-slate-500">
+                    يمر على مراحل الموافقة المحددة بعد أن يملأ الموظف البيانات ويوافق
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    مسمى الحقل الجديد *
+                  </span>
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="مثال: تعديل المسمى الوظيفي، بدل السكن، الدرجة..."
+                    value={newFieldDraft.label}
+                    onChange={(e) =>
+                      setNewFieldDraft((p) => ({ ...p, label: e.target.value }))
+                    }
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] font-bold text-slate-700">التصنيف</span>
+                    <select
+                      className={inputCls}
+                      value={newFieldDraft.category}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({
+                          ...p,
+                          category: e.target.value as DataUpdateCategory,
+                        }))
+                      }
+                    >
+                      <option value="البيانات الوظيفية والتنظيمية">بيانات وظيفية</option>
+                      <option value="حقول مخصصة لتحديث البيانات">حقول مخصصة</option>
+                      <option value="البيانات الشخصية والهوية">بيانات شخصية</option>
+                      <option value="بيانات التواصل والبنك">تواصل وبنك</option>
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] font-bold text-slate-700">نوع الحقل</span>
+                    <select
+                      className={inputCls}
+                      value={newFieldDraft.inputType}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({
+                          ...p,
+                          inputType: e.target.value as "text" | "select_or_text" | "date" | "number",
+                        }))
+                      }
+                    >
+                      <option value="text">نص حر</option>
+                      <option value="select_or_text">قائمة منسدلة</option>
+                      <option value="date">تاريخ</option>
+                      <option value="number">رقمي</option>
+                    </select>
+                  </label>
+                </div>
+
+                {newFieldDraft.inputType === "select_or_text" && (
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] font-bold text-slate-700">
+                      خيارات القائمة (مفصولة بفاصلة ،)
+                    </span>
+                    <input
+                      type="text"
+                      className={inputCls}
+                      placeholder="مثال: خيار 1، خيار 2، خيار 3"
+                      value={newFieldDraft.optionsText}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({ ...p, optionsText: e.target.value }))
+                      }
+                    />
+                  </label>
+                )}
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-[#004e82]">
+                    ربط الحقل بمجموعة الموافقات المختصة *
+                  </span>
+                  <select
+                    className={inputCls}
+                    value={newFieldDraft.linkedApprovalGroupId}
+                    onChange={(e) =>
+                      setNewFieldDraft((p) => ({
+                        ...p,
+                        linkedApprovalGroupId: e.target.value,
+                      }))
+                    }
+                  >
+                    {config.approvalGroups.map((ag) => (
+                      <option key={ag.id} value={ag.id}>
+                        {ag.name} ({ag.code})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="rounded-xl bg-blue-50/70 border border-blue-200 p-2.5 space-y-2">
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-[#004e82] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newFieldDraft.allowDirectManager}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({
+                          ...p,
+                          allowDirectManager: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded accent-[#0070c0]"
+                    />
+                    <span>يمر أولاً على المدير المباشر للموافقة أو الرد</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newFieldDraft.requiresAttachment}
+                      onChange={(e) =>
+                        setNewFieldDraft((p) => ({
+                          ...p,
+                          requiresAttachment: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded accent-[#0070c0]"
+                    />
+                    <span>يتطلب إرفاق مستند إثبات رسمي</span>
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCreateCustomField("approval_required")}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-[#0070c0] py-2.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-[#005fa3]"
+                >
+                  <MaterialIcon name="route" size={17} />
+                  <span>إنشاء الحقل وربطه بمراحل الموافقة</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Convert a Direct Field to Approval Required */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-2.5">
+              <h3 className="text-xs font-extrabold text-[#004e82] flex items-center gap-1.5">
+                <MaterialIcon name="swap_horiz" size={18} className="text-[#0070c0]" />
+                ربط حقل مباشر بمجموعة موافقة
+              </h3>
+              <div className="flex items-center gap-2">
+                <select
+                  className={inputCls}
+                  value={quickConvertFieldKey}
+                  onChange={(e) => setQuickConvertFieldKey(e.target.value)}
+                >
+                  <option value="">-- اختر حقلاً مباشراً --</option>
+                  {allFields
+                    .filter((f) => f.updateMode === "direct")
+                    .map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = allFields.find((f) => f.key === quickConvertFieldKey);
+                    if (!target) {
+                      toast.error("يرجى اختيار الحقل أولاً");
+                      return;
+                    }
+                    handleUpdateFieldConfig(
+                      target,
+                      { updateMode: "approval_required", active: true },
+                      `تم ربط "${target.label}" بمراحل الموافقة`,
+                    );
+                    setQuickConvertFieldKey("");
+                  }}
+                  className="shrink-0 rounded-lg bg-[#0070c0] px-3 py-2 text-xs font-bold text-white hover:bg-[#005fa3]"
+                >
+                  ربط
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Left Column (8 cols): Clean Table of Approval-Linked Fields */}
+          <div className="lg:col-span-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-extrabold text-[#004e82] flex items-center gap-1.5">
+                  <MaterialIcon name="route" size={20} className="text-[#0070c0]" />
+                  <span>قائمة الحقول المربوطة بمجموعات ومراحل الموافقة ({approvalFields.length})</span>
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  يملأ الموظف الحقل ويؤكد الإقرار (OK)، ثم يمر الطلب على المدير المباشر ومجموعة الموافقة المختارة قبل تسميعه في النظام والتقارير.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="h-8 rounded-lg border border-slate-300 bg-slate-50 px-2.5 text-xs font-bold text-slate-700"
+                >
+                  <option value="all">جميع التصنيفات</option>
+                  <option value="البيانات الوظيفية والتنظيمية">البيانات الوظيفية</option>
+                  <option value="البيانات الشخصية والهوية">البيانات الشخصية</option>
+                  <option value="بيانات التواصل والبنك">التواصل والبنك</option>
+                  <option value="حقول مخصصة لتحديث البيانات">حقول مخصصة</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="بحث باسم الحقل..."
+                  value={fieldSearch}
+                  onChange={(e) => setFieldSearch(e.target.value)}
+                  className="h-8 w-44 rounded-lg border border-slate-300 bg-slate-50 px-3 text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-[#004e82] text-white font-bold">
+                  <tr>
+                    <th className="px-3 py-2.5">تفعيل</th>
+                    <th className="px-3 py-2.5">مسمى الحقل</th>
+                    <th className="px-3 py-2.5">مجموعة الموافقة المربوطة</th>
+                    <th className="px-3 py-2.5 text-center">المدير المباشر</th>
+                    <th className="px-3 py-2.5 text-center">المرفق</th>
+                    <th className="px-3 py-2.5 text-center">تحويل المسار / إجراء</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {approvalFields.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                        لا توجد حقول مطابقة للفلتر المحدد.
+                      </td>
+                    </tr>
+                  ) : (
+                    approvalFields.map((field) => {
+                      const isActive = field.active !== false;
+                      return (
+                        <tr
+                          key={field.key}
+                          className={`transition ${
+                            !isActive ? "bg-slate-50 opacity-60" : "hover:bg-blue-50/30"
+                          }`}
+                        >
+                          <td className="px-3 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isActive}
+                              onChange={(e) =>
+                                handleUpdateFieldConfig(field, { active: e.target.checked })
+                              }
+                              className="h-4 w-4 rounded accent-[#0070c0] cursor-pointer"
+                            />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                              <span>{field.label}</span>
+                              {field.isCustom && (
+                                <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-black text-purple-800">
+                                  جديد
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500">{field.category}</span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <select
+                              value={
+                                field.linkedApprovalGroupId ||
+                                config.approvalGroups[0]?.id ||
+                                "ag-hr-main"
+                              }
+                              onChange={(e) =>
+                                handleUpdateFieldConfig(
+                                  field,
+                                  { linkedApprovalGroupId: e.target.value },
+                                  `تم ربط "${field.label}" بمجموعة الموافقة المختارة`,
+                                )
+                              }
+                              className="h-8 w-full max-w-[220px] rounded-lg border border-blue-200 bg-blue-50/40 px-2 text-[11px] font-bold text-[#004e82]"
+                            >
+                              {config.approvalGroups.map((ag) => (
+                                <option key={ag.id} value={ag.id}>
+                                  {ag.name} ({ag.code})
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={field.allowDirectManager !== false}
+                                onChange={(e) =>
+                                  handleUpdateFieldConfig(field, {
+                                    allowDirectManager: e.target.checked,
+                                  })
+                                }
+                                className="h-4 w-4 rounded accent-[#0070c0]"
+                              />
+                              <span>يوافق أولاً</span>
+                            </label>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(field.requiresAttachment)}
+                                onChange={(e) =>
+                                  handleUpdateFieldConfig(field, {
+                                    requiresAttachment: e.target.checked,
+                                  })
+                                }
+                                className="h-4 w-4 rounded accent-amber-600"
+                              />
+                              <span>مرفق</span>
+                            </label>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateFieldConfig(
+                                    field,
+                                    { updateMode: "direct" },
+                                    `تم تحويل "${field.label}" إلى تحديث مباشر فوري بإقرار الموظف (OK)`,
+                                  )
+                                }
+                                className="rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-800 hover:bg-emerald-100"
+                              >
+                                ⚡ تحويل لمباشر
+                              </button>
+                              {field.isCustom && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomField(field.key, field.label)}
+                                  className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-700 hover:bg-rose-100"
+                                >
+                                  حذف
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          TAB 3: مجموعات الموافقات واختيار المستخدمين المخولين بالموافقة أو الرد
          ===================================================================== */}
       {activeTab === "approval_groups" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Sidebar: List of Approval Groups */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Right Sidebar: List of Approval Groups */}
           <div className="lg:col-span-4 space-y-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-extrabold text-[#004e82]">مجموعات الموافقات</h2>
+              <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
+                <div>
+                  <h2 className="text-sm font-extrabold text-[#004e82]">مجموعات الموافقات</h2>
+                  <p className="text-[10px] text-slate-500">اختر مجموعة لضبط أعضائها وصلاحياتها</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsAddApprovalGroupOpen(true)}
@@ -1563,7 +1624,7 @@ function DataUpdateRegulationPage() {
                           }`}
                         >
                           {group.allowDirectManager
-                            ? "المدير المباشر: يوافق/يرد ✓"
+                            ? "المدير المباشر: مفعّل ✓"
                             : "بدون المدير المباشر"}
                         </span>
                       </div>
@@ -1574,7 +1635,7 @@ function DataUpdateRegulationPage() {
             </div>
           </div>
 
-          {/* Detail Panel: Active Approval Group */}
+          {/* Left Detail Panel: Active Approval Group */}
           <div className="lg:col-span-8 space-y-4">
             {activeApprovalGroup && (
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-5">
@@ -1685,7 +1746,7 @@ function DataUpdateRegulationPage() {
                           تمكين المدير المباشر من الموافقة والرد ضمن هذه المجموعة
                         </span>
                         <span className="text-[11px] text-slate-600">
-                          يسمح للمدير المباشر للموظف صاحب الطلب بالموافقة المبدئية أو النهائية وإضافة رد مباشر على الطلب
+                          يسمح للمدير المباشر للموظف صاحب الطلب بالموافقة أو الرد قبل اعتماد المجموعة
                         </span>
                       </div>
                     </label>
@@ -1697,13 +1758,14 @@ function DataUpdateRegulationPage() {
                         onChange={(e) =>
                           handleUpdateApprovalGroup(activeApprovalGroup.id, (prev) => ({
                             ...prev,
-                            directManagerStageOrder: e.target.value as DataUpdateApprovalGroup["directManagerStageOrder"],
+                            directManagerStageOrder:
+                              e.target.value as DataUpdateApprovalGroup["directManagerStageOrder"],
                           }))
                         }
                       >
-                        <option value="first">المرحلة 1: المدير المباشر أولاً ثم مجموعة الموافقات</option>
-                        <option value="parallel">بالتوازي: المدير المباشر أو أي عضو في المجموعة</option>
-                        <option value="only_if_no_group">المدير المباشر يكفي للاعتماد المباشر</option>
+                        <option value="first">المرحلة 1: المدير المباشر أولاً ثم المجموعة</option>
+                        <option value="parallel">بالتوازي: المدير المباشر أو المجموعة</option>
+                        <option value="only_if_no_group">المدير المباشر يكفي للاعتماد</option>
                       </select>
                     )}
                   </div>
@@ -1711,18 +1773,12 @@ function DataUpdateRegulationPage() {
 
                 {/* Choosing Users who have permission to Approve or Reply */}
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-                      <MaterialIcon name="person_check" size={18} className="text-[#0070c0]" />
-                      المستخدمون المخولون بالموافقة أو الرد على طلبات التحديث ({activeApprovalGroup.approvers.length})
-                    </h4>
-                  </div>
+                  <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                    <MaterialIcon name="person_check" size={18} className="text-[#0070c0]" />
+                    المستخدمون المخولون بالموافقة أو الرد ({activeApprovalGroup.approvers.length})
+                  </h4>
 
-                  {/* Add User / Approver Form */}
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3">
-                    <div className="text-[11px] font-bold text-slate-700">
-                      إضافة مستخدم جديد له صلاحية الموافقة أو الرد:
-                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <select
                         className={inputCls}
@@ -1744,7 +1800,7 @@ function DataUpdateRegulationPage() {
                       <input
                         type="text"
                         className={inputCls}
-                        placeholder="أو اكتب اسم المستخدم/المسؤول يدوياً..."
+                        placeholder="أو اكتب اسم المسؤول يدوياً..."
                         value={customApproverName}
                         onChange={(e) => {
                           setCustomApproverName(e.target.value);
@@ -1770,7 +1826,7 @@ function DataUpdateRegulationPage() {
                             onChange={(e) => setNewApproverCanApprove(e.target.checked)}
                             className="h-4 w-4 rounded accent-emerald-600"
                           />
-                          صلاحية الموافقة والرفض (Approve / Reject)
+                          صلاحية الموافقة والرفض
                         </label>
 
                         <label className="flex items-center gap-1.5 text-xs font-bold text-[#004e82] cursor-pointer">
@@ -1780,7 +1836,7 @@ function DataUpdateRegulationPage() {
                             onChange={(e) => setNewApproverCanReply(e.target.checked)}
                             className="h-4 w-4 rounded accent-[#0070c0]"
                           />
-                          صلاحية الرد وإضافة الملاحظات (Reply)
+                          صلاحية الرد والملاحظات
                         </label>
                       </div>
 
@@ -1811,7 +1867,7 @@ function DataUpdateRegulationPage() {
                         {activeApprovalGroup.approvers.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="py-6 text-center text-slate-400">
-                              لا يوجد مستخدمون مضافون في هذه المجموعة بعد — أضف مستخدماً من النموذج أعلاه
+                              لا يوجد مستخدمون مضافون في هذه المجموعة بعد
                             </td>
                           </tr>
                         ) : (
@@ -1887,17 +1943,21 @@ function DataUpdateRegulationPage() {
       )}
 
       {/* =====================================================================
-          TAB 3: مجموعات الموظفين والحقول المسموح بطلب تعديلها
+          TAB 4: صلاحيات مجموعات الموظفين وإعدادات نص الإقرار العام
          ===================================================================== */}
-      {activeTab === "allowed_fields" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Sidebar: User Groups */}
-          <div className="lg:col-span-4 space-y-3">
+      {activeTab === "employee_groups" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Right Column: Employee Groups + Declaration Text Editor */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Employee Groups List */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-extrabold text-[#004e82]">
-                  مجموعات المستخدمين / الموظفين
-                </h2>
+              <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
+                <div>
+                  <h2 className="text-sm font-extrabold text-[#004e82]">
+                    مجموعات الموظفين
+                  </h2>
+                  <p className="text-[10px] text-slate-500">تخصيص الحقول المتاحة لكل فئة</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsAddUserGroupOpen(true)}
@@ -1912,10 +1972,6 @@ function DataUpdateRegulationPage() {
                 {config.userPermissionGroups.map((ug) => {
                   const isSelected = activeUserGroup?.id === ug.id;
                   const count = allFields.filter((f) => ug.allowedFields[f.key]?.enabled).length;
-                  const linkedGroup = config.approvalGroups.find(
-                    (ag) => ag.id === ug.linkedApprovalGroupId,
-                  );
-
                   return (
                     <div
                       key={ug.id}
@@ -1935,28 +1991,113 @@ function DataUpdateRegulationPage() {
                       <p className="mt-1 text-[11px] text-slate-500">{ug.description}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
                         <span className="rounded-md bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800">
-                          {count} حقل متاح للتعديل
+                          {count} حقل مفعّل
                         </span>
                         <span className="rounded-md bg-blue-100 px-2 py-0.5 font-bold text-[#004e82]">
                           النطاق: {ug.scopeValue || "الكل"}
                         </span>
-                        {linkedGroup && (
-                          <span className="rounded-md bg-slate-200 px-2 py-0.5 font-semibold text-slate-700">
-                            الاعتماد: {linkedGroup.name}
-                          </span>
-                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* Employee Declaration Text & Global Switches Card */}
+            <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                <MaterialIcon name="gavel" size={18} className="text-emerald-700" />
+                <h3 className="text-xs font-extrabold text-[#004e82]">
+                  إعدادات نص إقرار الموظف (OK) والضبط العام
+                </h3>
+              </div>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-slate-600">عنوان نافذة الإقرار</span>
+                <input
+                  type="text"
+                  className={inputCls}
+                  value={config.declarationTitle}
+                  onChange={(e) =>
+                    setConfig((prev) => ({ ...prev, declarationTitle: e.target.value }))
+                  }
+                  onBlur={() => void persistConfig(config)}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-slate-600">
+                  نص قرار التأكيد الذي يظهر للموظف قبل الضغط على (موافق OK)
+                </span>
+                <textarea
+                  rows={3}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
+                  value={config.declarationText}
+                  onChange={(e) =>
+                    setConfig((prev) => ({ ...prev, declarationText: e.target.value }))
+                  }
+                  onBlur={() => void persistConfig(config)}
+                />
+              </label>
+
+              <div className="space-y-2 pt-1 border-t border-slate-100">
+                <label className="flex items-center gap-2 text-xs font-bold text-emerald-900 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.requireEmployeeDeclaration}
+                    onChange={(e) =>
+                      void persistConfig({
+                        ...config,
+                        requireEmployeeDeclaration: e.target.checked,
+                      })
+                    }
+                    className="h-4 w-4 rounded accent-emerald-600"
+                  />
+                  <span>تفعيل شرط إقرار الموظف (OK) عند التحديث</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs font-bold text-[#004e82] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.globalAllowDirectManager}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      void persistConfig({
+                        ...config,
+                        globalAllowDirectManager: checked,
+                        approvalGroups: config.approvalGroups.map((g) => ({
+                          ...g,
+                          allowDirectManager: checked,
+                        })),
+                      });
+                    }}
+                    className="h-4 w-4 rounded accent-[#0070c0]"
+                  />
+                  <span>تفعيل موافقة المدير المباشر بشكل عام</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.autoApplyOnApproval}
+                    onChange={(e) =>
+                      void persistConfig({
+                        ...config,
+                        autoApplyOnApproval: e.target.checked,
+                      })
+                    }
+                    className="h-4 w-4 rounded accent-[#0070c0]"
+                  />
+                  <span>تسميع التحديث تلقائياً في ملف الموظف والتقارير</span>
+                </label>
+              </div>
+            </div>
           </div>
 
-          {/* Main Area: Checkboxes for Allowed Fields */}
+          {/* Left Main Area: Allowed Fields for Selected Employee Group */}
           <div className="lg:col-span-8 space-y-4">
             {activeUserGroup && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-5">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div>
                     <div className="flex items-center gap-2">
@@ -1968,18 +2109,12 @@ function DataUpdateRegulationPage() {
                       </h3>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      حدد الحقول التي يحق لموظفي هذه المجموعة تحديثها أو إرسال طلب بتعديلها ({enabledFieldsCount} من {allFields.length} مفعّل)
+                      الحقول المسموح لموظفي هذه المجموعة بتحديثها ({enabledFieldsCount} من{" "}
+                      {allFields.length} مفعّل)
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleBulkSelectFields("core_11")}
-                      className="rounded-lg border border-[#0070c0] bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-[#0070c0] hover:bg-blue-100"
-                    >
-                      تحديد الحقول الأساسية والمخصصة
-                    </button>
                     <button
                       type="button"
                       onClick={() => handleBulkSelectFields("all")}
@@ -2009,7 +2144,7 @@ function DataUpdateRegulationPage() {
                 {/* Group Scope & Approval Link */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[11px] font-bold text-slate-600">نوع نطاق الموظفين</span>
+                    <span className="text-[11px] font-bold text-slate-600">نطاق الموظفين</span>
                     <select
                       className={inputCls}
                       value={activeUserGroup.scopeType}
@@ -2030,7 +2165,7 @@ function DataUpdateRegulationPage() {
                   </label>
 
                   <label className="flex flex-col gap-1">
-                    <span className="text-[11px] font-bold text-slate-600">قيمة النطاق المستهدف</span>
+                    <span className="text-[11px] font-bold text-slate-600">القيمة المستهدفة</span>
                     {activeUserGroup.scopeType === "all" ? (
                       <input type="text" className={inputCls} value="جميع الموظفين (الكل)" disabled />
                     ) : activeUserGroup.scopeType === "department" ? (
@@ -2071,7 +2206,7 @@ function DataUpdateRegulationPage() {
                       <input
                         type="text"
                         className={inputCls}
-                        placeholder="أدخل الفئة الوظيفية (مثال: إداري / تعليمي)..."
+                        placeholder="أدخل الفئة الوظيفية..."
                         value={activeUserGroup.scopeValue}
                         onChange={(e) =>
                           handleUpdateUserGroup(activeUserGroup.id, (prev) => ({
@@ -2085,7 +2220,7 @@ function DataUpdateRegulationPage() {
 
                   <label className="flex flex-col gap-1">
                     <span className="text-[11px] font-bold text-slate-600">
-                      مجموعة الموافقات الافتراضية للمجموعة
+                      مجموعة الموافقات الافتراضية
                     </span>
                     <select
                       className={inputCls}
@@ -2107,84 +2242,70 @@ function DataUpdateRegulationPage() {
                 </div>
 
                 {/* Grid of All Fields */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-extrabold text-[#004e82] flex items-center gap-1.5">
-                      <MaterialIcon name="check_circle" size={18} className="text-[#0070c0]" />
-                      الحقول المتاحة للموظفين في هذه المجموعة:
-                    </h4>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2">
+                  {allFields.map((field) => {
+                    const rule = activeUserGroup.allowedFields[field.key] || {
+                      fieldKey: field.key,
+                      enabled: false,
+                      requiresAttachment: false,
+                    };
+                    const isDirect = field.updateMode === "direct";
+                    return (
+                      <div
+                        key={field.key}
+                        className={`rounded-xl border p-3 transition ${
+                          rule.enabled
+                            ? isDirect
+                              ? "border-emerald-400 bg-emerald-50/30"
+                              : "border-blue-300 bg-blue-50/30"
+                            : "border-slate-200 bg-slate-50/60 opacity-70"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={rule.enabled}
+                              onChange={(e) => handleToggleField(field.key, e.target.checked)}
+                              className="h-4 w-4 rounded accent-[#0070c0]"
+                            />
+                            <div>
+                              <span className="text-xs font-extrabold text-slate-900 block">
+                                {field.label}
+                              </span>
+                              <span className="text-[10px] text-slate-500">{field.category}</span>
+                            </div>
+                          </label>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {allFields.map((field) => {
-                      const rule = activeUserGroup.allowedFields[field.key] || {
-                        fieldKey: field.key,
-                        enabled: false,
-                        requiresAttachment: false,
-                      };
-                      const isDirect = field.updateMode === "direct";
-                      return (
-                        <div
-                          key={field.key}
-                          className={`rounded-xl border-2 p-3 transition ${
-                            rule.enabled
-                              ? isDirect
-                                ? "border-emerald-500 bg-emerald-50/40 shadow-2xs"
-                                : "border-[#0070c0] bg-blue-50/40 shadow-2xs"
-                              : "border-slate-200 bg-slate-50/60 opacity-75"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                              isDirect
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-blue-100 text-[#004e82]"
+                            }`}
+                          >
+                            {isDirect ? "مباشر OK" : "بموافقة"}
+                          </span>
+                        </div>
+
+                        {rule.enabled && (
+                          <div className="mt-2 pt-2 border-t border-slate-200/70 flex items-center justify-between">
+                            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 cursor-pointer">
                               <input
                                 type="checkbox"
-                                checked={rule.enabled}
-                                onChange={(e) => handleToggleField(field.key, e.target.checked)}
-                                className="h-4 w-4 rounded accent-[#0070c0]"
+                                checked={rule.requiresAttachment}
+                                onChange={(e) =>
+                                  handleToggleFieldAttachment(field.key, e.target.checked)
+                                }
+                                className="h-3.5 w-3.5 rounded accent-amber-600"
                               />
-                              <div>
-                                <span className="text-xs font-extrabold text-slate-900 block">
-                                  {field.label}
-                                </span>
-                                <span className="text-[10px] text-slate-500">{field.category}</span>
-                              </div>
+                              مرفق إثبات إلزامي
                             </label>
-
-                            <span
-                              className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
-                                isDirect
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : "bg-blue-100 text-[#004e82]"
-                              }`}
-                            >
-                              {isDirect ? "تحديث مباشر" : "بمراحل موافقة"}
-                            </span>
                           </div>
-
-                          {rule.enabled && (
-                            <div className="mt-2.5 pt-2 border-t border-slate-200/70 flex items-center justify-between">
-                              <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={rule.requiresAttachment}
-                                  onChange={(e) =>
-                                    handleToggleFieldAttachment(field.key, e.target.checked)
-                                  }
-                                  className="h-3.5 w-3.5 rounded accent-amber-600"
-                                />
-                                إلزامية إرفاق مستند إثبات
-                              </label>
-                              {rule.requiresAttachment && (
-                                <span className="text-[9px] font-bold text-amber-700">
-                                  مرفق إلزامي *
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -2273,7 +2394,7 @@ function DataUpdateRegulationPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl space-y-4" dir="rtl">
             <div className="flex items-center justify-between border-b pb-2.5">
               <h3 className="text-sm font-extrabold text-[#004e82]">
-                إضافة مجموعة مستخدمين / موظفين جديدة
+                إضافة مجموعة موظفين وصلاحيات حقول
               </h3>
               <button
                 type="button"
@@ -2290,14 +2411,16 @@ function DataUpdateRegulationPage() {
                 <input
                   type="text"
                   className={inputCls}
-                  placeholder="مثال: موظفو الفروع التشغيلية"
+                  placeholder="مثال: موظفو الكادر التعليمي / موظفو الفروع"
                   value={newUserGroupDraft.name}
-                  onChange={(e) => setNewUserGroupDraft((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) =>
+                    setNewUserGroupDraft((p) => ({ ...p, name: e.target.value }))
+                  }
                 />
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-slate-700">نطاق التطبيق</span>
+                <span className="text-xs font-bold text-slate-700">نوع النطاق</span>
                 <select
                   className={inputCls}
                   value={newUserGroupDraft.scopeType}
@@ -2308,15 +2431,30 @@ function DataUpdateRegulationPage() {
                     }))
                   }
                 >
-                  <option value="all">الكل</option>
-                  <option value="department">قسم محدد</option>
-                  <option value="branch">فرع محدد</option>
-                  <option value="category">فئة وظيفية</option>
+                  <option value="all">جميع الموظفين</option>
+                  <option value="department">حسب القسم</option>
+                  <option value="branch">حسب الفرع</option>
+                  <option value="category">حسب الفئة الوظيفية</option>
                 </select>
               </label>
 
+              {newUserGroupDraft.scopeType !== "all" && (
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-slate-700">قيمة النطاق</span>
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="اكتب اسم القسم أو الفرع أو الفئة..."
+                    value={newUserGroupDraft.scopeValue}
+                    onChange={(e) =>
+                      setNewUserGroupDraft((p) => ({ ...p, scopeValue: e.target.value }))
+                    }
+                  />
+                </label>
+              )}
+
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-slate-700">مجموعة الموافقات المرتبطة</span>
+                <span className="text-xs font-bold text-slate-700">ربط بمجموعة الموافقات</span>
                 <select
                   className={inputCls}
                   value={newUserGroupDraft.linkedApprovalGroupId}

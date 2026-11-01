@@ -290,6 +290,7 @@ export const nav: NavItem[] = [
         items: [
           { label: "الطلبات", to: "/approval-requests" },
           { label: "تحديث البيانات", to: "/requests/data-update" },
+          { label: "بوابة الموظف (الخدمة الذاتية)", to: "/portal" },
           { label: "ميزانية الشراء", to: "/requests/purchase-budget" },
           { label: "تهيئة الطلبات", to: "/requests/setup" },
         ],
@@ -342,7 +343,13 @@ export const nav: NavItem[] = [
         title: "متابعة المستندات",
         items: [{ label: "اشعارات الطلبات", to: "/request-notifications" }],
       },
-      { title: "بيانات الموظفين", items: [{ label: "شؤون الموظفين", to: "/staff" }] },
+      {
+        title: "بيانات الموظفين",
+        items: [
+          { label: "شؤون الموظفين", to: "/staff" },
+          { label: "بوابة الموظف", to: "/portal" },
+        ],
+      },
       {
         title: "عمليات الموظفين",
         items: [
@@ -401,6 +408,7 @@ export const nav: NavItem[] = [
 
 export const sidebar: { label: string; icon: string; to?: string; badge?: string }[] = [
   { label: "اللوحة الرئيسية", icon: "space_dashboard", to: "/" },
+  { label: "بوابة الموظف", icon: "badge", to: "/portal" },
   { label: "الموظفون", icon: "groups", to: "/staff" },
   { label: "العقود", icon: "description", to: "/staff/contracts" },
   {

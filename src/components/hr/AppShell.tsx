@@ -202,6 +202,7 @@ function AuthenticatedShell({ children }: { children: ReactNode }) {
 
             <TopAction icon="notifications" title="التعميمات وإشعارات الطلبات" to="/request-notifications" />
             <TopAction icon="task_alt" title="المهام والطلبات" to="/tasks" />
+            <TopAction icon="badge" title="بوابة الموظف" to="/portal" />
 
             <div className="mx-2 hidden h-7 w-px bg-white/20 sm:block" />
 
@@ -245,6 +246,14 @@ function AuthenticatedShell({ children }: { children: ReactNode }) {
                     <span className="flex items-center gap-2">
                       <MaterialIcon name="notifications" size={17} className="text-muted-foreground" />
                       <span>الإشعارات والتعميمات</span>
+                    </span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/portal" className="flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer bg-blue-50/70 text-[#0070c0]">
+                    <span className="flex items-center gap-2">
+                      <MaterialIcon name="badge" size={17} className="text-[#0070c0]" />
+                      <span>بوابة الموظف (حسابي)</span>
                     </span>
                   </Link>
                 </DropdownMenuItem>

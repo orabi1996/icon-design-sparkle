@@ -21,6 +21,7 @@ import { Route as LoansRouteImport } from './routes/loans'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as PermissionsRouteImport } from './routes/permissions'
 import { Route as PermitsRouteImport } from './routes/permits'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as RegulationsRouteImport } from './routes/regulations'
 import { Route as RequestNotificationsRouteImport } from './routes/request-notifications'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -186,6 +187,11 @@ const PermissionsRoute = PermissionsRouteImport.update({
 const PermitsRoute = PermitsRouteImport.update({
   id: '/permits',
   path: '/permits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegulationsRoute = RegulationsRouteImport.update({
@@ -748,6 +754,7 @@ export interface FileRoutesByFullPath {
   '/payroll': typeof PayrollRouteWithChildren
   '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
+  '/portal': typeof PortalRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -868,6 +875,7 @@ export interface FileRoutesByTo {
   '/payroll': typeof PayrollRouteWithChildren
   '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
+  '/portal': typeof PortalRoute
   '/request-notifications': typeof RequestNotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRouteWithChildren
@@ -987,6 +995,7 @@ export interface FileRoutesById {
   '/payroll': typeof PayrollRouteWithChildren
   '/permissions': typeof PermissionsRoute
   '/permits': typeof PermitsRoute
+  '/portal': typeof PortalRoute
   '/regulations': typeof RegulationsRouteWithChildren
   '/request-notifications': typeof RequestNotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -1109,6 +1118,7 @@ export interface FileRouteTypes {
     | '/payroll'
     | '/permissions'
     | '/permits'
+    | '/portal'
     | '/regulations'
     | '/request-notifications'
     | '/reset-password'
@@ -1229,6 +1239,7 @@ export interface FileRouteTypes {
     | '/payroll'
     | '/permissions'
     | '/permits'
+    | '/portal'
     | '/request-notifications'
     | '/reset-password'
     | '/settings'
@@ -1347,6 +1358,7 @@ export interface FileRouteTypes {
     | '/payroll'
     | '/permissions'
     | '/permits'
+    | '/portal'
     | '/regulations'
     | '/request-notifications'
     | '/reset-password'
@@ -1468,6 +1480,7 @@ export interface RootRouteChildren {
   PayrollRoute: typeof PayrollRouteWithChildren
   PermissionsRoute: typeof PermissionsRoute
   PermitsRoute: typeof PermitsRoute
+  PortalRoute: typeof PortalRoute
   RegulationsRoute: typeof RegulationsRouteWithChildren
   RequestNotificationsRoute: typeof RequestNotificationsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -1628,6 +1641,13 @@ declare module '@tanstack/react-router' {
       path: '/permits'
       fullPath: '/permits'
       preLoaderRoute: typeof PermitsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/regulations': {
@@ -2489,6 +2509,7 @@ const rootRouteChildren: RootRouteChildren = {
   PayrollRoute: PayrollRouteWithChildren,
   PermissionsRoute: PermissionsRoute,
   PermitsRoute: PermitsRoute,
+  PortalRoute: PortalRoute,
   RegulationsRoute: RegulationsRouteWithChildren,
   RequestNotificationsRoute: RequestNotificationsRoute,
   ResetPasswordRoute: ResetPasswordRoute,

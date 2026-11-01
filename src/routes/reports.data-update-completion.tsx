@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { AppShell } from "@/components/hr/AppShell";
@@ -18,11 +18,11 @@ import { ANDALUS_BRANCHES, ANDALUS_DEPARTMENTS } from "@/lib/andalus-seed";
 export const Route = createFileRoute("/reports/data-update-completion")({
   head: () => ({
     meta: [
-      { title: "تقرير إنجاز تحديث بيانات الموظفين | شركة مدارس الأندلس التعليمية" },
+      { title: "تقرير إنجاز تحديث بيانات الموظفين | التقارير" },
       {
         name: "description",
         content:
-          "تقرير إنجاز تحديث بيانات الموظفين لشركة مدارس الأندلس التعليمية: متابعة المنجز وغير المنجز، القيمة السابقة والجديدة، التواريخ، وتصدير Excel و PDF.",
+          "تقرير إنجاز تحديث بيانات الموظفين: متابعة المنجز وغير المنجز، تفصيل القيمة السابقة والقيمة الجديدة لكل بيان في أعمدة مستقلة، مع التواريخ وتصدير Excel و PDF.",
       },
     ],
   }),
@@ -32,30 +32,37 @@ export const Route = createFileRoute("/reports/data-update-completion")({
 const inputCls =
   "h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-[12px] font-bold text-slate-800 outline-none transition focus:border-[#0070c0] focus:ring-2 focus:ring-[#0070c0]/15";
 
+export interface BreakdownFieldCol {
+  fieldKey: string;
+  label: string;
+  enabled: boolean;
+}
+
+const DEFAULT_BREAKDOWN_FIELDS: BreakdownFieldCol[] = [
+  { fieldKey: "phone", label: "رقم الجوال", enabled: true },
+  { fieldKey: "email", label: "البريد الإلكتروني", enabled: true },
+  { fieldKey: "short_address", label: "العنوان الوطني", enabled: true },
+  { fieldKey: "postal_code", label: "بريد السكن", enabled: true },
+  { fieldKey: "building_no", label: "رقم المبنى", enabled: true },
+  { fieldKey: "iqama_expiry", label: "بيانات الإقامة", enabled: true },
+];
+
 export interface ExtraReportColumn {
   id: string;
   label: string;
   fieldKey: string;
   enabled: boolean;
-  isCustomUserCol?: boolean;
 }
 
 const DEFAULT_EXTRA_COLUMNS: ExtraReportColumn[] = [
+  { id: "col_job_title", label: "المسمى الوظيفي", fieldKey: "job_title", enabled: false },
   { id: "col_national_id", label: "رقم الهوية / الإقامة", fieldKey: "national_id", enabled: false },
-  { id: "col_job_title", label: "المسمى الوظيفي", fieldKey: "job_title", enabled: true },
   { id: "col_nationality", label: "الجنسية", fieldKey: "nationality", enabled: false },
-  { id: "col_phone", label: "رقم الجوال الحالي", fieldKey: "phone", enabled: false },
-  { id: "col_email", label: "البريد الإلكتروني", fieldKey: "email", enabled: false },
-  { id: "col_short_address", label: "العنوان الوطني المختصر", fieldKey: "short_address", enabled: false },
-  { id: "col_postal_code", label: "بريد السكن (الرمز البريدي)", fieldKey: "postal_code", enabled: false },
-  { id: "col_building_no", label: "رقم المبنى", fieldKey: "building_no", enabled: false },
-  { id: "col_iqama_expiry", label: "تاريخ انتهاء الإقامة", fieldKey: "iqama_expiry", enabled: false },
-  { id: "col_direct_manager", label: "المدير المباشر", fieldKey: "direct_manager", enabled: false },
-  { id: "col_request_title", label: "اسم طلب التحديث", fieldKey: "_request_title", enabled: true },
-  { id: "col_approver", label: "المعتمد / حالة الإقرار", fieldKey: "_approver_info", enabled: true },
+  { id: "col_direct_manager", label: "المدير المباشر", fieldKey: "manager_name", enabled: false },
+  { id: "col_approver", label: "حالة الاعتماد / الإقرار", fieldKey: "_approver_info", enabled: true },
 ];
 
-export interface UnifiedReportRow {
+export interface DetailedEmployeeReportRow {
   rowId: string;
   empId: string;
   empNo: string;
@@ -64,18 +71,14 @@ export interface UnifiedReportRow {
   department: string;
   completionStatus: "completed" | "not_completed" | "pending";
   completionLabel: string;
-  updatesCount: number;
   requestNumber: string;
-  requestTitle: string;
-  fieldKey: string;
-  fieldLabel: string;
-  oldValue: string;
-  newValue: string;
   updatedDate: string;
   updatedTime: string;
   decisionDate: string;
-  updateModeLabel: string;
   approverInfo: string;
+  oldValuesByField: Record<string, string>;
+  newValuesByField: Record<string, string>;
+  changedFieldKeys: Set<string>;
   employeeRecord: Row;
 }
 
@@ -108,27 +111,25 @@ function DataUpdateCompletionReportPage() {
     "all" | "completed" | "not_completed" | "pending"
   >("all");
   const [fieldFilter, setFieldFilter] = useState<string>("all");
-  const [modeFilter, setModeFilter] = useState<"all" | "direct" | "approval_required">("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Granularity Mode:
-  // "all_employees": shows every employee (Completed with their updates + Not Completed so user knows who updated and who hasn't)
-  // "detailed_fields": expands multi-field updates into individual field change rows
-  const [granularity, setGranularity] = useState<"all_employees" | "detailed_fields">("all_employees");
+  // Sub-columns under "القيمة السابقة" and "القيمة الجديدة"
+  const [breakdownFields, setBreakdownFields] =
+    useState<BreakdownFieldCol[]>(DEFAULT_BREAKDOWN_FIELDS);
 
-  // Extra Columns Customizer ("إضافة فيتشر أو كولم زيادة")
+  // Extra general columns
   const [extraColumns, setExtraColumns] = useState<ExtraReportColumn[]>(DEFAULT_EXTRA_COLUMNS);
   const [showColumnBuilder, setShowColumnBuilder] = useState<boolean>(false);
-  const [newColLabel, setNewColLabel] = useState<string>("");
-  const [newColFieldKey, setNewColFieldKey] = useState<string>("social_status");
+  const [newBreakdownFieldKey, setNewBreakdownFieldKey] = useState<string>("social_status");
+  const [newBreakdownLabel, setNewBreakdownLabel] = useState<string>("");
 
   // Pagination
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  // Branch & Department Options (including all Al-Andalus Schools branches)
+  // Branch & Department Options
   const branchOptions = useMemo(() => {
     const set = new Set<string>(ANDALUS_BRANCHES.map((b) => b.name_ar));
     employees.forEach((e: Row) => {
@@ -169,9 +170,26 @@ function DataUpdateCompletionReportPage() {
     return map;
   }, [requests]);
 
-  // Build Unified Report Rows across all 500 employees
-  const allUnifiedRows = useMemo<UnifiedReportRow[]>(() => {
-    const rows: UnifiedReportRow[] = [];
+  // Active sub-columns under "القيمة السابقة" and "القيمة الجديدة"
+  const activeValueFields = useMemo(() => {
+    if (fieldFilter !== "all") {
+      const found = breakdownFields.find((b) => b.fieldKey === fieldFilter);
+      if (found) return [found];
+      const def = allFields.find((f) => f.key === fieldFilter);
+      return [{ fieldKey: fieldFilter, label: def?.label || fieldFilter, enabled: true }];
+    }
+    const enabledList = breakdownFields.filter((b) => b.enabled);
+    return enabledList.length > 0 ? enabledList : DEFAULT_BREAKDOWN_FIELDS.slice(0, 1);
+  }, [breakdownFields, fieldFilter, allFields]);
+
+  const activeExtraColumns = useMemo(
+    () => extraColumns.filter((c) => c.enabled),
+    [extraColumns],
+  );
+
+  // Build Detailed Rows per Employee (with separate old & new values per fieldKey)
+  const allReportRows = useMemo<DetailedEmployeeReportRow[]>(() => {
+    const rows: DetailedEmployeeReportRow[] = [];
 
     for (const emp of employees) {
       const empId = String(emp["id"] || "");
@@ -186,7 +204,15 @@ function DataUpdateCompletionReportPage() {
         [];
 
       if (empReqs.length === 0) {
-        // الموظف لم يقم بتحديث البيانات بعد (غير منجز)
+        // الموظف لم يقم بتحديث بياناته بعد (غير منجز)
+        const oldValuesByField: Record<string, string> = {};
+        const newValuesByField: Record<string, string> = {};
+        for (const bf of breakdownFields) {
+          const curVal = getEmployeeFieldValue(emp, bf.fieldKey);
+          oldValuesByField[bf.fieldKey] = curVal && curVal !== "غير محدد" ? curVal : "—";
+          newValuesByField[bf.fieldKey] = "—";
+        }
+
         rows.push({
           rowId: `uncompleted-${empId || empNo}`,
           empId,
@@ -195,23 +221,19 @@ function DataUpdateCompletionReportPage() {
           branch,
           department,
           completionStatus: "not_completed",
-          completionLabel: "غير منجز (لم يقم بالتحديث)",
-          updatesCount: 0,
+          completionLabel: "غير منجز",
           requestNumber: "—",
-          requestTitle: "لم يتم تقديم طلب تحديث بعد",
-          fieldKey: "",
-          fieldLabel: "لم يتم تحديث أي بيان",
-          oldValue: "—",
-          newValue: "—",
           updatedDate: "—",
           updatedTime: "—",
           decisionDate: "—",
-          updateModeLabel: "لم يبدأ",
-          approverInfo: "بانتظار قيام الموظف بالتحديث",
+          approverInfo: "لم يقم بالتحديث بعد",
+          oldValuesByField,
+          newValuesByField,
+          changedFieldKeys: new Set<string>(),
           employeeRecord: emp,
         });
       } else {
-        // الموظف لديه طلبات تحديث (منجز أو قيد الموافقة)
+        // دمج أو عرض طلبات التحديث الخاصة بالموظف بحيث يظهر كل بيان في عموده المخصص تحت القيمة السابقة والقيمة الجديدة
         for (const req of empReqs) {
           const status: "completed" | "not_completed" | "pending" =
             req.status === "approved"
@@ -222,10 +244,10 @@ function DataUpdateCompletionReportPage() {
 
           const statusLabel =
             req.status === "approved"
-              ? "منجز ومعتمد ✓"
+              ? "منجز ✓"
               : req.status === "pending"
-                ? "قيد المراجعة والاعتماد"
-                : "مرفوض / غير مكتمل";
+                ? "قيد الموافقة"
+                : "غير منجز";
 
           const datePart = req.createdAt ? req.createdAt.slice(0, 10) : "2026-11-01";
           const timePart =
@@ -234,15 +256,23 @@ function DataUpdateCompletionReportPage() {
               : "09:30";
           const decisionDatePart = req.decisionAt ? req.decisionAt.slice(0, 10) : datePart;
 
-          const modeLabel =
-            req.updateMode === "direct"
-              ? "لا يخضع لسلسلة موافقة (تحديث مباشر بإقرار الموظف)"
-              : `يخضع لسلسلة موافقة (${req.approvalGroupName || "اعتماد الموارد البشرية"})`;
-
           const approverInfo =
             req.status === "approved"
-              ? `${req.decisionBy || "إقرار الموظف المباشر"} (${decisionDatePart})`
+              ? req.updateMode === "direct"
+                ? "تحديث مباشر بإقرار الموظف ✓"
+                : `معتمد (${req.decisionBy || "سلسلة الموافقة"})`
               : req.awaitingText || "بانتظار الاعتماد";
+
+          const oldValuesByField: Record<string, string> = {};
+          const newValuesByField: Record<string, string> = {};
+          const changedFieldKeys = new Set<string>();
+
+          // نملأ القيم الافتراضية أولاً
+          for (const bf of breakdownFields) {
+            const curVal = getEmployeeFieldValue(emp, bf.fieldKey);
+            oldValuesByField[bf.fieldKey] = curVal && curVal !== "غير محدد" ? curVal : "—";
+            newValuesByField[bf.fieldKey] = "—";
+          }
 
           const changes =
             Array.isArray(req.fieldChanges) && req.fieldChanges.length > 0
@@ -256,75 +286,42 @@ function DataUpdateCompletionReportPage() {
                   },
                 ];
 
-          if (granularity === "detailed_fields" && changes.length > 1) {
-            changes.forEach((ch, idx) => {
-              rows.push({
-                rowId: `${req.id}-ch-${idx}`,
-                empId,
-                empNo,
-                employeeName,
-                branch: req.branch || branch,
-                department: req.department || department,
-                completionStatus: status,
-                completionLabel: statusLabel,
-                updatesCount: changes.length,
-                requestNumber: req.requestNumber,
-                requestTitle: req.publishedRequestTitle || req.reason || "طلب تحديث بيانات الموظف",
-                fieldKey: ch.fieldKey,
-                fieldLabel: ch.fieldLabel,
-                oldValue: ch.oldValue || "غير محدد",
-                newValue: ch.newValue || "—",
-                updatedDate: datePart,
-                updatedTime: timePart,
-                decisionDate: decisionDatePart,
-                updateModeLabel: modeLabel,
-                approverInfo,
-                employeeRecord: emp,
-              });
-            });
-          } else {
-            const combinedLabels = changes.map((c) => c.fieldLabel).join(" + ");
-            const combinedOld = changes
-              .map((c) => (changes.length > 1 ? `${c.fieldLabel}: ${c.oldValue}` : c.oldValue))
-              .join(" | ");
-            const combinedNew = changes
-              .map((c) => (changes.length > 1 ? `${c.fieldLabel}: ${c.newValue}` : c.newValue))
-              .join(" | ");
-
-            rows.push({
-              rowId: req.id,
-              empId,
-              empNo,
-              employeeName,
-              branch: req.branch || branch,
-              department: req.department || department,
-              completionStatus: status,
-              completionLabel: statusLabel,
-              updatesCount: changes.length,
-              requestNumber: req.requestNumber,
-              requestTitle: req.publishedRequestTitle || req.reason || "طلب تحديث بيانات الموظف",
-              fieldKey: req.fieldKey,
-              fieldLabel: combinedLabels || req.fieldLabel,
-              oldValue: combinedOld || req.oldValue || "غير محدد",
-              newValue: combinedNew || req.newValue || "—",
-              updatedDate: datePart,
-              updatedTime: timePart,
-              decisionDate: decisionDatePart,
-              updateModeLabel: modeLabel,
-              approverInfo,
-              employeeRecord: emp,
-            });
+          for (const ch of changes) {
+            if (!ch.fieldKey) continue;
+            oldValuesByField[ch.fieldKey] = ch.oldValue || "—";
+            newValuesByField[ch.fieldKey] = ch.newValue || "—";
+            changedFieldKeys.add(ch.fieldKey);
           }
+
+          rows.push({
+            rowId: req.id,
+            empId,
+            empNo,
+            employeeName,
+            branch: req.branch || branch,
+            department: req.department || department,
+            completionStatus: status,
+            completionLabel: statusLabel,
+            requestNumber: req.requestNumber,
+            updatedDate: datePart,
+            updatedTime: timePart,
+            decisionDate: decisionDatePart,
+            approverInfo,
+            oldValuesByField,
+            newValuesByField,
+            changedFieldKeys,
+            employeeRecord: emp,
+          });
         }
       }
     }
 
     return rows;
-  }, [employees, requestsByEmployee, granularity]);
+  }, [employees, requestsByEmployee, breakdownFields]);
 
-  // Apply Filters to Unified Rows
+  // Filter Rows
   const filteredRows = useMemo(() => {
-    return allUnifiedRows.filter((row) => {
+    return allReportRows.filter((row) => {
       if (branchFilter !== "all" && row.branch !== branchFilter) return false;
       if (departmentFilter !== "all" && row.department !== departmentFilter) return false;
 
@@ -335,19 +332,7 @@ function DataUpdateCompletionReportPage() {
 
       if (fieldFilter !== "all") {
         if (row.completionStatus === "not_completed") return false;
-        const matchesKey =
-          row.fieldKey === fieldFilter ||
-          row.fieldLabel.includes(
-            allFields.find((f) => f.key === fieldFilter)?.label || fieldFilter,
-          );
-        if (!matchesKey) return false;
-      }
-
-      if (modeFilter !== "all") {
-        if (row.completionStatus === "not_completed") return false;
-        const isDirect = row.updateModeLabel.includes("لا يخضع");
-        if (modeFilter === "direct" && !isDirect) return false;
-        if (modeFilter === "approval_required" && isDirect) return false;
+        if (!row.changedFieldKeys.has(fieldFilter)) return false;
       }
 
       if (dateFrom && row.updatedDate !== "—" && row.updatedDate < dateFrom) return false;
@@ -356,18 +341,18 @@ function DataUpdateCompletionReportPage() {
 
       if (searchTerm.trim()) {
         const q = searchTerm.trim().toLowerCase();
+        const oldNewText = [
+          ...Object.values(row.oldValuesByField),
+          ...Object.values(row.newValuesByField),
+        ].join(" ");
         const hay = [
           row.empNo,
           row.employeeName,
           row.branch,
           row.department,
           row.requestNumber,
-          row.requestTitle,
-          row.fieldLabel,
-          row.oldValue,
-          row.newValue,
+          oldNewText,
           String(row.employeeRecord["national_id"] || ""),
-          String(row.employeeRecord["phone"] || ""),
         ]
           .join(" ")
           .toLowerCase();
@@ -377,19 +362,16 @@ function DataUpdateCompletionReportPage() {
       return true;
     });
   }, [
-    allUnifiedRows,
+    allReportRows,
     branchFilter,
     departmentFilter,
     completionFilter,
     fieldFilter,
-    modeFilter,
     dateFrom,
     dateTo,
     searchTerm,
-    allFields,
   ]);
 
-  // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -397,14 +379,12 @@ function DataUpdateCompletionReportPage() {
     departmentFilter,
     completionFilter,
     fieldFilter,
-    modeFilter,
     dateFrom,
     dateTo,
     searchTerm,
-    granularity,
   ]);
 
-  // KPIs Calculation based on current Branch & Department scope
+  // KPIs Summary
   const scopeStats = useMemo(() => {
     const scopedEmployees = employees.filter((e) => {
       if (branchFilter !== "all" && String(e["branch"] || "") !== branchFilter) return false;
@@ -460,75 +440,39 @@ function DataUpdateCompletionReportPage() {
     };
   }, [employees, requestsByEmployee, branchFilter, departmentFilter]);
 
-  // Branch Completion Breakdown for Al-Andalus Schools
-  const branchBreakdown = useMemo(() => {
-    const map = new Map<
-      string,
-      { branch: string; total: number; completed: number; pending: number; uncompleted: number }
-    >();
-
-    for (const emp of employees) {
-      const b = String(emp["branch"] || "فرع غير محدد");
-      const curr = map.get(b) || { branch: b, total: 0, completed: 0, pending: 0, uncompleted: 0 };
-      curr.total++;
-
-      const empId = String(emp["id"] || "");
-      const empNo = String(emp["emp_no"] || "");
-      const reqs = requestsByEmployee.get(empId) || requestsByEmployee.get(empNo) || [];
-
-      if (reqs.some((r) => r.status === "approved")) {
-        curr.completed++;
-      } else if (reqs.some((r) => r.status === "pending")) {
-        curr.pending++;
-      } else {
-        curr.uncompleted++;
-      }
-      map.set(b, curr);
-    }
-
-    return Array.from(map.values()).sort((a, b) => b.total - a.total);
-  }, [employees, requestsByEmployee]);
-
-  const activeExtraColumns = useMemo(
-    () => extraColumns.filter((c) => c.enabled),
-    [extraColumns],
-  );
-
-  // Helper to read extra column value for a row
-  const getExtraColumnValue = (row: UnifiedReportRow, col: ExtraReportColumn): string => {
-    if (col.fieldKey === "_request_title") return row.requestTitle;
+  const getExtraColumnValue = (row: DetailedEmployeeReportRow, col: ExtraReportColumn): string => {
     if (col.fieldKey === "_approver_info") return row.approverInfo;
     const val = getEmployeeFieldValue(row.employeeRecord, col.fieldKey);
     return val || "—";
   };
 
-  // Toggle an extra column
+  const toggleBreakdownField = (fieldKey: string) => {
+    setBreakdownFields((prev) =>
+      prev.map((f) => (f.fieldKey === fieldKey ? { ...f, enabled: !f.enabled } : f)),
+    );
+  };
+
   const toggleExtraColumn = (colId: string) => {
     setExtraColumns((prev) =>
       prev.map((c) => (c.id === colId ? { ...c, enabled: !c.enabled } : c)),
     );
   };
 
-  // Add a custom column on the fly
-  const handleAddCustomColumn = () => {
-    const label = newColLabel.trim() || allFields.find((f) => f.key === newColFieldKey)?.label || newColFieldKey;
-    if (!label) {
-      toast.error("يرجى تحديد اسم العمود الإضافي");
-      return;
-    }
-    const id = `custom_col_${Date.now()}`;
-    setExtraColumns((prev) => [
-      ...prev,
-      {
-        id,
-        label,
-        fieldKey: newColFieldKey,
-        enabled: true,
-        isCustomUserCol: true,
-      },
-    ]);
-    setNewColLabel("");
-    toast.success(`تمت إضافة عمود «${label}» إلى التقرير بنجاح`);
+  const handleAddBreakdownField = () => {
+    const def = allFields.find((f) => f.key === newBreakdownFieldKey);
+    const label = newBreakdownLabel.trim() || def?.label || newBreakdownFieldKey;
+    if (!label) return;
+
+    setBreakdownFields((prev) => {
+      if (prev.some((x) => x.fieldKey === newBreakdownFieldKey)) {
+        return prev.map((x) =>
+          x.fieldKey === newBreakdownFieldKey ? { ...x, label, enabled: true } : x,
+        );
+      }
+      return [...prev, { fieldKey: newBreakdownFieldKey, label, enabled: true }];
+    });
+    setNewBreakdownLabel("");
+    toast.success(`تمت إضافة بيان «${label}» تحت القيمة السابقة والقيمة الجديدة`);
   };
 
   // Pagination slice
@@ -538,70 +482,125 @@ function DataUpdateCompletionReportPage() {
     return filteredRows.slice(start, start + pageSize);
   }, [filteredRows, currentPage, pageSize]);
 
-  // ─── Export to Excel (.xlsx) ───
+  // ─── Export to Excel (.xlsx) with 2-Row Split Headers for Old & New Values ───
   const handleExportExcel = () => {
     if (filteredRows.length === 0) {
       toast.error("لا توجد بيانات مطابقة للفلاتر الحالية لتصديرها");
       return;
     }
 
-    const rowsForExcel = filteredRows.map((r, index) => {
-      const baseObj: Record<string, string | number> = {
-        م: index + 1,
-        "الرقم الوظيفي": r.empNo,
-        "اسم الموظف": r.employeeName,
-        الفرع: r.branch,
-        القسم: r.department,
-        "حالة الإنجاز": r.completionLabel,
-        "عدد الحقول المحدثة": r.updatesCount,
-        "رقم الطلب": r.requestNumber,
-        "البيان / الحقل المحدث": r.fieldLabel,
-        "القيمة السابقة": r.oldValue,
-        "القيمة الجديدة": r.newValue,
-        "تاريخ التحديث": r.updatedDate,
-        "وقت التحديث": r.updatedTime,
-        "تاريخ الاعتماد": r.decisionDate,
-        "آلية التحديث": r.updateModeLabel,
-      };
+    const fixedLeftHeaders = [
+      "م",
+      "الرقم الوظيفي",
+      "اسم الموظف",
+      "الفرع",
+      "القسم",
+      "حالة الإنجاز",
+    ];
+    const vfCount = activeValueFields.length;
 
-      for (const col of activeExtraColumns) {
-        baseObj[col.label] = getExtraColumnValue(r, col);
-      }
+    // Row 1: Group headers
+    const headerRow1: string[] = [
+      ...fixedLeftHeaders,
+      ...activeValueFields.map((_, idx) => (idx === 0 ? "القيمة السابقة (قبل التحديث)" : "")),
+      ...activeValueFields.map((_, idx) => (idx === 0 ? "القيمة الجديدة (بعد التحديث)" : "")),
+      "تاريخ التحديث",
+      "وقت التحديث",
+      ...activeExtraColumns.map((c) => c.label),
+    ];
 
-      return baseObj;
-    });
+    // Row 2: Detailed field headers under Old Value & New Value
+    const headerRow2: string[] = [
+      ...fixedLeftHeaders.map(() => ""),
+      ...activeValueFields.map((vf) => vf.label),
+      ...activeValueFields.map((vf) => vf.label),
+      "",
+      "",
+      ...activeExtraColumns.map(() => ""),
+    ];
 
-    const ws = XLSX.utils.json_to_sheet(rowsForExcel);
+    // Data rows
+    const dataRows = filteredRows.map((r, index) => [
+      index + 1,
+      r.empNo,
+      r.employeeName,
+      r.branch,
+      r.department,
+      r.completionLabel,
+      ...activeValueFields.map((vf) => r.oldValuesByField[vf.fieldKey] || "—"),
+      ...activeValueFields.map((vf) => r.newValuesByField[vf.fieldKey] || "—"),
+      r.updatedDate,
+      r.updatedTime,
+      ...activeExtraColumns.map((c) => getExtraColumnValue(r, c)),
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([headerRow1, headerRow2, ...dataRows]);
     ws["!views"] = [{ rightToLeft: true }];
-    const colKeys = Object.keys(rowsForExcel[0] || {});
-    ws["!cols"] = colKeys.map((k) => ({
-      wch: Math.max(k.length + 6, 18),
+
+    // Build Excel cell merges so Row 1 groups "القيمة السابقة" and "القيمة الجديدة" cleanly
+    const merges: XLSX.Range[] = [];
+    // Vertical merges for left fixed columns
+    for (let c = 0; c < fixedLeftHeaders.length; c++) {
+      merges.push({ s: { r: 0, c }, e: { r: 1, c } });
+    }
+    // Horizontal merge for "القيمة السابقة"
+    const oldStartCol = fixedLeftHeaders.length;
+    if (vfCount > 1) {
+      merges.push({
+        s: { r: 0, c: oldStartCol },
+        e: { r: 0, c: oldStartCol + vfCount - 1 },
+      });
+    }
+    // Horizontal merge for "القيمة الجديدة"
+    const newStartCol = oldStartCol + vfCount;
+    if (vfCount > 1) {
+      merges.push({
+        s: { r: 0, c: newStartCol },
+        e: { r: 0, c: newStartCol + vfCount - 1 },
+      });
+    }
+    // Vertical merges for right columns (Date, Time, Extra columns)
+    const rightStartCol = newStartCol + vfCount;
+    const totalCols = headerRow1.length;
+    for (let c = rightStartCol; c < totalCols; c++) {
+      merges.push({ s: { r: 0, c }, e: { r: 1, c } });
+    }
+    ws["!merges"] = merges;
+
+    ws["!cols"] = headerRow1.map((_, idx) => ({
+      wch: idx === 2 || idx === 3 ? 28 : 16,
     }));
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "تقرير إنجاز تحديث البيانات");
     XLSX.writeFile(
       wb,
-      `تقرير_إنجاز_تحديث_بيانات_الموظفين_مدارس_الأندلس_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      `تقرير_إنجاز_تحديث_بيانات_الموظفين_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
     toast.success(`تم تصدير ${filteredRows.length} سجل إلى ملف Excel بنجاح`);
   };
 
-  // ─── Export to Official RTL PDF from inside the system ───
+  // ─── Export to Official RTL PDF with 2-Row Split Headers ───
   const handleExportPDF = () => {
     if (filteredRows.length === 0) {
       toast.error("لا توجد بيانات مطابقة للفلاتر الحالية لتصديرها إلى PDF");
       return;
     }
 
-    const printWin = window.open("", "_blank", "width=1280,height=900");
+    const printWin = window.open("", "_blank", "width=1360,height=900");
     if (!printWin) {
       window.print();
       return;
     }
 
+    const oldSubHeadersHtml = activeValueFields
+      .map((vf) => `<th class="sub-th-old">${vf.label}</th>`)
+      .join("");
+    const newSubHeadersHtml = activeValueFields
+      .map((vf) => `<th class="sub-th-new">${vf.label}</th>`)
+      .join("");
     const extraHeadersHtml = activeExtraColumns
-      .map((c) => `<th>${c.label}</th>`)
+      .map((c) => `<th rowspan="2">${c.label}</th>`)
       .join("");
 
     const rowsHtml = filteredRows
@@ -613,6 +612,21 @@ function DataUpdateCompletionReportPage() {
               ? "background:#fef3c7;color:#92400e;border:1px solid #fcd34d;"
               : "background:#ffe4e6;color:#9f1239;border:1px solid #fda4af;";
 
+        const oldCellsHtml = activeValueFields
+          .map((vf) => {
+            const val = r.oldValuesByField[vf.fieldKey] || "—";
+            return `<td class="cell-old">${val}</td>`;
+          })
+          .join("");
+
+        const newCellsHtml = activeValueFields
+          .map((vf) => {
+            const val = r.newValuesByField[vf.fieldKey] || "—";
+            const isChanged = r.changedFieldKeys.has(vf.fieldKey) && val !== "—";
+            return `<td class="${isChanged ? "cell-new-active" : "cell-new-empty"}">${val}</td>`;
+          })
+          .join("");
+
         const extraCellsHtml = activeExtraColumns
           .map((c) => `<td>${getExtraColumnValue(r, c)}</td>`)
           .join("");
@@ -621,18 +635,17 @@ function DataUpdateCompletionReportPage() {
           <tr>
             <td style="text-align:center;font-weight:700;">${idx + 1}</td>
             <td style="text-align:center;font-family:monospace;font-weight:700;color:#004e82;">${r.empNo}</td>
-            <td style="font-weight:700;">${r.employeeName}</td>
+            <td style="font-weight:700;white-space:nowrap;">${r.employeeName}</td>
             <td>${r.branch}</td>
             <td>${r.department}</td>
             <td style="text-align:center;">
-              <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;${statusBadgeStyle}">
+              <span style="display:inline-block;padding:2px 7px;border-radius:999px;font-size:9.5px;font-weight:800;white-space:nowrap;${statusBadgeStyle}">
                 ${r.completionLabel}
               </span>
             </td>
-            <td style="font-weight:700;color:#0f3560;">${r.fieldLabel}</td>
-            <td style="color:#64748b;text-decoration:${r.oldValue !== "—" ? "line-through" : "none"};">${r.oldValue}</td>
-            <td style="font-weight:800;color:#047857;background:#ecfdf5;">${r.newValue}</td>
-            <td style="text-align:center;font-family:monospace;">${r.updatedDate}${r.updatedTime !== "—" ? ` (${r.updatedTime})` : ""}</td>
+            ${oldCellsHtml}
+            ${newCellsHtml}
+            <td style="text-align:center;font-family:monospace;white-space:nowrap;">${r.updatedDate}${r.updatedTime !== "—" ? `<br/><span style="font-size:8.5px;color:#64748b;">${r.updatedTime}</span>` : ""}</td>
             ${extraCellsHtml}
           </tr>
         `;
@@ -648,7 +661,7 @@ function DataUpdateCompletionReportPage() {
   <style>
     @page {
       size: A4 landscape;
-      margin: 10mm;
+      margin: 8mm;
     }
     * {
       box-sizing: border-box;
@@ -658,29 +671,29 @@ function DataUpdateCompletionReportPage() {
     }
     body {
       margin: 0;
-      padding: 12px;
+      padding: 10px;
       background: #ffffff;
       color: #0f172a;
       direction: rtl;
-      font-size: 11px;
+      font-size: 10px;
     }
     .report-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 3px solid #0f3560;
-      padding-bottom: 10px;
-      margin-bottom: 12px;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
     }
     .company-box h1 {
       margin: 0;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 800;
       color: #0f3560;
     }
     .company-box p {
       margin: 2px 0 0;
-      font-size: 11px;
+      font-size: 10.5px;
       color: #475569;
       font-weight: 600;
     }
@@ -689,18 +702,18 @@ function DataUpdateCompletionReportPage() {
     }
     .title-box h2 {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #0070c0;
     }
     .title-box span {
-      font-size: 11px;
+      font-size: 10px;
       color: #64748b;
       font-weight: 700;
     }
     .meta-box {
       text-align: left;
-      font-size: 11px;
+      font-size: 10px;
       color: #334155;
       font-weight: 700;
     }
@@ -708,21 +721,21 @@ function DataUpdateCompletionReportPage() {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .kpi-card {
       border: 1px solid #cbd5e1;
       border-radius: 8px;
-      padding: 8px 10px;
+      padding: 6px 10px;
       background: #f8fafc;
     }
     .kpi-card .label {
-      font-size: 10px;
+      font-size: 9.5px;
       color: #475569;
       font-weight: 700;
     }
     .kpi-card .val {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 800;
       color: #0f3560;
       margin-top: 2px;
@@ -731,45 +744,77 @@ function DataUpdateCompletionReportPage() {
       background: #f1f5f9;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
-      padding: 6px 10px;
-      margin-bottom: 10px;
-      font-size: 10.5px;
+      padding: 5px 10px;
+      margin-bottom: 8px;
+      font-size: 10px;
       font-weight: 700;
       color: #334155;
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 14px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 10px;
+      font-size: 9px;
     }
     th {
       background: #0f3560 !important;
       color: #ffffff !important;
-      padding: 6px 6px;
-      border: 1px solid #0f3560;
-      text-align: right;
+      padding: 5px 5px;
+      border: 1px solid #cbd5e1;
+      text-align: center;
       font-weight: 800;
     }
+    th.group-old {
+      background: #334155 !important;
+      color: #f8fafc !important;
+    }
+    th.group-new {
+      background: #047857 !important;
+      color: #ffffff !important;
+    }
+    th.sub-th-old {
+      background: #475569 !important;
+      color: #ffffff !important;
+      font-size: 8.5px;
+    }
+    th.sub-th-new {
+      background: #059669 !important;
+      color: #ffffff !important;
+      font-size: 8.5px;
+    }
     td {
-      padding: 5px 6px;
+      padding: 4px 5px;
       border: 1px solid #cbd5e1;
       vertical-align: middle;
     }
-    tr:nth-child(even) td {
+    td.cell-old {
       background: #f8fafc;
+      color: #475569;
+      text-align: center;
+      font-family: monospace;
+    }
+    td.cell-new-active {
+      background: #ecfdf5 !important;
+      color: #065f46;
+      font-weight: 800;
+      text-align: center;
+      font-family: monospace;
+    }
+    td.cell-new-empty {
+      color: #94a3b8;
+      text-align: center;
     }
     .footer-sign {
-      margin-top: 16px;
+      margin-top: 14px;
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       color: #334155;
       border-top: 1px dashed #94a3b8;
-      padding-top: 10px;
+      padding-top: 8px;
     }
     .no-print-bar {
       display: flex;
@@ -779,7 +824,7 @@ function DataUpdateCompletionReportPage() {
       color: #fff;
       padding: 8px 14px;
       border-radius: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .no-print-bar button {
       background: #10b981;
@@ -800,7 +845,7 @@ function DataUpdateCompletionReportPage() {
 </head>
 <body>
   <div class="no-print-bar">
-    <span>معاينة التقرير الرسمي الجاهز للتصدير بصيغة PDF — شركة مدارس الأندلس التعليمية (${filteredRows.length} سجل)</span>
+    <span>معاينة التقرير الرسمي الجاهز للتصدير بصيغة PDF (${filteredRows.length} سجل)</span>
     <div style="display:flex;gap:8px;">
       <button onclick="window.print()">حفظ كملف PDF / طباعة الآن</button>
       <button onclick="window.close()" style="background:#64748b;">إغلاق</button>
@@ -810,21 +855,21 @@ function DataUpdateCompletionReportPage() {
   <div class="report-header">
     <div class="company-box">
       <h1>شركة مدارس الأندلس التعليمية</h1>
-      <p>الإدارة العامة للموارد البشرية وشؤون الموظفين — المملكة العربية السعودية</p>
+      <p>الإدارة العامة للموارد البشرية وشؤون الموظفين</p>
     </div>
     <div class="title-box">
       <h2>تقرير إنجاز تحديث بيانات الموظفين</h2>
-      <span>بيان تفصيلي بالتحديثات المنجزة وغير المنجزة والقيم السابقة والجديدة والتواريخ</span>
+      <span>بيان تفصيلي بالقيم السابقة والقيم الجديدة لكل بيان على حدة والتواريخ</span>
     </div>
     <div class="meta-box">
-      <div>تاريخ استخراج التقرير: ${new Date().toISOString().slice(0, 10)}</div>
-      <div>إجمالي السجلات المعروضة: ${filteredRows.length} سجل</div>
+      <div>تاريخ التقرير: ${new Date().toISOString().slice(0, 10)}</div>
+      <div>عدد السجلات: ${filteredRows.length} سجل</div>
     </div>
   </div>
 
   <div class="kpi-strip">
     <div class="kpi-card">
-      <div class="label">إجمالي الموظفين المشمولين</div>
+      <div class="label">إجمالي الموظفين</div>
       <div class="val">${scopeStats.totalEmployeesInScope} موظف</div>
     </div>
     <div class="kpi-card">
@@ -832,23 +877,23 @@ function DataUpdateCompletionReportPage() {
       <div class="val" style="color:#047857;">${scopeStats.totalCompletedUpdates} طلب (${scopeStats.totalFieldChangesCount} بيان)</div>
     </div>
     <div class="kpi-card">
-      <div class="label">الموظفون المنجزون (حدثوا بياناتهم)</div>
+      <div class="label">المنجز (حدثوا بياناتهم)</div>
       <div class="val" style="color:#047857;">${scopeStats.completedEmployeesCount} موظف (${scopeStats.completionRate}%)</div>
     </div>
     <div class="kpi-card">
-      <div class="label">غير المنجزين (لم يحدثوا بعد)</div>
+      <div class="label">غير المنجز (لم يحدثوا بعد)</div>
       <div class="val" style="color:#be123c;">${scopeStats.notCompletedEmployeesCount} موظف</div>
     </div>
     <div class="kpi-card">
-      <div class="label">طلبات قيد المراجعة والاعتماد</div>
+      <div class="label">قيد المراجعة والاعتماد</div>
       <div class="val" style="color:#b45309;">${scopeStats.pendingEmployeesCount} طلب</div>
     </div>
   </div>
 
   <div class="filters-bar">
-    <span>الفرع: ${branchFilter === "all" ? "جميع فروع مدارس الأندلس" : branchFilter}</span>
+    <span>الفرع: ${branchFilter === "all" ? "جميع الفروع" : branchFilter}</span>
     <span>القسم: ${departmentFilter === "all" ? "جميع الأقسام" : departmentFilter}</span>
-    <span>حالة الإنجاز: ${
+    <span>الحالة: ${
       completionFilter === "all"
         ? "الكل (المنجز وغير المنجز)"
         : completionFilter === "completed"
@@ -864,17 +909,20 @@ function DataUpdateCompletionReportPage() {
   <table>
     <thead>
       <tr>
-        <th style="width:32px;text-align:center;">م</th>
-        <th style="width:65px;text-align:center;">الرقم الوظيفي</th>
-        <th>اسم الموظف</th>
-        <th>الفرع</th>
-        <th>القسم</th>
-        <th style="text-align:center;">حالة الإنجاز</th>
-        <th>البيان المحدث</th>
-        <th>القيمة السابقة</th>
-        <th>القيمة الجديدة</th>
-        <th style="text-align:center;">تاريخ ووقت التحديث</th>
+        <th rowspan="2" style="width:28px;">م</th>
+        <th rowspan="2" style="width:55px;">الرقم الوظيفي</th>
+        <th rowspan="2">اسم الموظف</th>
+        <th rowspan="2">الفرع</th>
+        <th rowspan="2">القسم</th>
+        <th rowspan="2" style="width:65px;">حالة الإنجاز</th>
+        <th colspan="${activeValueFields.length}" class="group-old">القيمة السابقة (قبل التحديث)</th>
+        <th colspan="${activeValueFields.length}" class="group-new">القيمة الجديدة (بعد التحديث)</th>
+        <th rowspan="2" style="width:70px;">تاريخ التحديث</th>
         ${extraHeadersHtml}
+      </tr>
+      <tr>
+        ${oldSubHeadersHtml}
+        ${newSubHeadersHtml}
       </tr>
     </thead>
     <tbody>
@@ -884,7 +932,7 @@ function DataUpdateCompletionReportPage() {
 
   <div class="footer-sign">
     <div>إعداد: قسم عمليات الموارد البشرية</div>
-    <div>مراجعة: إدارة شؤون الموظفين — شركة مدارس الأندلس التعليمية</div>
+    <div>مراجعة: إدارة شؤون الموظفين</div>
     <div>اعتماد: المدير العام للموارد البشرية</div>
   </div>
 
@@ -907,7 +955,7 @@ function DataUpdateCompletionReportPage() {
   return (
     <AppShell>
       <div className="w-full space-y-4" dir="rtl">
-        {/* Top Official Header Banner */}
+        {/* Top Standalone Report Header (No links to setup/regulations) */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0f3560] text-white shadow-xs">
@@ -919,11 +967,11 @@ function DataUpdateCompletionReportPage() {
                   تقرير إنجاز تحديث بيانات الموظفين
                 </h1>
                 <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800">
-                  شركة مدارس الأندلس التعليمية ({employees.length} موظف • {ANDALUS_BRANCHES.length} فرع)
+                  شركة مدارس الأندلس التعليمية ({employees.length} موظف)
                 </span>
               </div>
               <p className="text-[12px] font-medium text-slate-500 mt-0.5">
-                متابعة دقيقة لإجمالي التحديثات التي تمت، الموظفين المنجزين وغير المنجزين، القيمة السابقة والقيمة الجديدة بالتواريخ، مع تخصيص الأعمدة وتصدير Excel و PDF
+                عرض تفصيلي لإجمالي التحديثات، المنجز وغير المنجز، مع تفصيل القيمة السابقة والقيمة الجديدة لكل بيان في أعمدة مستقلة بالتواريخ
               </p>
             </div>
           </div>
@@ -932,20 +980,20 @@ function DataUpdateCompletionReportPage() {
             <button
               type="button"
               onClick={() => setShowColumnBuilder((v) => !v)}
-              className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition ${
+              className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition cursor-pointer ${
                 showColumnBuilder
                   ? "border-[#0070c0] bg-[#0070c0] text-white"
                   : "border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100"
               }`}
             >
               <MaterialIcon name="view_column" size={17} />
-              <span>إضافة / تخصيص أعمدة التقرير ({activeExtraColumns.length})</span>
+              <span>تخصيص وإضافة أعمدة التقرير</span>
             </button>
 
             <button
               type="button"
               onClick={handleExportExcel}
-              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-emerald-700"
+              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-emerald-700 cursor-pointer"
             >
               <MaterialIcon name="table_view" size={17} />
               <span>تصدير Excel</span>
@@ -954,19 +1002,11 @@ function DataUpdateCompletionReportPage() {
             <button
               type="button"
               onClick={handleExportPDF}
-              className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-rose-700"
+              className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-rose-700 cursor-pointer"
             >
               <MaterialIcon name="picture_as_pdf" size={17} />
-              <span>تصدير PDF رسمي</span>
+              <span>تصدير PDF</span>
             </button>
-
-            <Link
-              to="/regulations/data-update"
-              className="flex items-center gap-1.5 rounded-xl border border-[#0070c0] bg-blue-50 px-3.5 py-2 text-xs font-extrabold text-[#0070c0] transition hover:bg-blue-100"
-            >
-              <MaterialIcon name="add_task" size={17} />
-              <span>إنشاء / تهيئة طلب تحديث</span>
-            </Link>
           </div>
         </div>
 
@@ -975,7 +1015,7 @@ function DataUpdateCompletionReportPage() {
           <button
             type="button"
             onClick={() => setCompletionFilter("all")}
-            className={`text-right rounded-2xl border p-4 transition ${
+            className={`text-right rounded-2xl border p-4 transition cursor-pointer ${
               completionFilter === "all"
                 ? "border-[#0070c0] bg-blue-50/70 ring-2 ring-[#0070c0]/20"
                 : "border-slate-200 bg-white hover:bg-slate-50"
@@ -983,7 +1023,7 @@ function DataUpdateCompletionReportPage() {
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold text-slate-600">
-                إجمالي موظفي مدارس الأندلس
+                إجمالي الموظفين المشمولين
               </span>
               <MaterialIcon name="groups" size={22} className="text-[#0070c0]" />
             </div>
@@ -991,7 +1031,7 @@ function DataUpdateCompletionReportPage() {
               {scopeStats.totalEmployeesInScope}
             </div>
             <p className="mt-1 text-[11px] font-bold text-slate-500">
-              موزعين على {ANDALUS_BRANCHES.length} فرعاً تعليمياً وإدارياً
+              اضغط لعرض الكل (المنجز وغير المنجز)
             </p>
           </button>
 
@@ -1018,7 +1058,7 @@ function DataUpdateCompletionReportPage() {
           <button
             type="button"
             onClick={() => setCompletionFilter("completed")}
-            className={`text-right rounded-2xl border p-4 transition ${
+            className={`text-right rounded-2xl border p-4 transition cursor-pointer ${
               completionFilter === "completed"
                 ? "border-emerald-600 bg-emerald-100/70 ring-2 ring-emerald-600/20"
                 : "border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50"
@@ -1046,7 +1086,7 @@ function DataUpdateCompletionReportPage() {
           <button
             type="button"
             onClick={() => setCompletionFilter("not_completed")}
-            className={`text-right rounded-2xl border p-4 transition ${
+            className={`text-right rounded-2xl border p-4 transition cursor-pointer ${
               completionFilter === "not_completed"
                 ? "border-rose-600 bg-rose-100/70 ring-2 ring-rose-600/20"
                 : "border-rose-200 bg-rose-50/50 hover:bg-rose-50"
@@ -1080,7 +1120,7 @@ function DataUpdateCompletionReportPage() {
           <button
             type="button"
             onClick={() => setCompletionFilter("pending")}
-            className={`text-right rounded-2xl border p-4 transition ${
+            className={`text-right rounded-2xl border p-4 transition cursor-pointer ${
               completionFilter === "pending"
                 ? "border-amber-600 bg-amber-100/70 ring-2 ring-amber-600/20"
                 : "border-amber-200 bg-amber-50/50 hover:bg-amber-50"
@@ -1101,117 +1141,88 @@ function DataUpdateCompletionReportPage() {
           </button>
         </div>
 
-        {/* Interactive Al-Andalus Branches Completion Strip */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2">
-              <MaterialIcon name="domain" size={18} className="text-[#0070c0]" />
-              <span className="text-xs font-extrabold text-[#0f3560]">
-                نسب إنجاز تحديث البيانات في فروع شركة مدارس الأندلس التعليمية (اضغط على الفرع للفلترة الفورية):
-              </span>
-            </div>
-            {branchFilter !== "all" && (
-              <button
-                type="button"
-                onClick={() => setBranchFilter("all")}
-                className="text-[11px] font-extrabold text-rose-600 hover:underline"
-              >
-                إلغاء فلتر الفرع وعرض جميع الفروع ({ANDALUS_BRANCHES.length})
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1.5">
-            {branchBreakdown.map((b) => {
-              const pct = b.total > 0 ? Math.round((b.completed / b.total) * 100) : 0;
-              const isSelected = branchFilter === b.branch;
-              return (
-                <button
-                  key={b.branch}
-                  type="button"
-                  onClick={() => setBranchFilter(isSelected ? "all" : b.branch)}
-                  className={`shrink-0 rounded-xl border px-3 py-2 text-right transition ${
-                    isSelected
-                      ? "border-[#0070c0] bg-[#0070c0] text-white shadow-xs"
-                      : "border-slate-200 bg-slate-50/70 text-slate-800 hover:bg-slate-100"
-                  }`}
-                >
-                  <div className="text-[11px] font-extrabold whitespace-nowrap">
-                    {b.branch.replace("مدارس الأندلس الأهلية - ", "")}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-[10px] font-bold">
-                    <span className={isSelected ? "text-emerald-200" : "text-emerald-700"}>
-                      منجز: {b.completed}
-                    </span>
-                    <span>•</span>
-                    <span className={isSelected ? "text-rose-200" : "text-rose-600"}>
-                      غير منجز: {b.uncompleted}
-                    </span>
-                    <span
-                      className={`rounded px-1.5 py-0.2 font-mono font-black ${
-                        isSelected
-                          ? "bg-white/20 text-white"
-                          : "bg-blue-100 text-[#004e82]"
-                      }`}
-                    >
-                      {pct}%
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Extra Column Customizer Panel ("إضافة فيتشر أو كولم زيادة في التقرير") */}
+        {/* Column Customizer Panel */}
         {showColumnBuilder && (
-          <div className="rounded-2xl border-2 border-[#0070c0]/30 bg-blue-50/40 p-4 shadow-xs space-y-3">
+          <div className="rounded-2xl border-2 border-[#0070c0]/30 bg-blue-50/40 p-4 shadow-xs space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <MaterialIcon name="add_chart" size={20} className="text-[#0070c0]" />
+                <MaterialIcon name="view_column" size={20} className="text-[#0070c0]" />
                 <h3 className="text-xs font-black text-[#0f3560]">
-                  إضافة وتخصيص أعمدة إضافية في التقرير (تظهر فوراً في الجدول وفي تصدير Excel و PDF)
+                  تخصيص الحقول المتفصلة تحت (القيمة السابقة / القيمة الجديدة) والأعمدة الإضافية (تظهر في الجدول وفي Excel و PDF)
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowColumnBuilder(false)}
-                className="text-xs font-bold text-slate-500 hover:text-slate-800"
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
               >
                 إغلاق ✕
               </button>
             </div>
 
-            {/* Toggleable Column Chips */}
-            <div className="flex flex-wrap gap-2">
-              {extraColumns.map((col) => (
-                <button
-                  key={col.id}
-                  type="button"
-                  onClick={() => toggleExtraColumn(col.id)}
-                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-extrabold transition ${
-                    col.enabled
-                      ? "border-[#0070c0] bg-[#0070c0] text-white shadow-2xs"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <MaterialIcon
-                    name={col.enabled ? "check_box" : "check_box_outline_blank"}
-                    size={16}
-                  />
-                  <span>{col.label}</span>
-                </button>
-              ))}
+            {/* 1. Breakdown fields under Old Value & New Value */}
+            <div className="space-y-2">
+              <div className="text-[11px] font-extrabold text-slate-700">
+                أولاً: البيانات المتفصلة في الصف الثاني تحت «القيمة السابقة» و«القيمة الجديدة»:
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {breakdownFields.map((bf) => (
+                  <button
+                    key={bf.fieldKey}
+                    type="button"
+                    onClick={() => toggleBreakdownField(bf.fieldKey)}
+                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer ${
+                      bf.enabled
+                        ? "border-emerald-700 bg-emerald-700 text-white shadow-2xs"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <MaterialIcon
+                      name={bf.enabled ? "check_box" : "check_box_outline_blank"}
+                      size={16}
+                    />
+                    <span>{bf.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Add New Custom Column on the fly */}
+            {/* 2. General Extra Columns */}
+            <div className="space-y-2 border-t border-blue-200/60 pt-3">
+              <div className="text-[11px] font-extrabold text-slate-700">
+                ثانياً: أعمدة عامة إضافية في التقرير:
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {extraColumns.map((col) => (
+                  <button
+                    key={col.id}
+                    type="button"
+                    onClick={() => toggleExtraColumn(col.id)}
+                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer ${
+                      col.enabled
+                        ? "border-[#0070c0] bg-[#0070c0] text-white shadow-2xs"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <MaterialIcon
+                      name={col.enabled ? "check_box" : "check_box_outline_blank"}
+                      size={16}
+                    />
+                    <span>{col.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Add any other field into Old/New Value Breakdown */}
             <div className="flex flex-wrap items-end gap-2 border-t border-blue-200/60 pt-3">
               <div className="w-60">
                 <label className="block text-[11px] font-extrabold text-slate-700 mb-1">
-                  اختر البيان المراد إضافته كعمود في التقرير
+                  إضافة بيان آخر تحت القيمة السابقة والجديدة
                 </label>
                 <select
-                  value={newColFieldKey}
-                  onChange={(e) => setNewColFieldKey(e.target.value)}
+                  value={newBreakdownFieldKey}
+                  onChange={(e) => setNewBreakdownFieldKey(e.target.value)}
                   className={inputCls}
                 >
                   {allFields.map((f) => (
@@ -1219,104 +1230,72 @@ function DataUpdateCompletionReportPage() {
                       {f.label}
                     </option>
                   ))}
-                  <option value="basic_salary">الراتب الأساسي</option>
-                  <option value="hire_date">تاريخ التعيين</option>
-                  <option value="contract_type">نوع العقد</option>
                 </select>
               </div>
               <div className="w-60">
                 <label className="block text-[11px] font-extrabold text-slate-700 mb-1">
-                  عنوان العمود في التقرير (اختياري)
+                  اسم العمود الفرعي (اختياري)
                 </label>
                 <input
                   type="text"
                   placeholder="مثال: الحالة الاجتماعية / المؤهل..."
-                  value={newColLabel}
-                  onChange={(e) => setNewColLabel(e.target.value)}
+                  value={newBreakdownLabel}
+                  onChange={(e) => setNewBreakdownLabel(e.target.value)}
                   className={inputCls}
                 />
               </div>
               <button
                 type="button"
-                onClick={handleAddCustomColumn}
-                className="flex h-9 items-center gap-1.5 rounded-xl bg-[#0f3560] px-4 text-xs font-extrabold text-white hover:bg-[#1a4b84]"
+                onClick={handleAddBreakdownField}
+                className="flex h-9 items-center gap-1.5 rounded-xl bg-[#0f3560] px-4 text-xs font-extrabold text-white hover:bg-[#1a4b84] cursor-pointer"
               >
                 <MaterialIcon name="add" size={16} />
-                <span>إضافة العمود للتقرير</span>
+                <span>إضافة للجدول</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Comprehensive Filters Bar */}
+        {/* Filters Bar */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <MaterialIcon name="filter_alt" size={19} className="text-[#0070c0]" />
               <span className="text-xs font-black text-[#0f3560]">
-                فلاتر البحث المتقدم واستخراج التقرير (الفرع • القسم • الحالة: المنجز وغير المنجز • البيان • التاريخ)
+                فلاتر التقرير (الفرع • القسم • الحالة: المنجز وغير المنجز • البيان • التاريخ)
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {/* View Granularity Switch */}
-              <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setGranularity("all_employees")}
-                  className={`rounded-lg px-3 py-1 text-[11px] font-extrabold transition ${
-                    granularity === "all_employees"
-                      ? "bg-white text-[#0f3560] shadow-2xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  عرض حسب الموظف والطلب
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGranularity("detailed_fields")}
-                  className={`rounded-lg px-3 py-1 text-[11px] font-extrabold transition ${
-                    granularity === "detailed_fields"
-                      ? "bg-white text-[#0f3560] shadow-2xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  تفصيل كل بيان محدث بسطر مستقل
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setBranchFilter("all");
-                  setDepartmentFilter("all");
-                  setCompletionFilter("all");
-                  setFieldFilter("all");
-                  setModeFilter("all");
-                  setDateFrom("");
-                  setDateTo("");
-                  setSearchTerm("");
-                }}
-                className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100"
-              >
-                <MaterialIcon name="restart_alt" size={15} />
-                إعادة ضبط الفلاتر
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setBranchFilter("all");
+                setDepartmentFilter("all");
+                setCompletionFilter("all");
+                setFieldFilter("all");
+                setDateFrom("");
+                setDateTo("");
+                setSearchTerm("");
+              }}
+              className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+            >
+              <MaterialIcon name="restart_alt" size={15} />
+              إعادة ضبط الفلاتر
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2.5">
             {/* 1. فلتر الفرع */}
             <div>
               <label className="block text-[11px] font-extrabold text-slate-600 mb-1">
-                1. الفرع (مدارس الأندلس)
+                1. الفرع
               </label>
               <select
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
                 className={inputCls}
               >
-                <option value="all">جميع فروع مدارس الأندلس ({branchOptions.length})</option>
+                <option value="all">جميع الفروع ({branchOptions.length})</option>
                 {branchOptions.map((b) => (
                   <option key={b} value={b}>
                     {b}
@@ -1328,7 +1307,7 @@ function DataUpdateCompletionReportPage() {
             {/* 2. فلتر القسم */}
             <div>
               <label className="block text-[11px] font-extrabold text-slate-600 mb-1">
-                2. القسم / المرحلة
+                2. القسم
               </label>
               <select
                 value={departmentFilter}
@@ -1355,13 +1334,13 @@ function DataUpdateCompletionReportPage() {
                 className={inputCls}
               >
                 <option value="all">الكل (المنجز وغير المنجز)</option>
-                <option value="completed">المنجز فقط (الذين حدثوا بياناتهم ✓)</option>
-                <option value="not_completed">غير المنجز فقط (الذين لم يحدثوا ✗)</option>
+                <option value="completed">المنجز فقط (حدثوا بياناتهم ✓)</option>
+                <option value="not_completed">غير المنجز فقط (لم يحدثوا ✗)</option>
                 <option value="pending">قيد الموافقة والاعتماد ⏳</option>
               </select>
             </div>
 
-            {/* 4. فلتر البيان / الحقل */}
+            {/* 4. فلتر البيان المحدث */}
             <div>
               <label className="block text-[11px] font-extrabold text-slate-600 mb-1">
                 4. البيان المحدث
@@ -1371,7 +1350,7 @@ function DataUpdateCompletionReportPage() {
                 onChange={(e) => setFieldFilter(e.target.value)}
                 className={inputCls}
               >
-                <option value="all">جميع البيانات والحقول</option>
+                <option value="all">جميع البيانات المتفصلة ({activeValueFields.length})</option>
                 {allFields.map((f) => (
                   <option key={f.key} value={f.key}>
                     {f.label}
@@ -1422,7 +1401,7 @@ function DataUpdateCompletionReportPage() {
           </div>
         </div>
 
-        {/* Main Report Table */}
+        {/* Main Report Table with 2-Row Header under Old Value & New Value */}
         <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
             <div className="flex items-center gap-2">
@@ -1448,37 +1427,92 @@ function DataUpdateCompletionReportPage() {
                 <option value={50}>50</option>
                 <option value={100}>100</option>
                 <option value={250}>250</option>
-                <option value={500}>عرض الكل (500+)</option>
+                <option value={500}>عرض الكل (500)</option>
               </select>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-right text-[11.5px]">
-              <thead className="bg-[#0f3560] text-white font-extrabold">
-                <tr>
-                  <th className="px-3 py-3 text-center w-10">#</th>
-                  <th className="px-3 py-3 text-center">الرقم الوظيفي</th>
-                  <th className="px-3 py-3">اسم الموظف</th>
-                  <th className="px-3 py-3">الفرع (مدارس الأندلس)</th>
-                  <th className="px-3 py-3">القسم</th>
-                  <th className="px-3 py-3 text-center">حالة الإنجاز</th>
-                  <th className="px-3 py-3">البيان المحدث</th>
-                  <th className="px-3 py-3">القيمة السابقة</th>
-                  <th className="px-3 py-3">القيمة الجديدة</th>
-                  <th className="px-3 py-3 text-center">تاريخ ووقت التحديث</th>
+            <table className="w-full border-collapse text-right text-[11px]">
+              <thead>
+                {/* ─── ROW 1: Main Headers + Grouped "القيمة السابقة" & "القيمة الجديدة" ─── */}
+                <tr className="bg-[#0f3560] text-white font-extrabold">
+                  <th rowSpan={2} className="border border-slate-600/60 px-2.5 py-2.5 text-center w-9">
+                    #
+                  </th>
+                  <th rowSpan={2} className="border border-slate-600/60 px-2.5 py-2.5 text-center">
+                    الرقم الوظيفي
+                  </th>
+                  <th rowSpan={2} className="border border-slate-600/60 px-3 py-2.5">
+                    اسم الموظف
+                  </th>
+                  <th rowSpan={2} className="border border-slate-600/60 px-3 py-2.5">
+                    الفرع
+                  </th>
+                  <th rowSpan={2} className="border border-slate-600/60 px-2.5 py-2.5">
+                    القسم
+                  </th>
+                  <th rowSpan={2} className="border border-slate-600/60 px-2.5 py-2.5 text-center">
+                    حالة الإنجاز
+                  </th>
+
+                  {/* القيمة السابقة وتحتها صف ثانٍ متفصل لكل بيان */}
+                  <th
+                    colSpan={activeValueFields.length}
+                    className="border-2 border-slate-400 bg-slate-700 px-3 py-2 text-center text-xs font-black text-amber-200"
+                  >
+                    القيمة السابقة (قبل التحديث)
+                  </th>
+
+                  {/* القيمة الجديدة وتحتها صف ثانٍ متفصل لكل بيان */}
+                  <th
+                    colSpan={activeValueFields.length}
+                    className="border-2 border-emerald-400 bg-emerald-800 px-3 py-2 text-center text-xs font-black text-white"
+                  >
+                    القيمة الجديدة (بعد التحديث)
+                  </th>
+
+                  <th rowSpan={2} className="border border-slate-600/60 px-2.5 py-2.5 text-center">
+                    تاريخ ووقت التحديث
+                  </th>
+
                   {activeExtraColumns.map((col) => (
-                    <th key={col.id} className="px-3 py-3 bg-[#16467d]">
+                    <th
+                      key={col.id}
+                      rowSpan={2}
+                      className="border border-slate-600/60 bg-[#16467d] px-2.5 py-2.5 text-center"
+                    >
                       {col.label}
                     </th>
                   ))}
                 </tr>
+
+                {/* ─── ROW 2: Sub-Row Splitting Each Field into its Own Column ─── */}
+                <tr className="text-white font-extrabold text-[10.5px]">
+                  {activeValueFields.map((vf) => (
+                    <th
+                      key={`old-head-${vf.fieldKey}`}
+                      className="border border-slate-500 bg-slate-600 px-2.5 py-2 text-center whitespace-nowrap"
+                    >
+                      {vf.label}
+                    </th>
+                  ))}
+                  {activeValueFields.map((vf) => (
+                    <th
+                      key={`new-head-${vf.fieldKey}`}
+                      className="border border-emerald-600 bg-emerald-700 px-2.5 py-2 text-center whitespace-nowrap"
+                    >
+                      {vf.label}
+                    </th>
+                  ))}
+                </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+
+              <tbody className="divide-y divide-slate-200">
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={10 + activeExtraColumns.length}
+                      colSpan={7 + activeValueFields.length * 2 + activeExtraColumns.length}
                       className="py-14 text-center text-slate-500 font-bold"
                     >
                       لا توجد سجلات تطابق الفلاتر المحددة حالياً
@@ -1495,27 +1529,27 @@ function DataUpdateCompletionReportPage() {
                             ? "bg-rose-50/20"
                             : idx % 2 === 0
                               ? "bg-white"
-                              : "bg-slate-50/50"
+                              : "bg-slate-50/40"
                         }`}
                       >
-                        <td className="px-3 py-2.5 text-center font-mono font-bold text-slate-400">
+                        <td className="border border-slate-200 px-2 py-2 text-center font-mono font-bold text-slate-400">
                           {serial}
                         </td>
-                        <td className="px-3 py-2.5 text-center font-mono font-black text-[#0070c0]">
+                        <td className="border border-slate-200 px-2.5 py-2 text-center font-mono font-black text-[#0070c0]">
                           {row.empNo}
                         </td>
-                        <td className="px-3 py-2.5 font-extrabold text-slate-900 whitespace-nowrap">
+                        <td className="border border-slate-200 px-3 py-2 font-extrabold text-slate-900 whitespace-nowrap">
                           {row.employeeName}
                         </td>
-                        <td className="px-3 py-2.5 font-semibold text-slate-800">
+                        <td className="border border-slate-200 px-2.5 py-2 font-semibold text-slate-800">
                           {row.branch}
                         </td>
-                        <td className="px-3 py-2.5 font-semibold text-slate-600">
+                        <td className="border border-slate-200 px-2.5 py-2 font-semibold text-slate-600 whitespace-nowrap">
                           {row.department}
                         </td>
-                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                        <td className="border border-slate-200 px-2.5 py-2 text-center whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-extrabold ${
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
                               row.completionStatus === "completed"
                                 ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                                 : row.completionStatus === "pending"
@@ -1523,56 +1557,59 @@ function DataUpdateCompletionReportPage() {
                                   : "bg-rose-100 text-rose-800 border border-rose-200"
                             }`}
                           >
-                            <MaterialIcon
-                              name={
-                                row.completionStatus === "completed"
-                                  ? "check_circle"
-                                  : row.completionStatus === "pending"
-                                    ? "schedule"
-                                    : "cancel"
-                              }
-                              size={13}
-                            />
                             {row.completionLabel}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 font-extrabold text-[#0f3560]">
-                          {row.fieldLabel}
-                        </td>
-                        <td className="px-3 py-2.5 text-slate-500">
-                          {row.oldValue !== "—" ? (
-                            <span className="line-through decoration-rose-400/70">
-                              {row.oldValue}
-                            </span>
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {row.newValue !== "—" ? (
-                            <span className="inline-block rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 font-extrabold text-emerald-800">
-                              {row.newValue}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">لم يحدث بعد</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center font-mono text-[11px] font-bold text-slate-700 whitespace-nowrap">
+
+                        {/* خلايا القيمة السابقة المتفصلة (كل بيان في مربع مستقل لوحده) */}
+                        {activeValueFields.map((vf) => {
+                          const oldVal = row.oldValuesByField[vf.fieldKey] || "—";
+                          return (
+                            <td
+                              key={`old-cell-${row.rowId}-${vf.fieldKey}`}
+                              className="border border-slate-200 bg-slate-50/80 px-2.5 py-2 text-center font-mono text-[11px] font-semibold text-slate-600 whitespace-nowrap"
+                            >
+                              {oldVal}
+                            </td>
+                          );
+                        })}
+
+                        {/* خلايا القيمة الجديدة المتفصلة (كل بيان في مربع مستقل لوحده) */}
+                        {activeValueFields.map((vf) => {
+                          const newVal = row.newValuesByField[vf.fieldKey] || "—";
+                          const isUpdated =
+                            row.changedFieldKeys.has(vf.fieldKey) && newVal !== "—";
+                          return (
+                            <td
+                              key={`new-cell-${row.rowId}-${vf.fieldKey}`}
+                              className={`border border-slate-200 px-2.5 py-2 text-center font-mono text-[11px] whitespace-nowrap ${
+                                isUpdated
+                                  ? "bg-emerald-50/90 font-black text-emerald-800"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              {newVal}
+                            </td>
+                          );
+                        })}
+
+                        <td className="border border-slate-200 px-2.5 py-2 text-center font-mono text-[10.5px] font-bold text-slate-700 whitespace-nowrap">
                           {row.updatedDate !== "—" ? (
                             <div>
                               <div>{row.updatedDate}</div>
-                              <div className="text-[10px] text-slate-400">
-                                الساعة {row.updatedTime}
+                              <div className="text-[9.5px] text-slate-400">
+                                {row.updatedTime}
                               </div>
                             </div>
                           ) : (
                             <span className="text-slate-300">—</span>
                           )}
                         </td>
+
                         {activeExtraColumns.map((col) => (
                           <td
-                            key={col.id}
-                            className="px-3 py-2.5 font-semibold text-slate-700"
+                            key={`extra-cell-${row.rowId}-${col.id}`}
+                            className="border border-slate-200 px-2.5 py-2 text-center font-semibold text-slate-700 whitespace-nowrap"
                           >
                             {getExtraColumnValue(row, col)}
                           </td>
@@ -1596,7 +1633,7 @@ function DataUpdateCompletionReportPage() {
                   type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-extrabold text-slate-700 disabled:opacity-40"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-extrabold text-slate-700 disabled:opacity-40 cursor-pointer"
                 >
                   السابق
                 </button>
@@ -1604,7 +1641,7 @@ function DataUpdateCompletionReportPage() {
                   type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-extrabold text-slate-700 disabled:opacity-40"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-extrabold text-slate-700 disabled:opacity-40 cursor-pointer"
                 >
                   التالي
                 </button>

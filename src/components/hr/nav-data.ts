@@ -108,11 +108,9 @@ export const nav: NavItem[] = [
         title: "تقارير بيانات الموظفين",
         groups: [
           {
-            title: "تقارير إنجاز وتحديث بيانات الموظفين",
+            title: "تقارير إنجاز تحديث بيانات الموظفين",
             items: [
               { label: "تقرير إنجاز تحديث بيانات الموظفين", to: "/reports/data-update-completion" },
-              { label: "طلبات وتحديثات البيانات", to: "/requests/data-update" },
-              { label: "تهيئة طلبات تحديث البيانات", to: "/regulations/data-update" },
             ],
           },
           {

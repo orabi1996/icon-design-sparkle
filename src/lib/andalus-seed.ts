@@ -563,17 +563,21 @@ export function generateAndalusDataUpdateHistory(): DataUpdateRequestItem[] {
     const pattern = idx % 4;
     const isPending = idx >= 290; // 25 طلباً قيد المراجعة، و 290 طلباً منجزاً ومعتمداً
 
-    if (pattern === 0) {
-      // تحديث بيانات التواصل والعنوان الوطني والسكن (تحديث مباشر بإقرار الموظف)
-      const oldPhone = `050${String(1100000 + idx * 91).slice(0, 7)}`;
-      const newPhone = String(emp["phone"]);
-      const oldAddress = `OLD-${1000 + idx}`;
-      const newAddress = String(emp["short_address"]);
-      const oldPostal = "11111";
-      const newPostal = String(emp["postal_code"]);
-      const oldBuilding = String(1000 + idx);
-      const newBuilding = String(emp["building_no"]);
+    const oldPhone = `050${String(1100000 + idx * 91).slice(0, 7)}`;
+    const newPhone = String(emp["phone"]);
+    const oldEmail = `old.${emp["emp_no"]}@gmail.com`;
+    const newEmail = String(emp["email"]);
+    const oldAddress = `OLD-${1000 + idx}`;
+    const newAddress = String(emp["short_address"]);
+    const oldPostal = "11111";
+    const newPostal = String(emp["postal_code"]);
+    const oldBuilding = String(1000 + idx);
+    const newBuilding = String(emp["building_no"]);
+    const oldExpiry = "2025-12-30";
+    const newExpiry = String(emp["iqama_expiry"]);
 
+    if (pattern === 0 || pattern === 2) {
+      // تحديث بيانات التواصل والعنوان الوطني والسكن (تحديث مباشر بإقرار الموظف)
       items.push({
         id: `seed-du-${idx + 1}`,
         requestNumber: reqNo,
@@ -589,15 +593,16 @@ export function generateAndalusDataUpdateHistory(): DataUpdateRequestItem[] {
         publishedRequestTitle: "طلب تحديث بيانات التواصل والعنوان الوطني والسكن",
         fieldChanges: [
           { fieldKey: "phone", fieldLabel: "رقم الجوال", oldValue: oldPhone, newValue: newPhone },
+          { fieldKey: "email", fieldLabel: "البريد الإلكتروني", oldValue: oldEmail, newValue: newEmail },
           {
             fieldKey: "short_address",
-            fieldLabel: "العنوان الوطني (العنوان المختصر)",
+            fieldLabel: "العنوان الوطني",
             oldValue: oldAddress,
             newValue: newAddress,
           },
           {
             fieldKey: "postal_code",
-            fieldLabel: "بريد السكن (الرمز البريدي)",
+            fieldLabel: "بريد السكن",
             oldValue: oldPostal,
             newValue: newPostal,
           },
@@ -618,9 +623,9 @@ export function generateAndalusDataUpdateHistory(): DataUpdateRequestItem[] {
         allowDirectManager: false,
         directManagerStatus: "not_required",
         fieldKey: "short_address",
-        fieldLabel: "تحديث الجوال والعنوان الوطني ورقم المبنى وبريد السكن",
-        oldValue: `جوال: ${oldPhone} | عنوان وطني: ${oldAddress} | مبنى: ${oldBuilding} | بريد: ${oldPostal}`,
-        newValue: `جوال: ${newPhone} | عنوان وطني: ${newAddress} | مبنى: ${newBuilding} | بريد: ${newPostal}`,
+        fieldLabel: "تحديث الجوال والإيميل والعنوان الوطني وبريد السكن ورقم المبنى",
+        oldValue: oldAddress,
+        newValue: newAddress,
         reason: "تحديث بيانات التواصل والعنوان الوطني السنوي لمنسوبي مدارس الأندلس",
         status: "approved",
         awaitingText: "تم التحديث في النظام فوراً بإقرار الموظف ✓",
@@ -631,10 +636,8 @@ export function generateAndalusDataUpdateHistory(): DataUpdateRequestItem[] {
         replies: [],
         createdAt: `${dateStr}T${timeStr}:00Z`,
       });
-    } else if (pattern === 1) {
-      // تحديث بيانات الإقامة والهوية (يخضع لسلسلة موافقة)
-      const oldExpiry = "2025-12-30";
-      const newExpiry = String(emp["iqama_expiry"]);
+    } else {
+      // تحديث شامل شاملاً بيانات الإقامة والهوية والعنوان (يخضع لسلسلة موافقة)
       items.push({
         id: `seed-du-${idx + 1}`,
         requestNumber: reqNo,
@@ -647,35 +650,49 @@ export function generateAndalusDataUpdateHistory(): DataUpdateRequestItem[] {
         userGroupId: "ug-all-employees",
         userGroupName: "طلب عام (Public)",
         publishedRequestId: "pub-req-iqama-identity",
-        publishedRequestTitle: "طلب تحديث بيانات الإقامة والهوية والحالة الاجتماعية",
+        publishedRequestTitle: "طلب تحديث بيانات الإقامة والتواصل والعنوان الوطني",
         fieldChanges: [
+          { fieldKey: "phone", fieldLabel: "رقم الجوال", oldValue: oldPhone, newValue: newPhone },
+          { fieldKey: "email", fieldLabel: "البريد الإلكتروني", oldValue: oldEmail, newValue: newEmail },
           {
-            fieldKey: "iqama_expiry",
-            fieldLabel: "بيانات الإقامة (تاريخ انتهاء الإقامة)",
-            oldValue: oldExpiry,
-            newValue: newExpiry,
+            fieldKey: "short_address",
+            fieldLabel: "العنوان الوطني",
+            oldValue: oldAddress,
+            newValue: newAddress,
           },
           {
-            fieldKey: "national_id",
-            fieldLabel: "رقم الهوية / الإقامة",
-            oldValue: String(emp["national_id"]),
-            newValue: String(emp["national_id"]),
+            fieldKey: "postal_code",
+            fieldLabel: "بريد السكن",
+            oldValue: oldPostal,
+            newValue: newPostal,
+          },
+          {
+            fieldKey: "building_no",
+            fieldLabel: "رقم المبنى",
+            oldValue: oldBuilding,
+            newValue: newBuilding,
+          },
+          {
+            fieldKey: "iqama_expiry",
+            fieldLabel: "بيانات الإقامة",
+            oldValue: oldExpiry,
+            newValue: newExpiry,
           },
         ],
         updateMode: "approval_required",
         employeeDeclared: true,
         declaredAt: `${dateStr} ${timeStr}`,
         declarationTextSnapshot:
-          "أقر بأن بيانات الإقامة والهوية المدخلة صحيحة ومطابقة للمستندات الرسمية.",
+          "أقر بأن بيانات الإقامة والتواصل والعنوان المدخلة صحيحة ومطابقة للمستندات الرسمية.",
         approvalGroupId: "ag-branch-ops",
         approvalGroupName: "مجموعة اعتماد الهوية والبيانات الرسمية",
         allowDirectManager: true,
         directManagerStatus: isPending ? "pending" : "approved",
         fieldKey: "iqama_expiry",
-        fieldLabel: "بيانات الإقامة (تاريخ انتهاء الإقامة)",
+        fieldLabel: "بيانات الإقامة والتواصل والعنوان الوطني",
         oldValue: oldExpiry,
         newValue: newExpiry,
-        reason: "تجديد الإقامة وتحديث تاريخ الانتهاء في نظام مدارس الأندلس",
+        reason: "تجديد الإقامة وتحديث بيانات العنوان الوطني في نظام مدارس الأندلس",
         status: isPending ? "pending" : "approved",
         awaitingText: isPending
           ? `بانتظار موافقة: ${emp["manager_name"]} / مجموعة اعتماد الهوية`
@@ -683,103 +700,6 @@ export function generateAndalusDataUpdateHistory(): DataUpdateRequestItem[] {
         authorizedApproverNames: ["مدير الشؤون الإدارية والعمليات"],
         appliedToEmployeeRecord: !isPending,
         decisionBy: isPending ? undefined : "مدير الشؤون الإدارية والعمليات",
-        decisionAt: isPending ? undefined : dateStr,
-        replies: [],
-        createdAt: `${dateStr}T${timeStr}:00Z`,
-      });
-    } else if (pattern === 2) {
-      // تحديث البريد الإلكتروني ورقم الجوال
-      const oldEmail = `old.${emp["emp_no"]}@gmail.com`;
-      const newEmail = String(emp["email"]);
-      items.push({
-        id: `seed-du-${idx + 1}`,
-        requestNumber: reqNo,
-        employeeId: String(emp["id"]),
-        empNo: String(emp["emp_no"]),
-        employeeName: String(emp["full_name"]),
-        branch: String(emp["branch"]),
-        department: String(emp["department"]),
-        directManagerName: String(emp["manager_name"]),
-        userGroupId: "ug-all-employees",
-        userGroupName: "طلب عام (Public)",
-        publishedRequestId: "pub-req-contact-address",
-        publishedRequestTitle: "طلب تحديث بيانات التواصل والعنوان الوطني والسكن",
-        fieldChanges: [
-          {
-            fieldKey: "email",
-            fieldLabel: "البريد الإلكتروني",
-            oldValue: oldEmail,
-            newValue: newEmail,
-          },
-        ],
-        updateMode: "direct",
-        employeeDeclared: true,
-        declaredAt: `${dateStr} ${timeStr}`,
-        declarationTextSnapshot:
-          "أقر بصحة البريد الإلكتروني الرسمي المحدث وأوافق على اعتماده في النظام.",
-        approvalGroupId: "ag-hr-main",
-        approvalGroupName: "لا يخضع لسلسلة موافقة (تحديث مباشر بإقرار الموظف)",
-        allowDirectManager: false,
-        directManagerStatus: "not_required",
-        fieldKey: "email",
-        fieldLabel: "البريد الإلكتروني",
-        oldValue: oldEmail,
-        newValue: newEmail,
-        reason: "اعتماد البريد الرسمي لمدارس الأندلس",
-        status: "approved",
-        awaitingText: "تم التحديث في النظام فوراً بإقرار الموظف ✓",
-        authorizedApproverNames: ["تحديث مباشر بإقرار الموظف"],
-        appliedToEmployeeRecord: true,
-        decisionBy: `${emp["full_name"]} (إقرار مباشر OK)`,
-        decisionAt: dateStr,
-        replies: [],
-        createdAt: `${dateStr}T${timeStr}:00Z`,
-      });
-    } else {
-      // تحديث المؤهل الدراسي والتخصص (يخضع لسلسلة موافقة)
-      const oldQual = "دبلوم تربوي";
-      const newQual = String(emp["last_qualification"]);
-      items.push({
-        id: `seed-du-${idx + 1}`,
-        requestNumber: reqNo,
-        employeeId: String(emp["id"]),
-        empNo: String(emp["emp_no"]),
-        employeeName: String(emp["full_name"]),
-        branch: String(emp["branch"]),
-        department: String(emp["department"]),
-        directManagerName: String(emp["manager_name"]),
-        userGroupId: "ug-all-employees",
-        userGroupName: "طلب عام (Public)",
-        publishedRequestId: "pub-req-iqama-identity",
-        publishedRequestTitle: "طلب تحديث البيانات الوظيفية والمؤهل الدراسي",
-        fieldChanges: [
-          {
-            fieldKey: "last_qualification",
-            fieldLabel: "المؤهل الدراسي",
-            oldValue: oldQual,
-            newValue: newQual,
-          },
-        ],
-        updateMode: "approval_required",
-        employeeDeclared: true,
-        declaredAt: `${dateStr} ${timeStr}`,
-        declarationTextSnapshot: "أقر بصحة بيانات المؤهل الدراسي المرفق.",
-        approvalGroupId: "ag-hr-main",
-        approvalGroupName: "مجموعة اعتماد الموارد البشرية والشؤون الإدارية",
-        allowDirectManager: true,
-        directManagerStatus: isPending ? "pending" : "approved",
-        fieldKey: "last_qualification",
-        fieldLabel: "المؤهل الدراسي",
-        oldValue: oldQual,
-        newValue: newQual,
-        reason: "إضافة المؤهل الدراسي المحدث في ملف الموظف",
-        status: isPending ? "pending" : "approved",
-        awaitingText: isPending
-          ? `بانتظار موافقة: ${emp["manager_name"]} / الموارد البشرية`
-          : "تم الاعتماد والتحديث في النظام ✓",
-        authorizedApproverNames: ["مدير الموارد البشرية"],
-        appliedToEmployeeRecord: !isPending,
-        decisionBy: isPending ? undefined : "مدير الموارد البشرية",
         decisionAt: isPending ? undefined : dateStr,
         replies: [],
         createdAt: `${dateStr}T${timeStr}:00Z`,

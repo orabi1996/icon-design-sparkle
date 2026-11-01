@@ -61,7 +61,12 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/", replace: true });
+      if (data.session) {
+        const isEmp =
+          data.session.user?.user_metadata?.["account_type"] === "موظف" ||
+          data.session.user?.email === "ahmed.elsayed708@gmail.com";
+        navigate({ to: isEmp ? "/portal" : "/", replace: true });
+      }
     });
   }, [navigate]);
 
@@ -96,10 +101,13 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
         toast.success("تم تسجيل الدخول بنجاح");
-        navigate({ to: "/", replace: true });
+        const isEmp =
+          data.user?.user_metadata?.["account_type"] === "موظف" ||
+          normalizedEmail === "ahmed.elsayed708@gmail.com";
+        navigate({ to: isEmp ? "/portal" : "/", replace: true });
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: normalizedEmail,
@@ -291,6 +299,40 @@ function AuthPage() {
             <MaterialIcon name={busy ? "progress_activity" : "login"} size={20} />
             {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}
           </button>
+
+          {mode === "login" && (
+            <div className="pt-2 border-t border-border/60">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setEmail("ahmed.elsayed708@gmail.com");
+                  setPassword("Emp#2026!AhmedHR");
+                  setBusy(true);
+                  try {
+                    const { error } = await supabase.auth.signInWithPassword({
+                      email: "ahmed.elsayed708@gmail.com",
+                      password: "Emp#2026!AhmedHR",
+                    });
+                    if (error) {
+                      toast.info("تم ملء بيانات حساب الموظف أحمد محمد السيد، اضغط تسجيل الدخول");
+                    } else {
+                      toast.success("مرحباً بك في بوابة الموظف: أحمد محمد السيد السيد");
+                      navigate({ to: "/portal", replace: true });
+                    }
+                  } catch {
+                    toast.info("تم ملء بيانات حساب الموظف أحمد محمد السيد، اضغط تسجيل الدخول");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-300 bg-sky-50 py-2.5 px-3 text-xs font-black text-sky-800 hover:bg-sky-100 transition shadow-2xs"
+              >
+                <MaterialIcon name="badge" size={16} className="text-sky-600" />
+                <span>دخول سريع بحساب الموظف: أحمد محمد السيد السيد</span>
+              </button>
+            </div>
+          )}
         </form>
 
         <p className="mt-5 text-center text-[12px] font-semibold text-muted-foreground">

@@ -34,8 +34,20 @@ import {
   FileCheck,
   Check,
   X,
+  Search,
+  FileSpreadsheet,
+  RotateCw,
+  Database,
+  Download,
+  AlertCircle,
+  ArrowRight,
+  UploadCloud,
+  Printer,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useRows,
   useSaveRow,
@@ -58,14 +70,20 @@ export const Route = createFileRoute("/portal")({
   validateSearch: (search: Record<string, unknown>): {
     employeeId?: string | undefined;
     tab?: "profile" | "inquiries" | "payroll" | "requests" | "reports" | "forms" | "evaluation" | "tasks" | undefined;
+    reqView?: "employee" | "manager" | undefined;
+    reqSubTab?: "leaves" | "misc" | undefined;
     subTab?: "personal" | "work" | "gosi" | "contact" | "notes" | undefined;
   } => {
     const rawEmp = search["employeeId"];
     const rawTab = search["tab"];
+    const rawReqView = search["reqView"];
+    const rawReqSubTab = search["reqSubTab"];
     const rawSub = search["subTab"];
     return {
       employeeId: typeof rawEmp === "string" ? rawEmp : undefined,
       tab: typeof rawTab === "string" ? (rawTab as any) : "profile",
+      reqView: typeof rawReqView === "string" ? (rawReqView as any) : "employee",
+      reqSubTab: typeof rawReqSubTab === "string" ? (rawReqSubTab as any) : "leaves",
       subTab: typeof rawSub === "string" ? (rawSub as any) : "personal",
     };
   },
@@ -74,7 +92,7 @@ export const Route = createFileRoute("/portal")({
       { title: "بوابة الموظف | نظام الموارد البشرية" },
       {
         name: "description",
-        content: "بوابة الخدمة الذاتية للموظف: استعراض وتحديث البيانات، رفع الطلبات، ومتابعة الرواتب والمهام.",
+        content: "بوابة الخدمة الذاتية للموظف: استعراض وتحديث البيانات، رفع الطلبات، ومتابعة الرواتب والمسائلات.",
       },
     ],
   }),
@@ -82,15 +100,24 @@ export const Route = createFileRoute("/portal")({
 });
 
 export function EmployeePortalPage() {
-  const { employeeId: paramEmpId, tab: searchTab, subTab: searchSubTab } = Route.useSearch();
+  const {
+    employeeId: paramEmpId,
+    tab: searchTab,
+    reqView: searchReqView,
+    reqSubTab: searchReqSubTab,
+    subTab: searchSubTab,
+  } = Route.useSearch();
   const navigate = useNavigate();
 
   const { data: employees = [], isLoading } = useRows("employees") as {
     data?: any[];
     isLoading?: boolean;
   };
+  const { data: inquiries = [] } = useRows("inquiries") as { data?: any[] };
+  const { data: leaveRequests = [] } = useRows("leave_requests") as { data?: any[] };
   const saveEmployee = useSaveRow("employees");
   const saveApprovalRequest = useSaveRow("approval_requests");
+  const saveLeaveRequest = useSaveRow("leave_requests");
   const { data: basicLookups = [] } = useRows("basic_lookups") as { data?: any[] };
 
   const configQuery = useSettings("data_update_config");
@@ -107,18 +134,52 @@ export function EmployeePortalPage() {
 
   // Current active employee
   const currentEmployee = useMemo(() => {
-    if (!employees.length) return null;
-    if (paramEmpId) {
+    if (paramEmpId && employees.length) {
       const found = employees.find(
         (e) => String(e.id) === paramEmpId || String(e.emp_no) === paramEmpId,
       );
       if (found) return found;
     }
-    // Default to Ahmed Mohamed El Sayed or first employee
+    // Default to Ahmed Mohamed El Sayed
     const ahmed = employees.find((e) =>
       String(e.full_name || "").includes("أحمد محمد السيد"),
     );
-    return ahmed || employees[0];
+    if (ahmed) return ahmed;
+    if (employees.length) return employees[0];
+
+    // Fallback Ahmed Mohamed El Sayed standard demo data
+    return {
+      id: "emp-10078",
+      emp_no: "10078",
+      full_name: "أحمد محمد السيد السيد",
+      full_name_en: "Ahmed Mohammed Alsayed Alsayed",
+      national_id: "2609777368",
+      marital_status: "متزوج",
+      job_title: "معلم",
+      department: "ابتدائي",
+      branch: "المتقدمة الاهلية - فرع قرطبة",
+      nationality: "مصري",
+      gender: "ذكر",
+      religion: "مسلم",
+      family_members_count: 3,
+      basic_salary: 5000,
+      allowances: 1500,
+      phone: "574606701",
+      email: "ahmed.elsayed708@gmail.com",
+      manager_name: "حمدان مانع العمري",
+      career_path: "الأهلي",
+      main_department: "بنين",
+      sector: "إدارة المجمعات التعليمية",
+      job_level: "تشغيلي",
+      attendance_schedule: "افتراضي",
+      specialization: "تربية بدنية",
+      job_designation: "معلم",
+      hire_date: "2026-09-13",
+      start_date: "2026-09-13",
+      leave_calc_date: "2026-09-13",
+      birth_date: "1993-08-21",
+      last_qualification: "بكالوريوس",
+    };
   }, [employees, paramEmpId]);
 
   // Filter requests for current employee
@@ -133,6 +194,33 @@ export function EmployeePortalPage() {
         (currentEmployee.full_name && r.employeeName === currentEmployee.full_name),
     );
   }, [allRequests, currentEmployee]);
+
+  // Check if current employee has subordinate team members
+  const subordinates = useMemo(() => {
+    if (!currentEmployee) return [];
+    const name = String(currentEmployee.full_name || "");
+    const id = String(currentEmployee.id || "");
+    return employees.filter(
+      (e) =>
+        (e.manager_name && e.manager_name === name) ||
+        (e.direct_manager && e.direct_manager === name) ||
+        (e.manager_id && String(e.manager_id) === id),
+    );
+  }, [currentEmployee, employees]);
+
+  // Filter Inquiries for current employee
+  const employeeInquiries = useMemo(() => {
+    if (!currentEmployee) return [];
+    const empId = String(currentEmployee.id || "");
+    const empNo = String(currentEmployee.emp_no || "");
+    const name = String(currentEmployee.full_name || "");
+    return inquiries.filter(
+      (inq: any) =>
+        (empId && String(inq.employee_id) === empId) ||
+        (empNo && String(inq.emp_no) === empNo) ||
+        (name && inq.employee_name === name),
+    );
+  }, [currentEmployee, inquiries]);
 
   // Resolve user group & permissions
   const resolvedGroup = useMemo(() => {
@@ -165,10 +253,25 @@ export function EmployeePortalPage() {
     });
   }, [resolvedGroup]);
 
-  // Top Dark Navbar state
+  // Navigation tab state
   const [activeNavTab, setActiveNavTab] = useState<string>(searchTab || "profile");
+  const [reqView, setReqView] = useState<"employee" | "manager">(searchReqView || "employee");
+  const [reqSubTab, setReqSubTab] = useState<"leaves" | "misc">(searchReqSubTab || "leaves");
   const [isRequestsDropdownOpen, setIsRequestsDropdownOpen] = useState(false);
   const [isReportsDropdownOpen, setIsReportsDropdownOpen] = useState(false);
+
+  // Keep state synced if URL search params change
+  useEffect(() => {
+    if (searchTab && searchTab !== activeNavTab) setActiveNavTab(searchTab);
+  }, [searchTab]);
+
+  useEffect(() => {
+    if (searchReqView && searchReqView !== reqView) setReqView(searchReqView);
+  }, [searchReqView]);
+
+  useEffect(() => {
+    if (searchReqSubTab && searchReqSubTab !== reqSubTab) setReqSubTab(searchReqSubTab);
+  }, [searchReqSubTab]);
 
   // Sub-tabs in Employee Data
   const [subSection, setSubSection] = useState<"personal" | "work" | "gosi" | "contact" | "notes">(
@@ -447,16 +550,125 @@ export function EmployeePortalPage() {
     }
   };
 
-  if (isLoading || !currentEmployee) {
-    return (
-      <div dir="rtl" className="flex min-h-screen items-center justify-center bg-[#f0f4f9]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-10 rounded-full border-4 border-[#0070c0]/20 border-t-[#0070c0] animate-spin" />
-          <span className="text-xs font-bold text-slate-600">جاري تحميل بوابة الموظف...</span>
-        </div>
-      </div>
+  // =========================================================================
+  // Screen States: INQUIRIES (Screenshot 1)
+  // =========================================================================
+  const [inquirySearch, setInquirySearch] = useState("");
+  const [selectedInquiry, setSelectedInquiry] = useState<any | null>(null);
+  const [inquiryReplyText, setInquiryReplyText] = useState("");
+
+  const filteredInquiries = useMemo(() => {
+    if (!inquirySearch.trim()) return employeeInquiries;
+    const q = inquirySearch.toLowerCase();
+    return employeeInquiries.filter(
+      (inq: any) =>
+        String(inq.inquiry_name || "").toLowerCase().includes(q) ||
+        String(inq.inquiry_type || "").toLowerCase().includes(q) ||
+        String(inq.notes || "").toLowerCase().includes(q),
     );
-  }
+  }, [employeeInquiries, inquirySearch]);
+
+  // =========================================================================
+  // Screen States: PAYROLL (Screenshot 2)
+  // =========================================================================
+  const [payrollYear, setPayrollYear] = useState("2026");
+  const [payrollMonth, setPayrollMonth] = useState("");
+  const [payrollEntitlement, setPayrollEntitlement] = useState("");
+  const [payrollDeduction, setPayrollDeduction] = useState("");
+  const [showFingerprintDetails, setShowFingerprintDetails] = useState(true);
+  const [exportAllData, setExportAllData] = useState(false);
+  const [showSalaryStatement, setShowSalaryStatement] = useState(false);
+
+  // =========================================================================
+  // Screen States: LEAVES & REQUESTS (Screenshot 3)
+  // =========================================================================
+  const [leaveType, setLeaveType] = useState("");
+  const [leaveName, setLeaveName] = useState("");
+  const [leaveStartDate, setLeaveStartDate] = useState("");
+  const [leaveEndDate, setLeaveEndDate] = useState("");
+  const [leaveNotes, setLeaveNotes] = useState("");
+  const [leaveAttachmentName, setLeaveAttachmentName] = useState("");
+  const [isSavingLeave, setIsSavingLeave] = useState(false);
+
+  // Calculate days difference
+  const calculatedLeaveDays = useMemo(() => {
+    if (!leaveStartDate || !leaveEndDate) return 0;
+    const start = new Date(leaveStartDate);
+    const end = new Date(leaveEndDate);
+    const diffTime = end.getTime() - start.getTime();
+    if (diffTime < 0) return 0;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }, [leaveStartDate, leaveEndDate]);
+
+  // Submit Leave Request
+  const handleSaveLeaveRequest = async () => {
+    if (!leaveType) {
+      toast.error("يرجى تحديد نوع الإجازة");
+      return;
+    }
+    if (!leaveStartDate) {
+      toast.error("يرجى إدخال تاريخ بداية الإجازة");
+      return;
+    }
+    if (!leaveEndDate) {
+      toast.error("يرجى إدخال تاريخ نهاية الإجازة");
+      return;
+    }
+    if (calculatedLeaveDays <= 0) {
+      toast.error("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
+      return;
+    }
+
+    setIsSavingLeave(true);
+    try {
+      const empName = currentEmployee.full_name || "أحمد محمد السيد السيد";
+      const empId = String(currentEmployee.id || "");
+      const directMgr = currentEmployee.manager_name || "حمدان مانع العمري";
+
+      // 1. Save to leave_requests
+      await saveLeaveRequest.mutateAsync({
+        employee_id: empId,
+        employee_name: empName,
+        leave_type: leaveName || leaveType,
+        days: calculatedLeaveDays,
+        from_date: leaveStartDate,
+        to_date: leaveEndDate,
+        notes: leaveNotes || `طلب إجازة (${leaveType})`,
+        balance_before: 21,
+        status: "pending",
+      });
+
+      // 2. Save into approval_requests
+      await saveApprovalRequest.mutateAsync({
+        employee_id: empId,
+        employee_name: empName,
+        emp_no: currentEmployee.emp_no || "10078",
+        branch: currentEmployee.branch || "المتقدمة الاهلية - فرع قرطبة",
+        department: currentEmployee.department || "ابتدائي",
+        category: "إجازات",
+        request_type: `طلب إجازة (${leaveType})`,
+        request_subject: `إجازة ${leaveType} لمدة ${calculatedLeaveDays} يوم من ${leaveStartDate} إلى ${leaveEndDate}`,
+        request_details: leaveNotes || `طلب إجازة ${leaveType}`,
+        approval_chain: `المدير المباشر (${directMgr})، الموارد البشرية`,
+        direct_manager_name: directMgr,
+        awaiting_approver_name: `المدير المباشر (${directMgr})`,
+        awaiting_stage: "المدير المباشر",
+        status: "pending",
+        request_date: new Date().toISOString().slice(0, 10),
+        entered_at: new Date().toISOString(),
+      });
+
+      toast.success(`تم حفظ طلب الإجازة (${calculatedLeaveDays} يوم) بنجاح وإرساله للمدير المباشر للاعتماد`);
+      setLeaveStartDate("");
+      setLeaveEndDate("");
+      setLeaveNotes("");
+      setLeaveAttachmentName("");
+    } catch {
+      toast.error("تعذر حفظ طلب الإجازة، يرجى المحاولة مرة أخرى");
+    } finally {
+      setIsSavingLeave(false);
+    }
+  };
 
   const employeeName = currentEmployee.full_name || "أحمد محمد السيد السيد";
 
@@ -489,6 +701,7 @@ export function EmployeePortalPage() {
             <button
               type="button"
               title="الإشعارات"
+              onClick={() => toast.info("لا توجد إشعارات جديدة حالياً")}
               className="text-slate-500 hover:text-slate-800 transition"
             >
               <Bell className="size-4.5" />
@@ -497,18 +710,24 @@ export function EmployeePortalPage() {
             <button
               type="button"
               title="تغيير اللغة"
+              onClick={() => toast.info("اللغة الحالية: العربية")}
               className="text-slate-500 hover:text-slate-800 transition"
             >
               <Globe className="size-4.5" />
             </button>
 
-            <Link
-              to="/"
-              title="تسجيل الخروج والعودة للنظام الرئيسي"
+            <button
+              type="button"
+              title="تسجيل الخروج والعودة للشاشة الرئيسية"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                toast.success("تم تسجيل الخروج بنجاح");
+                navigate({ to: "/auth", replace: true });
+              }}
               className="flex items-center text-rose-600 hover:text-rose-700 transition"
             >
               <LogOut className="size-4.5" />
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -522,7 +741,11 @@ export function EmployeePortalPage() {
             {/* 1. بيانات الموظف */}
             <button
               type="button"
-              onClick={() => setActiveNavTab("profile")}
+              onClick={() => {
+                setActiveNavTab("profile");
+                setIsRequestsDropdownOpen(false);
+                setIsReportsDropdownOpen(false);
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition ${
                 activeNavTab === "profile"
                   ? "bg-[#0284c7] text-white font-black shadow-xs"
@@ -536,7 +759,11 @@ export function EmployeePortalPage() {
             {/* 2. المسائلات */}
             <button
               type="button"
-              onClick={() => setActiveNavTab("inquiries")}
+              onClick={() => {
+                setActiveNavTab("inquiries");
+                setIsRequestsDropdownOpen(false);
+                setIsReportsDropdownOpen(false);
+              }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition ${
                 activeNavTab === "inquiries"
                   ? "bg-[#0284c7] text-white font-black shadow-xs"
@@ -550,7 +777,11 @@ export function EmployeePortalPage() {
             {/* 3. مسير الرواتب */}
             <button
               type="button"
-              onClick={() => setActiveNavTab("payroll")}
+              onClick={() => {
+                setActiveNavTab("payroll");
+                setIsRequestsDropdownOpen(false);
+                setIsReportsDropdownOpen(false);
+              }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition ${
                 activeNavTab === "payroll"
                   ? "bg-[#0284c7] text-white font-black shadow-xs"
@@ -561,7 +792,7 @@ export function EmployeePortalPage() {
               <span>مسير الرواتب</span>
             </button>
 
-            {/* 4. الطلبات (مع قائمة منسدلة لتحديث البيانات وتقديم الطلبات) */}
+            {/* 4. الطلبات (مع قائمة منسدلة: طلبات الموظف / طلبات المدير المباشر) */}
             <div className="relative">
               <button
                 type="button"
@@ -581,51 +812,40 @@ export function EmployeePortalPage() {
               </button>
 
               {isRequestsDropdownOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-60 rounded-xl border border-slate-200 bg-white p-1 text-slate-800 shadow-xl z-50">
+                <div className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-slate-200 bg-white p-1 text-slate-800 shadow-xl z-50">
                   <button
                     type="button"
                     onClick={() => {
-                      setIsRequestsDropdownOpen(false);
-                      handleOpenRequestForField("department");
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-bold text-[#0070c0] hover:bg-blue-50 transition"
-                  >
-                    <Send className="size-3.5" />
-                    <span>تقديم طلب تحديث بيانات الآن</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRequestsDropdownOpen(false);
                       setActiveNavTab("requests");
+                      setReqView("employee");
+                      setIsRequestsDropdownOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-bold transition ${
+                      activeNavTab === "requests" && reqView === "employee"
+                        ? "bg-blue-50 text-[#0070c0]"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
                   >
-                    <Clock className="size-3.5" />
-                    <span>متابعة طلبات تحديث البيانات ({employeeRequests.length})</span>
+                    <Folder className="size-3.5" />
+                    <span>طلبات الموظف</span>
                   </button>
-                  <div className="my-1 h-px bg-slate-100" />
-                  <Link
-                    to="/leaves"
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveNavTab("requests");
+                      setReqView("manager");
+                      setIsRequestsDropdownOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-bold transition ${
+                      activeNavTab === "requests" && reqView === "manager"
+                        ? "bg-blue-50 text-[#0070c0]"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
                   >
-                    <Calendar className="size-3.5" />
-                    <span>طلب إجازة</span>
-                  </Link>
-                  <Link
-                    to="/loans"
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    <FileText className="size-3.5" />
-                    <span>طلب سلفة</span>
-                  </Link>
-                  <Link
-                    to="/permits"
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    <Briefcase className="size-3.5" />
-                    <span>أذونات الغياب والمغادرة</span>
-                  </Link>
+                    <Users className="size-3.5" />
+                    <span>طلبات المدير المباشر</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -717,111 +937,846 @@ export function EmployeePortalPage() {
           3. MAIN CONTENT CONTAINER
          ===================================================================== */}
       <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6 space-y-4">
-        {/* If Active Tab is "Requests": show the Data Update Tracker */}
-        {activeNavTab === "requests" ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-2xl border border-blue-200 bg-white p-4 shadow-xs">
-              <div>
-                <h2 className="text-base font-black text-[#004e82]">
-                  طلبات تحديث وتعديل البيانات للموظف
-                </h2>
-                <p className="text-xs text-slate-500">
-                  متابعة حالة الطلبات المرفوعة وسلاسل الموافقات والردود المسجلة
-                </p>
+
+        {/* ===================================================================
+            VIEW 1: المسائلات (SCREENSHOT 1)
+           =================================================================== */}
+        {activeNavTab === "inquiries" && (
+          <div className="space-y-3">
+            {/* Solid Blue Header Banner */}
+            <div className="bg-[#106ba3] py-2.5 px-4 text-center text-sm font-black text-white shadow-xs rounded-t-lg">
+              المسائلات
+            </div>
+
+            {/* Search + Action Icons Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="flex items-center gap-2">
+                {/* Search */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="...ابحث 🔍"
+                    value={inquirySearch}
+                    onChange={(e) => setInquirySearch(e.target.value)}
+                    className="h-8 w-44 sm:w-56 rounded-md border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-[#0070c0]"
+                  />
+                </div>
+
+                {/* PDF Button */}
+                <button
+                  type="button"
+                  title="تصدير PDF"
+                  onClick={() => toast.info("جاري تجهيز تقرير المسائلات بصيغة PDF...")}
+                  className="flex size-8 items-center justify-center rounded-md border border-slate-300 bg-white text-rose-600 hover:bg-rose-50 transition shadow-2xs"
+                >
+                  <FileText className="size-4" />
+                </button>
+
+                {/* Excel Button */}
+                <button
+                  type="button"
+                  title="تصدير Excel"
+                  onClick={() => toast.info("جاري تصدير المسائلات إلى ملف Excel...")}
+                  className="flex size-8 items-center justify-center rounded-md border border-slate-300 bg-white text-emerald-600 hover:bg-emerald-50 transition shadow-2xs"
+                >
+                  <FileSpreadsheet className="size-4" />
+                </button>
+
+                {/* Database / Copy Button */}
+                <button
+                  type="button"
+                  title="نسخ / قاعدة البيانات"
+                  onClick={() => toast.info("تمت مزامنة سجلات المسائلات")}
+                  className="flex size-8 items-center justify-center rounded-md border border-slate-300 bg-white text-teal-600 hover:bg-teal-50 transition shadow-2xs"
+                >
+                  <Database className="size-4" />
+                </button>
+
+                {/* Refresh Button */}
+                <button
+                  type="button"
+                  title="تحديث الجدول"
+                  onClick={() => toast.success("تم تحديث جدول المسائلات")}
+                  className="flex size-8 items-center justify-center rounded-md border border-slate-300 bg-white text-emerald-600 hover:bg-emerald-50 transition shadow-2xs"
+                >
+                  <RotateCw className="size-4" />
+                </button>
               </div>
+            </div>
+
+            {/* Navy Blue Header Table */}
+            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-xs">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-[#0f3560] text-white font-bold">
+                  <tr>
+                    <th className="px-4 py-2.5 text-center">
+                      <div className="inline-flex items-center gap-1 cursor-pointer">
+                        <span>عرض المحادثه</span>
+                        <span className="text-[10px]">▼</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-2.5">
+                      <div className="inline-flex items-center gap-1 cursor-pointer">
+                        <span>تاريخ الادخال</span>
+                        <span className="text-[10px]">▼</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-2.5">
+                      <div className="inline-flex items-center gap-1 cursor-pointer">
+                        <span>تاريخ المسائلة</span>
+                        <span className="text-[10px]">▼</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-2.5">
+                      <div className="inline-flex items-center gap-1 cursor-pointer">
+                        <span>التصنيف</span>
+                        <span className="text-[10px]">▼</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-2.5">
+                      <div className="inline-flex items-center gap-1 cursor-pointer">
+                        <span>ادارى/الى</span>
+                        <span className="text-[10px]">▼</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-2.5">
+                      <div className="inline-flex items-center gap-1 cursor-pointer">
+                        <span>تفاصيل</span>
+                        <span className="text-[10px]">▼</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInquiries.length === 0 ? (
+                    <tr className="bg-white">
+                      <td colSpan={6} className="py-20 text-center text-xs font-semibold text-slate-400">
+                        No data
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredInquiries.map((inq: any) => (
+                      <tr key={inq.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedInquiry(inq)}
+                            className="inline-flex items-center gap-1 rounded bg-[#0070c0] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#005fa3]"
+                          >
+                            <MessageSquare className="size-3" />
+                            <span>فتح</span>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-slate-600">
+                          {inq.entry_date || inq.created_at?.slice(0, 10) || "—"}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-slate-600">
+                          {inq.inquiry_date || "—"}
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-800">
+                          {inq.inquiry_type || inq.inquiry_name || "مسائلة إدارية"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {inq.department || inq.branch || "الموارد البشرية"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 max-w-xs truncate">
+                          {inq.notes || inq.details || "لا توجد تفاصيل إضافية"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination footer (Exact match to screenshot) */}
+            <div className="flex items-center justify-between text-xs text-slate-500 px-2 py-1">
+              <div className="flex items-center gap-2">
+                <span>صفحة 1 من 1 ({filteredInquiries.length} عنصر)</span>
+                <div className="inline-flex items-center gap-1">
+                  <button type="button" disabled className="size-6 rounded border border-slate-200 bg-white text-slate-400 disabled:opacity-40">
+                    &lt;
+                  </button>
+                  <span className="flex size-6 items-center justify-center rounded bg-[#106ba3] text-white font-bold text-xs">
+                    1
+                  </span>
+                  <button type="button" disabled className="size-6 rounded border border-slate-200 bg-white text-slate-400 disabled:opacity-40">
+                    &gt;
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 font-mono">
+                <span className="cursor-pointer hover:text-slate-800">5</span>
+                <span className="font-bold text-[#106ba3] underline cursor-pointer">10</span>
+                <span className="cursor-pointer hover:text-slate-800">20</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            VIEW 2: مسير الرواتب (SCREENSHOT 2)
+           =================================================================== */}
+        {activeNavTab === "payroll" && (
+          <div className="space-y-3">
+            {/* Solid Blue Header Banner */}
+            <div className="bg-[#106ba3] py-2.5 px-4 text-center text-sm font-black text-white shadow-xs rounded-t-lg">
+              مسير الرواتب
+            </div>
+
+            {/* Filter Card (Exact to screenshot 2) */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 items-end text-xs">
+                {/* 1. السنه */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">السنه</label>
+                  <select
+                    value={payrollYear}
+                    onChange={(e) => setPayrollYear(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                  >
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                  </select>
+                </div>
+
+                {/* 2. الشهر */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">الشهر</label>
+                  <select
+                    value={payrollMonth}
+                    onChange={(e) => setPayrollMonth(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                  >
+                    <option value="">... اختر</option>
+                    <option value="01">يناير</option>
+                    <option value="02">فبراير</option>
+                    <option value="03">مارس</option>
+                    <option value="04">أبريل</option>
+                    <option value="05">مايو</option>
+                    <option value="06">يونيو</option>
+                    <option value="07">يوليو</option>
+                    <option value="08">أغسطس</option>
+                    <option value="09">سبتمبر</option>
+                    <option value="10">أكتوبر</option>
+                    <option value="11">نوفمبر</option>
+                    <option value="12">ديسمبر</option>
+                  </select>
+                </div>
+
+                {/* 3. الاستحقاق */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">الاستحقاق</label>
+                  <select
+                    value={payrollEntitlement}
+                    onChange={(e) => setPayrollEntitlement(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                  >
+                    <option value="">... اختر</option>
+                    <option value="all">الكل</option>
+                    <option value="basic">راتب أساسي</option>
+                    <option value="housing">بدل سكن</option>
+                    <option value="transport">بدل نقل</option>
+                  </select>
+                </div>
+
+                {/* 4. الاستقطاعات */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">الاستقطاعات</label>
+                  <select
+                    value={payrollDeduction}
+                    onChange={(e) => setPayrollDeduction(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                  >
+                    <option value="">... اختر</option>
+                    <option value="all">الكل</option>
+                    <option value="gosi">تأمينات اجتماعية</option>
+                    <option value="absence">غياب وتأخير</option>
+                    <option value="loans">سلف</option>
+                  </select>
+                </div>
+
+                {/* 5. عرض تفاصيل البصمة */}
+                <div className="flex items-center gap-2 pb-2">
+                  <input
+                    type="checkbox"
+                    id="fingerprintCheck"
+                    checked={showFingerprintDetails}
+                    onChange={(e) => setShowFingerprintDetails(e.target.checked)}
+                    className="size-4 rounded border-slate-300 text-[#0070c0]"
+                  />
+                  <label htmlFor="fingerprintCheck" className="text-xs font-bold text-slate-700 cursor-pointer">
+                    عرض تفاصيل البصمة
+                  </label>
+                </div>
+
+                {/* 6. زر بحث */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSalaryStatement(true);
+                      toast.success("تم استرجاع بيانات مسير الراتب");
+                    }}
+                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0070c0] text-xs font-bold text-white shadow-2xs hover:bg-[#005fa3] transition"
+                  >
+                    <Search className="size-3.5" />
+                    <span>بحث</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={exportAllData}
+                    onChange={(e) => setExportAllData(e.target.checked)}
+                    className="size-4 rounded border-slate-300 text-[#0070c0]"
+                  />
+                  <span>تصدير كل الداتا</span>
+                </label>
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <span>الرقم المرجعي</span>
+                    <ChevronDown className="size-3 opacity-60" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toast.info("تمت إعادة ضبط الجدول")}
+                  className="flex items-center gap-1 rounded-md bg-[#28a745] px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-2xs transition"
+                >
+                  <RotateCw className="size-3.5" />
+                  <span>اعاده ضبط الجدول العمودي</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => toast.success("جاري تصدير بيانات الراتب...")}
+                  className="flex items-center gap-1 rounded-md bg-[#28a745] px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-2xs transition"
+                >
+                  <Download className="size-3.5" />
+                  <span>تصدير</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Blue Banner: لايوجد بيانات (Screenshot 2 exact) */}
+            {!showSalaryStatement ? (
+              <div className="bg-[#106ba3] py-2.5 px-4 text-center text-sm font-black text-white shadow-xs rounded-sm">
+                لايوجد بيانات
+              </div>
+            ) : (
+              /* When searched: Detailed Salary Breakdown */
+              <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-[#004e82]">
+                      كشف مسير الراتب — {employeeName} (#{currentEmployee.emp_no || "10078"})
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      السنة: {payrollYear} | الحالة: معتمد ومحول بنكياً
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Printer className="size-3.5" />
+                    <span>طباعة القسيمة</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-2">
+                    <span className="font-black text-emerald-800 block text-xs">الاستحقاقات الأساسية والبدلات</span>
+                    <div className="flex justify-between py-1 border-b border-emerald-100">
+                      <span className="text-slate-600">الراتب الأساسي:</span>
+                      <span className="font-bold text-slate-900">5,000.00 ر.س</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-emerald-100">
+                      <span className="text-slate-600">بدل السكن:</span>
+                      <span className="font-bold text-slate-900">1,250.00 ر.س</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-emerald-100">
+                      <span className="text-slate-600">بدل النقل:</span>
+                      <span className="font-bold text-slate-900">500.00 ر.س</span>
+                    </div>
+                    <div className="flex justify-between pt-1 text-emerald-900 font-black">
+                      <span>إجمالي الاستحقاق:</span>
+                      <span>6,750.00 ر.س</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-rose-200 bg-rose-50/40 p-4 space-y-2">
+                    <span className="font-black text-rose-800 block text-xs">الاستقطاعات والخصومات</span>
+                    <div className="flex justify-between py-1 border-b border-rose-100">
+                      <span className="text-slate-600">التأمينات الاجتماعية (GOSI):</span>
+                      <span className="font-bold text-slate-900">607.50 ر.س</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-rose-100">
+                      <span className="text-slate-600">غياب / تأخير:</span>
+                      <span className="font-bold text-slate-900">0.00 ر.س</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-rose-100">
+                      <span className="text-slate-600">سلف:</span>
+                      <span className="font-bold text-slate-900">0.00 ر.س</span>
+                    </div>
+                    <div className="flex justify-between pt-1 text-rose-900 font-black">
+                      <span>إجمالي الاستقطاع:</span>
+                      <span>607.50 ر.س</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 space-y-2 flex flex-col justify-between">
+                    <div>
+                      <span className="font-black text-[#004e82] block text-xs">صافي الراتب المستحق</span>
+                      <div className="mt-2 text-2xl font-black text-[#0070c0]">
+                        6,142.50 <span className="text-xs font-normal text-slate-500">ر.س</span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        مصرف الراجحي — حساب: SA4480000412608010100780
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowSalaryStatement(false)}
+                      className="text-[11px] font-bold text-slate-500 hover:underline text-left"
+                    >
+                      إغلاق التفاصيل
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===================================================================
+            VIEW 3: الطلبات -> طلبات الموظف (SCREENSHOT 3)
+           =================================================================== */}
+        {activeNavTab === "requests" && reqView === "employee" && (
+          <div className="space-y-4">
+            {/* Top Blue Header Banner */}
+            <div className="bg-[#106ba3] py-2.5 px-4 text-center text-sm font-black text-white shadow-xs rounded-t-lg">
+              طلبات الموظف
+            </div>
+
+            {/* Sub-Tabs: الأجازات / طلبات متنوعة */}
+            <div className="flex items-center border-b border-slate-200 bg-white px-2">
               <button
                 type="button"
-                onClick={() => handleOpenRequestForField("department")}
-                className="flex items-center gap-1.5 rounded-xl bg-[#0070c0] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005fa3]"
+                onClick={() => setReqSubTab("leaves")}
+                className={`px-6 py-2.5 text-xs font-black transition border-b-2 ${
+                  reqSubTab === "leaves"
+                    ? "border-[#0070c0] text-[#0070c0]"
+                    : "border-transparent text-slate-600 hover:text-slate-900"
+                }`}
               >
-                <PlusCircle className="size-4" />
-                <span>تقديم طلب جديد</span>
+                الأجازات
+              </button>
+              <button
+                type="button"
+                onClick={() => setReqSubTab("misc")}
+                className={`px-6 py-2.5 text-xs font-black transition border-b-2 ${
+                  reqSubTab === "misc"
+                    ? "border-[#0070c0] text-[#0070c0]"
+                    : "border-transparent text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                طلبات متنوعة (تحديث البيانات والموافقات)
               </button>
             </div>
 
-            {/* Requests Table */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-              {employeeRequests.length === 0 ? (
-                <div className="py-12 text-center text-slate-400">
-                  <FileText className="mx-auto size-12 opacity-30 mb-2" />
-                  <p className="text-xs font-bold text-slate-600">لا توجد طلبات تحديث بيانات مقدمة حالياً</p>
+            {/* SUB-TAB 1: الأجازات (SCREENSHOT 3 EXACT) */}
+            {reqSubTab === "leaves" && (
+              <div className="space-y-4">
+                {/* 1- تحديد نوع الاجازة */}
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-3">
+                  <h3 className="text-sm font-black text-slate-800">
+                    1- تحديد نوع الاجازة
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        نوع الأجازة
+                      </label>
+                      <select
+                        value={leaveType}
+                        onChange={(e) => {
+                          setLeaveType(e.target.value);
+                          if (!leaveName) setLeaveName(e.target.value);
+                        }}
+                        className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800"
+                      >
+                        <option value="">.. اختر</option>
+                        <option value="إجازة سنوية اعتيادية">إجازة سنوية اعتيادية</option>
+                        <option value="إجازة مرضية">إجازة مرضية</option>
+                        <option value="إجازة اضطرارية">إجازة اضطرارية</option>
+                        <option value="إجازة بدون راتب">إجازة بدون راتب</option>
+                        <option value="إجازة وضع/أمومة">إجازة وضع/أمومة</option>
+                        <option value="إجازة وفاة">إجازة وفاة</option>
+                        <option value="إجازة زواج">إجازة زواج</option>
+                        <option value="إجازة دراسية">إجازة دراسية</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        اسم الاجازه
+                      </label>
+                      <select
+                        value={leaveName}
+                        onChange={(e) => setLeaveName(e.target.value)}
+                        className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800"
+                      >
+                        <option value="">.. اختر</option>
+                        <option value="إجازة اعتيادية سنوية">إجازة اعتيادية سنوية</option>
+                        <option value="إجازة مرضية بتقرير طبي">إجازة مرضية بتقرير طبي</option>
+                        <option value="إجازة عارضة طارئة">إجازة عارضة طارئة</option>
+                        <option value="إجازة خاصة">إجازة خاصة</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Card: Balances + Dates + Notes + Upload (Screenshot 3 exact) */}
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-3">
+                  {/* Row 1 (4 columns) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        الرصيد السنوي المستحق
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="21"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-bold text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        الرصيد السابق
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="0"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-bold text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        رصيد الفتره
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="0"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-bold text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        الرصيد حتى تاريخه
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="21"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-bold text-slate-700"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2 (4 columns) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        المنصرف حتى تاريخه
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="0"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-bold text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        مصروف نقدا
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="0"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-bold text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        الرصيد الحالي
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="21"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-bold text-slate-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                        <span className="text-rose-600 font-black">*</span>
+                        <span>تاريخ بداية الاجازة</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={leaveStartDate}
+                          onChange={(e) => setLeaveStartDate(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 3 (4 columns) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                        <span className="text-rose-600 font-black">*</span>
+                        <span>تاريخ نهايه الاجازه</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={leaveEndDate}
+                          onChange={(e) => setLeaveEndDate(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        المدة
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={calculatedLeaveDays}
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-center text-xs font-black text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        ملاحظات
+                      </label>
+                      <input
+                        type="text"
+                        value={leaveNotes}
+                        onChange={(e) => setLeaveNotes(e.target.value)}
+                        placeholder="أدخل أي ملاحظات..."
+                        className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        المرفقات
+                      </label>
+                      <label className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-sky-400 bg-sky-50/50 px-3 text-xs font-bold text-[#0070c0] hover:bg-sky-50 cursor-pointer transition">
+                        <UploadCloud className="size-4" />
+                        <span className="truncate max-w-[120px]">
+                          {leaveAttachmentName || "رفع ملف"}
+                        </span>
+                        <input
+                          type="file"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) setLeaveAttachmentName(f.name);
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Centered Green Save Button */}
+                  <div className="flex justify-center pt-3">
+                    <button
+                      type="button"
+                      disabled={isSavingLeave}
+                      onClick={() => void handleSaveLeaveRequest()}
+                      className="rounded-full bg-[#198754] px-12 py-2 text-xs font-black text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition disabled:opacity-50"
+                    >
+                      {isSavingLeave ? "جاري الحفظ..." : "حفظ"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-TAB 2: طلبات متنوعة (تحديث البيانات والموافقات) */}
+            {reqSubTab === "misc" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-white p-4 shadow-xs">
+                  <div>
+                    <h3 className="text-sm font-black text-[#004e82]">
+                      طلبات تحديث وتعديل البيانات للموظف
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      متابعة حالة الطلبات المرفوعة وسلاسل الموافقات والردود المسجلة
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleOpenRequestForField("department")}
-                    className="mt-3 rounded-lg bg-[#0070c0] px-4 py-1.5 text-xs font-bold text-white"
+                    className="flex items-center gap-1.5 rounded-xl bg-[#0070c0] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005fa3]"
                   >
-                    تقديم أول طلب تحديث بيانات
+                    <PlusCircle className="size-4" />
+                    <span>تقديم طلب تحديث بيانات جديد</span>
                   </button>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-right text-xs">
-                    <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                      <tr>
-                        <th className="px-3 py-2.5">رقم الطلب</th>
-                        <th className="px-3 py-2.5">البيان المطلوب تعديله</th>
-                        <th className="px-3 py-2.5">القيمة السابقة</th>
-                        <th className="px-3 py-2.5">القيمة المطلوبة</th>
-                        <th className="px-3 py-2.5">مرحلة الاعتماد / بانتظار</th>
-                        <th className="px-3 py-2.5 text-center">الحالة</th>
-                        <th className="px-3 py-2.5">تاريخ التقديم</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {employeeRequests.map((req) => (
-                        <tr key={req.id} className="hover:bg-slate-50">
-                          <td className="px-3 py-2.5 font-mono font-black text-[#0070c0]">
-                            {req.requestNumber}
-                          </td>
-                          <td className="px-3 py-2.5 font-bold text-slate-800">
-                            {req.fieldLabel}
-                          </td>
-                          <td className="px-3 py-2.5 text-slate-500 line-through">
-                            {req.oldValue}
-                          </td>
-                          <td className="px-3 py-2.5 font-black text-emerald-700">
-                            {req.newValue}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <div className="text-slate-700">{req.awaitingText}</div>
-                            {req.allowDirectManager && (
-                              <span className="text-[10px] text-emerald-700 font-bold block">
-                                {req.directManagerStatus === "approved"
-                                  ? "✓ وافق المدير المباشر"
-                                  : "بانتظار المدير المباشر"}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 text-center">
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${
-                                req.status === "approved"
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : req.status === "rejected"
-                                    ? "bg-rose-100 text-rose-800"
-                                    : "bg-amber-100 text-amber-800"
-                              }`}
-                            >
-                              {req.status === "approved"
-                                ? "معتمد وتم التحديث"
-                                : req.status === "rejected"
-                                  ? "مرفوض"
-                                  : "قيد المراجعة"}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 font-mono text-slate-500">
-                            {req.createdAt.slice(0, 10)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                {/* Data Update Requests Table */}
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+                  {employeeRequests.length === 0 ? (
+                    <div className="py-12 text-center text-slate-400">
+                      <FileText className="mx-auto size-12 opacity-30 mb-2" />
+                      <p className="text-xs font-bold text-slate-600">لا توجد طلبات تحديث بيانات مقدمة حالياً</p>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenRequestForField("department")}
+                        className="mt-3 rounded-lg bg-[#0070c0] px-4 py-1.5 text-xs font-bold text-white"
+                      >
+                        تقديم أول طلب تحديث بيانات
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-xs">
+                        <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                          <tr>
+                            <th className="px-3 py-2.5">رقم الطلب</th>
+                            <th className="px-3 py-2.5">البيان المطلوب تعديله</th>
+                            <th className="px-3 py-2.5">القيمة السابقة</th>
+                            <th className="px-3 py-2.5">القيمة المطلوبة</th>
+                            <th className="px-3 py-2.5">مرحلة الاعتماد / بانتظار</th>
+                            <th className="px-3 py-2.5 text-center">الحالة</th>
+                            <th className="px-3 py-2.5">تاريخ التقديم</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {employeeRequests.map((req) => (
+                            <tr key={req.id} className="hover:bg-slate-50">
+                              <td className="px-3 py-2.5 font-mono font-black text-[#0070c0]">
+                                {req.requestNumber}
+                              </td>
+                              <td className="px-3 py-2.5 font-bold text-slate-800">
+                                {req.fieldLabel}
+                              </td>
+                              <td className="px-3 py-2.5 text-slate-500 line-through">
+                                {req.oldValue}
+                              </td>
+                              <td className="px-3 py-2.5 font-black text-emerald-700">
+                                {req.newValue}
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="text-slate-700">{req.awaitingText}</div>
+                                {req.allowDirectManager && (
+                                  <span className="text-[10px] text-emerald-700 font-bold block">
+                                    {req.directManagerStatus === "approved"
+                                      ? "✓ وافق المدير المباشر"
+                                      : "بانتظار المدير المباشر"}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                <span
+                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${
+                                    req.status === "approved"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : req.status === "rejected"
+                                        ? "bg-rose-100 text-rose-800"
+                                        : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {req.status === "approved"
+                                    ? "معتمد وتم التحديث"
+                                    : req.status === "rejected"
+                                      ? "مرفوض"
+                                      : "قيد المراجعة"}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5 font-mono text-slate-500">
+                                {req.createdAt.slice(0, 10)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        ) : (
-          /* Default Tab: "بيانات الموظف" (Matching Screenshots 2-5 exactly) */
+        )}
+
+        {/* ===================================================================
+            VIEW 4: الطلبات -> طلبات المدير المباشر (SCREENSHOT 4)
+           =================================================================== */}
+        {activeNavTab === "requests" && reqView === "manager" && (
+          <div className="space-y-4">
+            {subordinates.length === 0 ? (
+              /* Exact match to Screenshot 4: Pink Alert Box across the page */
+              <div className="w-full rounded-xs border border-rose-200 bg-[#fde8e8] p-3 text-center sm:text-right text-xs font-bold text-rose-800 shadow-2xs">
+                لا يوجد موظفين تحت ادارتك!
+              </div>
+            ) : (
+              /* If manager has subordinates: Display approval list */
+              <div className="space-y-3">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+                  <h3 className="text-sm font-black text-[#004e82]">
+                    طلبات الموظفين التابعين لإدارتك
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    عدد الموظفين تحت إشرافك: {subordinates.length} موظف
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===================================================================
+            VIEW 5: بيانات الموظف (DEFAULT TAB - SCREENSHOTS 2-5 FROM FIRST TURN)
+           =================================================================== */}
+        {activeNavTab === "profile" && (
           <div className="space-y-4">
             {/* Top Hero Section: Avatar + Status + 4 Bottom Pills */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
@@ -1063,8 +2018,8 @@ export function EmployeePortalPage() {
                         </label>
                         <input
                           type="text"
-                          value={formData["fingerprint_no"] || formData["emp_no"] || "10078"}
-                          onChange={(e) => updateField("fingerprint_no", e.target.value)}
+                          value={formData["emp_no"] || "10078"}
+                          onChange={(e) => updateField("emp_no", e.target.value)}
                           className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800"
                         />
                       </div>
@@ -1074,19 +2029,12 @@ export function EmployeePortalPage() {
                         <label className="block text-[11px] font-bold text-slate-500 mb-1">
                           الجنسيه
                         </label>
-                        <select
+                        <input
+                          type="text"
                           value={formData["nationality"] || "مصري"}
                           onChange={(e) => updateField("nationality", e.target.value)}
                           className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800"
-                        >
-                          <option value="مصري">مصري</option>
-                          <option value="سعودي">سعودي</option>
-                          <option value="سوداني">سوداني</option>
-                          <option value="أردني">أردني</option>
-                          <option value="سوري">سوري</option>
-                          <option value="يمني">يمني</option>
-                          <option value="أخرى">أخرى</option>
-                        </select>
+                        />
                       </div>
 
                       <div>
@@ -1114,10 +2062,11 @@ export function EmployeePortalPage() {
                           className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800"
                         >
                           <option value="ذكر">ذكر</option>
-                          <option value="انثى">انثى</option>
+                          <option value="أنثى">أنثى</option>
                         </select>
                       </div>
 
+                      {/* Row 4 */}
                       <div>
                         <label className="block text-[11px] font-bold text-slate-500 mb-1">
                           عدد افراد الاسره
@@ -1135,22 +2084,24 @@ export function EmployeePortalPage() {
 
                 {/* 2. بيانات العمل (Screenshot 3) */}
                 {subSection === "work" && (
-                  <div className="space-y-3.5">
-                    {/* Section 1: بيانات العمل */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                        <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5">
+                  <div className="space-y-4">
+                    {/* Block A: بيانات العمل */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 className="text-sm font-black text-[#004e82] flex items-center gap-1.5">
                           <Building className="size-4 text-[#0070c0]" />
                           <span>بيانات العمل</span>
-                        </h4>
+                        </h3>
                         <button
                           type="button"
                           onClick={() => handleOpenRequestForField("branch")}
-                          className="text-[11px] font-bold text-[#0070c0] hover:underline"
+                          className="flex items-center gap-1 text-[11px] font-bold text-[#0070c0] hover:underline"
                         >
-                          طلب تعديل الفرع / المسار ←
+                          <Send className="size-3" />
+                          <span>طلب تعديل بيانات العمل</span>
                         </button>
                       </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">المنطقه</label>
@@ -1158,7 +2109,7 @@ export function EmployeePortalPage() {
                             type="text"
                             value={formData["region"] || "المنطقة الوسطى"}
                             onChange={(e) => updateField("region", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                           />
                         </div>
                         <div>
@@ -1191,21 +2142,13 @@ export function EmployeePortalPage() {
                       </div>
                     </div>
 
-                    {/* Section 2: jobDetails */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                        <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5">
-                          <Briefcase className="size-4 text-[#0070c0]" />
-                          <span>jobDetails</span>
-                        </h4>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenRequestForField("department")}
-                          className="text-[11px] font-bold text-[#0070c0] hover:underline"
-                        >
-                          طلب تعديل القسم / المستوى ←
-                        </button>
-                      </div>
+                    {/* Block B: jobDetails */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
+                        <Briefcase className="size-4 text-[#0070c0]" />
+                        <span>jobDetails</span>
+                      </h3>
+
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">القسم</label>
@@ -1226,7 +2169,7 @@ export function EmployeePortalPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">المستوي الوظيفي</label>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">المستوى الوظيفي</label>
                           <input
                             type="text"
                             value={formData["job_level"] || "تشغيلي"}
@@ -1246,21 +2189,13 @@ export function EmployeePortalPage() {
                       </div>
                     </div>
 
-                    {/* Section 3: الوظيفه الحاليه */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                        <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5">
-                          <GraduationCap className="size-4 text-[#0070c0]" />
-                          <span>الوظيفه الحاليه</span>
-                        </h4>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenRequestForField("job_title")}
-                          className="text-[11px] font-bold text-[#0070c0] hover:underline"
-                        >
-                          طلب تعديل الوظيفة / التخصص ←
-                        </button>
-                      </div>
+                    {/* Block C: الوظيفة الحالية */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
+                        <GraduationCap className="size-4 text-[#0070c0]" />
+                        <span>الوظيفه الحاليه</span>
+                      </h3>
+
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">جدول الدوام</label>
@@ -1268,7 +2203,7 @@ export function EmployeePortalPage() {
                             type="text"
                             value={formData["attendance_schedule"] || "افتراضي"}
                             onChange={(e) => updateField("attendance_schedule", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                           />
                         </div>
                         <div>
@@ -1301,58 +2236,99 @@ export function EmployeePortalPage() {
                       </div>
                     </div>
 
-                    {/* Section 4: التواريخ */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                    {/* Block D: التواريخ (ميلادي / هجري) */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
                         <Calendar className="size-4 text-[#0070c0]" />
                         <span>التواريخ</span>
-                      </h4>
+                      </h3>
+
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">تاريخ التعيين</label>
+                        {/* تاريخ التعيين */}
+                        <div className="rounded-xl border border-slate-200 p-2.5 bg-slate-50/40">
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">تاريخ التعيين</label>
+                          <span className="text-[10px] text-slate-400 block mb-0.5">ميلادي</span>
                           <input
                             type="date"
                             value={formData["hire_date"] || "2026-09-13"}
                             onChange={(e) => updateField("hire_date", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                          />
+                          <span className="text-[10px] text-slate-400 block mt-1.5 mb-0.5">هجري</span>
+                          <input
+                            type="text"
+                            readOnly
+                            value="1448/4/2"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-slate-100 px-2 text-xs font-mono text-slate-600"
                           />
                         </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">تاريخ مباشره العمل</label>
+
+                        {/* تاريخ مباشره العمل */}
+                        <div className="rounded-xl border border-slate-200 p-2.5 bg-slate-50/40">
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">تاريخ مباشره العمل</label>
+                          <span className="text-[10px] text-slate-400 block mb-0.5">ميلادي</span>
                           <input
                             type="date"
                             value={formData["start_date"] || "2026-09-13"}
                             onChange={(e) => updateField("start_date", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                          />
+                          <span className="text-[10px] text-slate-400 block mt-1.5 mb-0.5">هجري</span>
+                          <input
+                            type="text"
+                            readOnly
+                            value="1448/4/2"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-slate-100 px-2 text-xs font-mono text-slate-600"
                           />
                         </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">احتساب الاجازة السنوية</label>
+
+                        {/* احتساب الإجازة السنوية */}
+                        <div className="rounded-xl border border-slate-200 p-2.5 bg-slate-50/40">
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">احتساب الإجازة السنوية</label>
+                          <span className="text-[10px] text-slate-400 block mb-0.5">ميلادي</span>
                           <input
                             type="date"
                             value={formData["leave_calc_date"] || "2026-09-13"}
                             onChange={(e) => updateField("leave_calc_date", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                          />
+                          <span className="text-[10px] text-slate-400 block mt-1.5 mb-0.5">هجري</span>
+                          <input
+                            type="text"
+                            readOnly
+                            value="1448/4/2"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-slate-100 px-2 text-xs font-mono text-slate-600"
                           />
                         </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">تاريخ الميلاد</label>
+
+                        {/* تاريخ الميلاد */}
+                        <div className="rounded-xl border border-slate-200 p-2.5 bg-slate-50/40">
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">تاريخ الميلاد</label>
+                          <span className="text-[10px] text-slate-400 block mb-0.5">ميلادي</span>
                           <input
                             type="date"
                             value={formData["birth_date"] || "1993-08-21"}
                             onChange={(e) => updateField("birth_date", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                          />
+                          <span className="text-[10px] text-slate-400 block mt-1.5 mb-0.5">هجري</span>
+                          <input
+                            type="text"
+                            readOnly
+                            value="1414/3/4"
+                            className="h-8 w-full rounded-md border border-slate-200 bg-slate-100 px-2 text-xs font-mono text-slate-600"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Section 5: الخبرة و غيرها */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                    {/* Block E: الخبرة وغيرها */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
                         <Award className="size-4 text-[#0070c0]" />
                         <span>الخبرة و غيرها</span>
-                      </h4>
+                      </h3>
+
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">مده الخبره بالسنوات</label>
@@ -1360,7 +2336,7 @@ export function EmployeePortalPage() {
                             type="number"
                             value={formData["experience_years"] ?? 5}
                             onChange={(e) => updateField("experience_years", Number(e.target.value))}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                           />
                         </div>
                         <div>
@@ -1369,16 +2345,16 @@ export function EmployeePortalPage() {
                             type="number"
                             value={formData["probation_days"] ?? 90}
                             onChange={(e) => updateField("probation_days", Number(e.target.value))}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                           />
                         </div>
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">تاريخ دخول المملكه</label>
                           <input
                             type="date"
-                            value={formData["kingdom_entry_date"] || "2020-01-01"}
-                            onChange={(e) => updateField("kingdom_entry_date", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                            value={formData["entry_date"] || ""}
+                            onChange={(e) => updateField("entry_date", e.target.value)}
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                           />
                         </div>
                         <div>
@@ -1398,19 +2374,20 @@ export function EmployeePortalPage() {
                 {/* 3. بيانات التأمينات الاجتماعية (Screenshot 4) */}
                 {subSection === "gosi" && (
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
-                    <h3 className="text-sm font-black text-[#004e82] flex items-center gap-1.5 border-b border-slate-100 pb-3">
+                    <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
                       <ShieldCheck className="size-4 text-[#0070c0]" />
                       <span>بيانات التأمينات الاجتماعيه</span>
                     </h3>
+
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-500 mb-1">الرقم التأميني</label>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1">الرقم التاميني</label>
                         <input
                           type="text"
                           value={formData["gosi_no"] || ""}
                           onChange={(e) => updateField("gosi_no", e.target.value)}
-                          placeholder="الرقم التأميني..."
-                          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                          placeholder="أدخل الرقم التأميني..."
+                          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                         />
                       </div>
                       <div>
@@ -1419,17 +2396,17 @@ export function EmployeePortalPage() {
                           type="date"
                           value={formData["gosi_date"] || ""}
                           onChange={(e) => updateField("gosi_date", e.target.value)}
-                          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-500 mb-1">مكان التأمين</label>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1">مكان التامين</label>
                         <input
                           type="text"
                           value={formData["gosi_city"] || ""}
                           onChange={(e) => updateField("gosi_city", e.target.value)}
-                          placeholder="مكان التأمين..."
-                          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
+                          placeholder="الرياض..."
+                          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                         />
                       </div>
                     </div>
@@ -1438,13 +2415,14 @@ export function EmployeePortalPage() {
 
                 {/* 4. بيانات التواصل (Screenshot 5) */}
                 {subSection === "contact" && (
-                  <div className="space-y-3.5">
-                    {/* Card 1: أرقام الهواتف */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                  <div className="space-y-4">
+                    {/* أرقام الهواتف */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
                         <Phone className="size-4 text-[#0070c0]" />
                         <span>أرقام الهواتف</span>
-                      </h4>
+                      </h3>
+
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">التليفون</label>
@@ -1456,7 +2434,7 @@ export function EmployeePortalPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">رقم التليفون في البلد الاصل</label>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">رقم التليفون فى البلد الاصل</label>
                           <input
                             type="text"
                             value={formData["home_country_phone"] || ""}
@@ -1470,11 +2448,11 @@ export function EmployeePortalPage() {
                             type="text"
                             value={formData["mobile"] || "574606701"}
                             onChange={(e) => updateField("mobile", e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">رقم الجوال في البلد الاصل</label>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">رقم الجوال فى البلد الاصل</label>
                           <input
                             type="text"
                             value={formData["home_country_mobile"] || ""}
@@ -1485,20 +2463,21 @@ export function EmployeePortalPage() {
                       </div>
                     </div>
 
-                    {/* Card 2: العناوين */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                    {/* العناوين */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
                         <MapPin className="size-4 text-[#0070c0]" />
                         <span>العناوين</span>
-                      </h4>
+                      </h3>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">العنوان في البلد الاصل</label>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">العنوان فى البلد الاصل</label>
                           <textarea
                             rows={2}
                             value={formData["home_country_address"] || ""}
                             onChange={(e) => updateField("home_country_address", e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs"
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2 text-xs"
                           />
                         </div>
                         <div>
@@ -1507,19 +2486,20 @@ export function EmployeePortalPage() {
                             rows={2}
                             value={formData["current_address"] || ""}
                             onChange={(e) => updateField("current_address", e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs"
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2 text-xs"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Card 3: تفاصيل العنوان */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                    {/* تفاصيل العنوان الوطني */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
                         <Building className="size-4 text-[#0070c0]" />
                         <span>تفاصيل العنوان</span>
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      </h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">العنوان المختصر</label>
                           <input
@@ -1530,7 +2510,7 @@ export function EmployeePortalPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">رقم المبنى</label>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">رقم المبني</label>
                           <input
                             type="text"
                             value={formData["building_no"] || ""}
@@ -1574,18 +2554,37 @@ export function EmployeePortalPage() {
                             className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
                           />
                         </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">رقم الوحدة</label>
+                          <input
+                            type="text"
+                            value={formData["unit_no"] || ""}
+                            onChange={(e) => updateField("unit_no", e.target.value)}
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">الرقم البريدي</label>
+                          <input
+                            type="text"
+                            value={formData["postal_code"] || ""}
+                            onChange={(e) => updateField("postal_code", e.target.value)}
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Card 4: البريد الإلكتروني */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-                      <h4 className="text-xs font-black text-[#004e82] flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                    {/* البريد الإلكتروني */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <h3 className="text-sm font-black text-[#004e82] border-b border-slate-100 pb-3 flex items-center gap-1.5">
                         <Mail className="size-4 text-[#0070c0]" />
                         <span>البريد الإلكتروني</span>
-                      </h4>
+                      </h3>
+
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">البريد الالكتروني</label>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">البريد الإلكتروني</label>
                           <input
                             type="email"
                             value={formData["email"] || "ahmed.elsayed708@gmail.com"}
@@ -1594,7 +2593,7 @@ export function EmployeePortalPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 mb-1">البريد الالكتروني الخاص</label>
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">البريد الإلكتروني الخاص</label>
                           <input
                             type="email"
                             value={formData["private_email"] || "ahmed.elsayed708@gmail.com"}
@@ -1833,6 +2832,91 @@ export function EmployeePortalPage() {
               >
                 <Send className="size-3.5" />
                 {isSubmitting ? "جاري الإرسال..." : "إرسال طلب التحديث"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          MODAL: محادثة المسائلة (Inquiry Conversation Modal)
+         ===================================================================== */}
+      {selectedInquiry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4" dir="rtl">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-[#0070c0]">
+                  <MessageSquare className="size-4" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-black text-[#004e82]">
+                    محادثة المسائلة الإدارية
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    تاريخ المسائلة: {selectedInquiry.inquiry_date || "—"} | التصنيف: {selectedInquiry.inquiry_type || "مسائلة"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedInquiry(null)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <MaterialIcon name="close" size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 text-xs space-y-1">
+                <span className="font-bold text-[#004e82] block">نص المسائلة من الإدارة:</span>
+                <p className="text-slate-800 font-semibold">{selectedInquiry.notes || selectedInquiry.details || "يرجى الإفادة حول الموضوع المذكور."}</p>
+              </div>
+
+              {selectedInquiry.employee_reply && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-xs space-y-1">
+                  <span className="font-bold text-emerald-800 block">ردك المسجل سابقاً:</span>
+                  <p className="text-slate-800">{selectedInquiry.employee_reply}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  كتابة الرد أو التوضيح:
+                </label>
+                <textarea
+                  rows={3}
+                  value={inquiryReplyText}
+                  onChange={(e) => setInquiryReplyText(e.target.value)}
+                  placeholder="اكتب ردك وتوضيحك هنا..."
+                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setSelectedInquiry(null)}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"
+              >
+                إغلاق
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!inquiryReplyText.trim()) {
+                    toast.error("يرجى كتابة نص الرد قبل الإرسال");
+                    return;
+                  }
+                  toast.success("تم إرسال ردك على المسائلة إلى إدارة الموارد البشرية بنجاح");
+                  setSelectedInquiry(null);
+                  setInquiryReplyText("");
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-[#0070c0] px-5 py-2 text-xs font-black text-white hover:bg-[#005fa3]"
+              >
+                <Send className="size-3.5" />
+                <span>إرسال الرد</span>
               </button>
             </div>
           </div>

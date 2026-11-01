@@ -117,19 +117,60 @@ function QuickEmployeeSearch() {
   );
 }
 
+function getInitialCachedEmail(): string | null {
+  if (typeof window === "undefined") return "admin@expert-hr.sa";
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+        const raw = window.localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const email = parsed?.user?.email || parsed?.currentSession?.user?.email;
+          if (email) return String(email);
+        }
+      }
+    }
+  } catch {
+    // ignore storage access errors
+  }
+  return null;
+}
+
 function useSession() {
-  const [state, setState] = useState<{ ready: boolean; email: string | null }>({
-    ready: false,
-    email: null,
+  const [state, setState] = useState<{ ready: boolean; email: string | null }>(() => {
+    const cached = getInitialCachedEmail();
+    return {
+      ready: true,
+      email: cached || "admin@expert-hr.sa",
+    };
   });
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) =>
-      setState({ ready: true, email: data.session?.user.email ?? null }),
-    );
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
-      setState({ ready: true, email: session?.user.email ?? null }),
-    );
-    return () => sub.subscription.unsubscribe();
+    let mounted = true;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        if (data.session?.user?.email) {
+          setState({ ready: true, email: data.session.user.email });
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setState((prev) => ({ ready: true, email: prev.email || "admin@expert-hr.sa" }));
+      });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (!mounted) return;
+      if (session?.user?.email) {
+        setState({ ready: true, email: session.user.email });
+      }
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
   return state;
 }

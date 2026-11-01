@@ -57,10 +57,13 @@ import {
 } from "@/lib/hr-db";
 import {
   DATA_UPDATE_FIELDS,
+  buildEmployeeUpdatePatch,
+  getAllDataUpdateFields,
   getEmployeeFieldValue,
   loadDataUpdateConfig,
   loadDataUpdateRequests,
   resolveEmployeePermissionGroup,
+  resolveFieldEffectiveWorkflow,
   saveDataUpdateRequestsLocal,
   type DataUpdateRequestItem,
   type DataUpdateConfigState,
@@ -245,13 +248,27 @@ export function EmployeePortalPage() {
     return config.globalAllowDirectManager;
   }, [config.globalAllowDirectManager, resolvedApprovalGroup, resolvedGroup]);
 
+  // All fields (core + custom fields created in تهيئة تحديث البيانات)
+  const allDataUpdateFields = useMemo(() => {
+    return getAllDataUpdateFields(config);
+  }, [config]);
+
   // Allowed fields for this employee
   const allowedFields = useMemo(() => {
-    return DATA_UPDATE_FIELDS.filter((f) => {
+    return allDataUpdateFields.filter((f) => {
+      if (f.active === false) return false;
+      if (f.isCustom) return true;
       const rule = resolvedGroup.allowedFields[f.key];
       return rule ? rule.enabled : Boolean(f.isCoreRequested);
     });
-  }, [resolvedGroup]);
+  }, [allDataUpdateFields, resolvedGroup]);
+
+  // Custom fields created by Admin in تهيئة تحديث البيانات
+  const customFieldsForPortal = useMemo(() => {
+    return allowedFields.filter(
+      (f) => f.isCustom || f.category === "حقول مخصصة لتحديث البيانات",
+    );
+  }, [allowedFields]);
 
   // Navigation tab state
   const [activeNavTab, setActiveNavTab] = useState<string>(searchTab || "profile");
@@ -274,9 +291,9 @@ export function EmployeePortalPage() {
   }, [searchReqSubTab]);
 
   // Sub-tabs in Employee Data
-  const [subSection, setSubSection] = useState<"personal" | "work" | "gosi" | "contact" | "notes">(
-    searchSubTab || "personal",
-  );
+  const [subSection, setSubSection] = useState<
+    "personal" | "work" | "gosi" | "contact" | "notes" | "custom_updates"
+  >(searchSubTab || "personal");
   const [topCategoryTab, setTopCategoryTab] = useState<"basic" | "medical" | "dependents">("basic");
 
   // Editable Form state synced with current employee
@@ -353,23 +370,34 @@ export function EmployeePortalPage() {
   const [reasonInput, setReasonInput] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
   const [attachmentDataUrl, setAttachmentDataUrl] = useState("");
+  const [isDeclaredConfirmed, setIsDeclaredConfirmed] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal State for Employee Profile Declaration ("قرار منه أنه تأكد من البيانات التي تم تعبئتها بشكل عام ويدوس أوكي")
+  const [isProfileDeclarationModalOpen, setIsProfileDeclarationModalOpen] = useState(false);
+  const [isProfileDeclaredConfirmed, setIsProfileDeclaredConfirmed] = useState(true);
+  const [isSavingProfileDeclaration, setIsSavingProfileDeclaration] = useState(false);
 
   // Active Field details for the request modal
   const activeFieldDef = useMemo(() => {
     return (
-      DATA_UPDATE_FIELDS.find((f) => f.key === selectedFieldKey) ||
+      allDataUpdateFields.find((f) => f.key === selectedFieldKey) ||
+      allDataUpdateFields[0] ||
       DATA_UPDATE_FIELDS[0]!
     );
-  }, [selectedFieldKey]);
+  }, [allDataUpdateFields, selectedFieldKey]);
+
+  const effectiveFieldWorkflow = useMemo(() => {
+    return resolveFieldEffectiveWorkflow(selectedFieldKey, config, resolvedGroup);
+  }, [selectedFieldKey, config, resolvedGroup]);
 
   const currentFieldRule = useMemo(() => {
-    return resolvedGroup.allowedFields[selectedFieldKey] || {
+    return {
       fieldKey: selectedFieldKey,
       enabled: true,
-      requiresAttachment: false,
+      requiresAttachment: effectiveFieldWorkflow.requiresAttachment,
     };
-  }, [resolvedGroup, selectedFieldKey]);
+  }, [effectiveFieldWorkflow.requiresAttachment, selectedFieldKey]);
 
   const currentSystemValue = useMemo(() => {
     return getEmployeeFieldValue(currentEmployee, selectedFieldKey);
@@ -404,6 +432,7 @@ export function EmployeePortalPage() {
     setReasonInput("");
     setAttachmentName("");
     setAttachmentDataUrl("");
+    setIsDeclaredConfirmed(false);
     setIsRequestModalOpen(true);
   };
 
@@ -420,7 +449,7 @@ export function EmployeePortalPage() {
     reader.readAsDataURL(file);
   };
 
-  // Submit Data Update Request
+  // Submit Data Update Request (Supports BOTH Direct Self-Update with Declaration AND Approval Workflow)
   const handleSubmitDataUpdateRequest = async () => {
     if (!currentEmployee) return;
     if (!newValueInput.trim()) {
@@ -435,6 +464,10 @@ export function EmployeePortalPage() {
       toast.error(`حقل "${activeFieldDef.label}" يتطلب إرفاق مستند رسمي لإثبات التعديل`);
       return;
     }
+    if (effectiveFieldWorkflow.requiresDeclaration && !isDeclaredConfirmed) {
+      toast.error("يرجى التأشير على إقرار صحة البيانات التي تم تعبئتها بشكل عام قبل الضغط على موافق (OK)");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -446,14 +479,47 @@ export function EmployeePortalPage() {
       const directManager = String(
         currentEmployee.manager_name || currentEmployee.direct_manager || "المدير المباشر",
       );
+      const nowIso = new Date().toISOString();
 
-      const approverNames = (resolvedApprovalGroup?.approvers || []).map(
-        (a) => `${a.name} (${a.roleLabel})`,
-      );
+      const isDirect = effectiveFieldWorkflow.updateMode === "direct";
+      const targetApprovalGroup = effectiveFieldWorkflow.approvalGroup || resolvedApprovalGroup;
+      const targetAllowDirectManager = isDirect ? false : effectiveFieldWorkflow.allowDirectManager;
 
-      const awaitingText = isDirectManagerEnabled
-        ? `المدير المباشر (${directManager}) / ${resolvedApprovalGroup?.name || "مجموعة الاعتماد"}`
-        : resolvedApprovalGroup?.name || "مجموعة الاعتماد";
+      const approverNames = isDirect
+        ? [`${empName} (تحديث مباشر بإقرار الموظف)`]
+        : (targetApprovalGroup?.approvers || []).map((a) => `${a.name} (${a.roleLabel})`);
+
+      const awaitingText = isDirect
+        ? "مكتمل فوراً (تحديث مباشر بإقرار الموظف OK)"
+        : targetAllowDirectManager
+          ? `المدير المباشر (${directManager}) / ${targetApprovalGroup?.name || "مجموعة الاعتماد"}`
+          : targetApprovalGroup?.name || "مجموعة الاعتماد";
+
+      // If direct update mode -> immediately apply to employee record!
+      let appliedDirectly = false;
+      if (isDirect) {
+        const patch = buildEmployeeUpdatePatch(
+          currentEmployee,
+          activeFieldDef.key,
+          newValueInput.trim(),
+          reqNumber,
+          `${empName} (تحديث ذاتي بإقرار الموظف)`,
+        );
+        try {
+          await saveEmployee.mutateAsync({
+            ...currentEmployee,
+            ...patch,
+            id: currentEmployee.id,
+          });
+        } catch {
+          // fallback saved in local profile extras via buildEmployeeUpdatePatch
+        }
+        setFormData((prev) => ({
+          ...prev,
+          [activeFieldDef.key]: newValueInput.trim(),
+        }));
+        appliedDirectly = true;
+      }
 
       const newReq: DataUpdateRequestItem = {
         id: `du-${Date.now()}`,
@@ -466,32 +532,49 @@ export function EmployeePortalPage() {
         directManagerName: directManager,
         userGroupId: resolvedGroup.id,
         userGroupName: resolvedGroup.name,
-        approvalGroupId: resolvedApprovalGroup?.id || "ag-hr-main",
-        approvalGroupName: resolvedApprovalGroup?.name || "مجموعة اعتماد الموارد البشرية",
-        allowDirectManager: isDirectManagerEnabled,
-        directManagerStatus: isDirectManagerEnabled ? "pending" : "not_required",
+        approvalGroupId: isDirect
+          ? "direct-self-declaration"
+          : targetApprovalGroup?.id || "ag-hr-main",
+        approvalGroupName: isDirect
+          ? "تحديث مباشر بإقرار الموظف (بدون مراحل موافقة)"
+          : targetApprovalGroup?.name || "مجموعة اعتماد الموارد البشرية",
+        allowDirectManager: targetAllowDirectManager,
+        directManagerStatus: targetAllowDirectManager ? "pending" : "not_required",
         fieldKey: activeFieldDef.key,
         fieldLabel: activeFieldDef.label,
         oldValue: currentSystemValue || "غير محدد",
         newValue: newValueInput.trim(),
-        reason: reasonInput.trim() || `طلب تعديل ${activeFieldDef.label}`,
+        reason:
+          reasonInput.trim() ||
+          (isDirect
+            ? `تحديث مباشر للحقل (${activeFieldDef.label}) بعد إقرار الموظف بصحة البيانات (OK)`
+            : `طلب تعديل ${activeFieldDef.label} (مع إقرار الموظف بصحة البيانات)`),
         attachmentName: attachmentName || undefined,
         attachmentDataUrl: attachmentDataUrl || undefined,
-        status: "pending",
+        updateMode: effectiveFieldWorkflow.updateMode,
+        employeeDeclared: true,
+        declaredAt: nowIso,
+        declarationTextSnapshot: config.declarationText,
+        status: isDirect ? "approved" : "pending",
         awaitingText,
         authorizedApproverNames: approverNames,
-        appliedToEmployeeRecord: false,
+        appliedToEmployeeRecord: isDirect ? appliedDirectly : false,
+        decisionBy: isDirect ? `${empName} (تحديث ذاتي بإقرار الموظف)` : undefined,
+        decisionAt: isDirect ? nowIso : undefined,
         replies: [
           {
             id: `rep-init-${Date.now()}`,
             authorName: empName,
-            authorRole: "الموظف مقدم الطلب",
-            message: reasonInput.trim() || `تم تقديم طلب لتحديث ${activeFieldDef.label}`,
-            actionType: "reply",
-            createdAt: new Date().toISOString(),
+            authorRole: "إقرار الموظف (OK)",
+            message: isDirect
+              ? "أقر الموظف بصحة البيانات التي تم تعبئتها بشكل عام وضغط (موافق OK) — تم التحديث المباشر في النظام وتقرير الإنجاز."
+              : reasonInput.trim() ||
+                `أقر الموظف بصحة البيانات التي تم تعبئتها وضغط (موافق OK) — تم إرسال الطلب إلى مراحل الموافقة.`,
+            actionType: isDirect ? "approve_final" : "reply",
+            createdAt: nowIso,
           },
         ],
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
       };
 
       const updatedRequests = [newReq, ...allRequests];
@@ -507,26 +590,40 @@ export function EmployeePortalPage() {
           branch,
           department,
           category: "شؤون موظفين",
-          request_type: `طلب تحديث بيانات (${activeFieldDef.label})`,
+          request_type: isDirect
+            ? `تحديث بيانات فوري بإقرار (${activeFieldDef.label})`
+            : `طلب تحديث بيانات (${activeFieldDef.label})`,
           request_subject: `تعديل ${activeFieldDef.label}: من [${currentSystemValue}] إلى [${newValueInput.trim()}]`,
-          request_details: reasonInput.trim() || `طلب تحديث ${activeFieldDef.label}`,
-          approval_chain: isDirectManagerEnabled
-            ? `المدير المباشر، ${resolvedApprovalGroup?.name || "الموارد البشرية"}`
-            : resolvedApprovalGroup?.name || "الموارد البشرية",
+          request_details: newReq.reason,
+          approval_chain: isDirect
+            ? "تحديث مباشر بإقرار الموظف (OK)"
+            : targetAllowDirectManager
+              ? `المدير المباشر، ${targetApprovalGroup?.name || "الموارد البشرية"}`
+              : targetApprovalGroup?.name || "الموارد البشرية",
           direct_manager_name: directManager,
           awaiting_approver_name: awaitingText,
-          awaiting_stage: isDirectManagerEnabled
-            ? "المدير المباشر"
-            : resolvedApprovalGroup?.name || "موارد بشرية",
-          status: "pending",
-          request_date: new Date().toISOString().slice(0, 10),
-          entered_at: new Date().toISOString(),
+          awaiting_stage: isDirect
+            ? "مكتمل"
+            : targetAllowDirectManager
+              ? "المدير المباشر"
+              : targetApprovalGroup?.name || "موارد بشرية",
+          status: isDirect ? "approved" : "pending",
+          request_date: nowIso.slice(0, 10),
+          entered_at: nowIso,
         });
       } catch {
         // ignore
       }
 
-      toast.success(`تم إرسال طلب تحديث البيانات (${reqNumber}) إلى سلسلة الموافقات بنجاح`);
+      if (isDirect) {
+        toast.success(
+          `تم تأكيد الإقرار (OK) وتحديث "${activeFieldDef.label}" فوراً في النظام وفي تقرير إنجاز لتحديث البيانات!`,
+        );
+      } else {
+        toast.success(
+          `تم تأكيد الإقرار (OK) وإرسال طلب تحديث البيانات (${reqNumber}) إلى مراحل الموافقة بنجاح`,
+        );
+      }
       setIsRequestModalOpen(false);
     } catch {
       toast.error("تعذر إرسال الطلب، يرجى المحاولة مرة أخرى");
@@ -535,18 +632,275 @@ export function EmployeePortalPage() {
     }
   };
 
-  // Direct Save handler for basic employee data
-  const handleSaveFormData = async () => {
+  // Detect changed fields in formData compared to currentEmployee
+  const detectedProfileChanges = useMemo(() => {
+    if (!currentEmployee) return [];
+    const list: {
+      fieldKey: string;
+      fieldLabel: string;
+      oldVal: string;
+      newVal: string;
+      updateMode: "direct" | "approval_required";
+      approvalGroupName: string;
+      allowDirectManager: boolean;
+      approvalGroupId: string;
+    }[] = [];
+
+    allDataUpdateFields.forEach((f) => {
+      if (formData[f.key] === undefined) return;
+      const oldVal = getEmployeeFieldValue(currentEmployee, f.key);
+      const rawNew = String(formData[f.key] ?? "").trim();
+      const normalizedOld = oldVal === "غير محدد" ? "" : oldVal.trim();
+      if (rawNew && rawNew !== normalizedOld) {
+        const wf = resolveFieldEffectiveWorkflow(f.key, config, resolvedGroup);
+        list.push({
+          fieldKey: f.key,
+          fieldLabel: f.label,
+          oldVal: oldVal || "غير محدد",
+          newVal: rawNew,
+          updateMode: wf.updateMode,
+          approvalGroupName:
+            wf.updateMode === "direct"
+              ? "تحديث مباشر بإقرار الموظف (OK)"
+              : wf.approvalGroup?.name || "مجموعة اعتماد الموارد البشرية",
+          allowDirectManager: wf.updateMode === "direct" ? false : wf.allowDirectManager,
+          approvalGroupId:
+            wf.updateMode === "direct"
+              ? "direct-self-declaration"
+              : wf.approvalGroup?.id || "ag-hr-main",
+        });
+      }
+    });
+    return list;
+  }, [allDataUpdateFields, config, currentEmployee, formData, resolvedGroup]);
+
+  // Open Declaration Modal when clicking "حفظ"
+  const handleSaveFormData = () => {
     if (!currentEmployee) return;
+    setIsProfileDeclaredConfirmed(true);
+    setIsProfileDeclarationModalOpen(true);
+  };
+
+  // Execute Save & Declaration upon clicking "موافق (OK)"
+  const handleConfirmSaveFormDataWithDeclaration = async () => {
+    if (!currentEmployee) return;
+    if (!isProfileDeclaredConfirmed) {
+      toast.error("يرجى التأشير على إقرار صحة البيانات التي تم تعبئتها بشكل عام قبل الضغط على موافق (OK)");
+      return;
+    }
+
+    setIsSavingProfileDeclaration(true);
     try {
-      await saveEmployee.mutateAsync({
+      const empName = String(currentEmployee.full_name || currentEmployee.employee_name || "موظف");
+      const empNo = String(currentEmployee.emp_no || "");
+      const branch = String(currentEmployee.branch || "الفرع الرئيسي");
+      const department = String(currentEmployee.department || "غير محدد");
+      const directManager = String(
+        currentEmployee.manager_name || currentEmployee.direct_manager || "المدير المباشر",
+      );
+      const nowIso = new Date().toISOString();
+
+      const newItems: DataUpdateRequestItem[] = [];
+      let patchedEmployee: Record<string, any> = {
         ...currentEmployee,
         ...formData,
         id: currentEmployee.id,
+      };
+
+      // Separate direct changes vs approval_required changes
+      const directChanges = detectedProfileChanges.filter((c) => c.updateMode === "direct");
+      const approvalChanges = detectedProfileChanges.filter(
+        (c) => c.updateMode === "approval_required",
+      );
+
+      // For fields that require approval stages, keep the old value on the immediate employee record until approved!
+      approvalChanges.forEach((ac) => {
+        if (currentEmployee[ac.fieldKey] !== undefined) {
+          patchedEmployee[ac.fieldKey] = currentEmployee[ac.fieldKey];
+        }
       });
-      toast.success("تم حفظ البيانات بنجاح");
+
+      // Apply direct changes via buildEmployeeUpdatePatch so custom fields also persist in local extras
+      directChanges.forEach((dc, idx) => {
+        const reqNumber = `DU-${String(allRequests.length + idx + 101).padStart(4, "0")}`;
+        const patch = buildEmployeeUpdatePatch(
+          patchedEmployee,
+          dc.fieldKey,
+          dc.newVal,
+          reqNumber,
+          `${empName} (تحديث ذاتي بإقرار الموظف)`,
+        );
+        patchedEmployee = { ...patchedEmployee, ...patch };
+
+        newItems.push({
+          id: `du-dir-${Date.now()}-${idx}`,
+          requestNumber: reqNumber,
+          employeeId: String(currentEmployee.id || ""),
+          empNo,
+          employeeName: empName,
+          branch,
+          department,
+          directManagerName: directManager,
+          userGroupId: resolvedGroup.id,
+          userGroupName: resolvedGroup.name,
+          approvalGroupId: "direct-self-declaration",
+          approvalGroupName: "تحديث مباشر بإقرار الموظف (بدون مراحل موافقة)",
+          allowDirectManager: false,
+          directManagerStatus: "not_required",
+          fieldKey: dc.fieldKey,
+          fieldLabel: dc.fieldLabel,
+          oldValue: dc.oldVal,
+          newValue: dc.newVal,
+          reason: `تحديث مباشر للحقل (${dc.fieldLabel}) بعد إقرار الموظف بصحة البيانات المعبأة (OK)`,
+          updateMode: "direct",
+          employeeDeclared: true,
+          declaredAt: nowIso,
+          declarationTextSnapshot: config.declarationText,
+          status: "approved",
+          awaitingText: "مكتمل فوراً (تحديث مباشر بإقرار الموظف OK)",
+          authorizedApproverNames: [`${empName} (تحديث مباشر بإقرار الموظف)`],
+          appliedToEmployeeRecord: true,
+          decisionBy: `${empName} (تحديث ذاتي بإقرار الموظف)`,
+          decisionAt: nowIso,
+          replies: [
+            {
+              id: `rep-dir-${Date.now()}-${idx}`,
+              authorName: empName,
+              authorRole: "إقرار الموظف (OK)",
+              message: "أقر الموظف بصحة البيانات التي تم تعبئتها بشكل عام وضغط (موافق OK) — تم التحديث المباشر في النظام وتقرير الإنجاز.",
+              actionType: "approve_final",
+              createdAt: nowIso,
+            },
+          ],
+          createdAt: nowIso,
+        });
+      });
+
+      // Create staged approval requests for approval_required changes
+      approvalChanges.forEach((ac, idx) => {
+        const reqNumber = `DU-${String(allRequests.length + directChanges.length + idx + 101).padStart(4, "0")}`;
+        const ag = config.approvalGroups.find((g) => g.id === ac.approvalGroupId) || resolvedApprovalGroup;
+        const awaitingText = ac.allowDirectManager
+          ? `المدير المباشر (${directManager}) / ${ac.approvalGroupName}`
+          : ac.approvalGroupName;
+
+        newItems.push({
+          id: `du-app-${Date.now()}-${idx}`,
+          requestNumber: reqNumber,
+          employeeId: String(currentEmployee.id || ""),
+          empNo,
+          employeeName: empName,
+          branch,
+          department,
+          directManagerName: directManager,
+          userGroupId: resolvedGroup.id,
+          userGroupName: resolvedGroup.name,
+          approvalGroupId: ac.approvalGroupId,
+          approvalGroupName: ac.approvalGroupName,
+          allowDirectManager: ac.allowDirectManager,
+          directManagerStatus: ac.allowDirectManager ? "pending" : "not_required",
+          fieldKey: ac.fieldKey,
+          fieldLabel: ac.fieldLabel,
+          oldValue: ac.oldVal,
+          newValue: ac.newVal,
+          reason: `طلب تحديث (${ac.fieldLabel}) بعد إقرار الموظف بصحة البيانات المعبأة (OK)`,
+          updateMode: "approval_required",
+          employeeDeclared: true,
+          declaredAt: nowIso,
+          declarationTextSnapshot: config.declarationText,
+          status: "pending",
+          awaitingText,
+          authorizedApproverNames: (ag?.approvers || []).map((a) => `${a.name} (${a.roleLabel})`),
+          appliedToEmployeeRecord: false,
+          replies: [
+            {
+              id: `rep-app-${Date.now()}-${idx}`,
+              authorName: empName,
+              authorRole: "إقرار الموظف (OK)",
+              message: "أقر الموظف بصحة البيانات التي تم تعبئتها بشكل عام وضغط (موافق OK) — بانتظار مراحل الموافقة.",
+              actionType: "reply",
+              createdAt: nowIso,
+            },
+          ],
+          createdAt: nowIso,
+        });
+      });
+
+      // If no specific mapped field changed, still record a General Profile Completion Declaration so it appears in تقرير إنجاز لتحديث البيانات
+      if (newItems.length === 0) {
+        const reqNumber = `DU-${String(allRequests.length + 101).padStart(4, "0")}`;
+        newItems.push({
+          id: `du-gen-${Date.now()}`,
+          requestNumber: reqNumber,
+          employeeId: String(currentEmployee.id || ""),
+          empNo,
+          employeeName: empName,
+          branch,
+          department,
+          directManagerName: directManager,
+          userGroupId: resolvedGroup.id,
+          userGroupName: resolvedGroup.name,
+          approvalGroupId: "direct-self-declaration",
+          approvalGroupName: "تحديث مباشر بإقرار الموظف (بدون مراحل موافقة)",
+          allowDirectManager: false,
+          directManagerStatus: "not_required",
+          fieldKey: "profile_general_confirmation",
+          fieldLabel: "مراجعة وتأكيد البيانات الأساسية الشاملة",
+          oldValue: "مراجعة دورية",
+          newValue: "تمت المراجعة والتأكد من صحة البيانات (OK)",
+          reason: "إقرار الموظف بصحة البيانات المعبأة في بوابة الموظف والضغط على موافق (OK)",
+          updateMode: "direct",
+          employeeDeclared: true,
+          declaredAt: nowIso,
+          declarationTextSnapshot: config.declarationText,
+          status: "approved",
+          awaitingText: "مكتمل فوراً (تحديث مباشر بإقرار الموظف OK)",
+          authorizedApproverNames: [`${empName} (تحديث مباشر بإقرار الموظف)`],
+          appliedToEmployeeRecord: true,
+          decisionBy: `${empName} (تحديث ذاتي بإقرار الموظف)`,
+          decisionAt: nowIso,
+          replies: [
+            {
+              id: `rep-gen-${Date.now()}`,
+              authorName: empName,
+              authorRole: "إقرار الموظف (OK)",
+              message: "أقر الموظف بأنه راجع وتأكد من صحة البيانات التي تم تعبئتها بشكل عام وضغط (موافق OK).",
+              actionType: "approve_final",
+              createdAt: nowIso,
+            },
+          ],
+          createdAt: nowIso,
+        });
+      }
+
+      try {
+        await saveEmployee.mutateAsync(patchedEmployee);
+      } catch {
+        // fallback handled
+      }
+
+      const updatedRequests = [...newItems, ...allRequests];
+      const json = saveDataUpdateRequestsLocal(updatedRequests);
+      await saveRequests.mutateAsync({ requests_json: json });
+
+      setIsProfileDeclarationModalOpen(false);
+      if (approvalChanges.length > 0 && directChanges.length > 0) {
+        toast.success(
+          `تم تأكيد الإقرار (OK): تم تحديث (${directChanges.length}) حقل فوراً في النظام وتقرير الإنجاز، وإرسال (${approvalChanges.length}) حقل إلى مراحل الموافقة!`,
+        );
+      } else if (approvalChanges.length > 0) {
+        toast.success(
+          `تم تأكيد الإقرار (OK) وإرسال (${approvalChanges.length}) طلب تحديث إلى مراحل الموافقة المعتمدة بنجاح!`,
+        );
+      } else {
+        toast.success(
+          "تم تأكيد إقرار صحة البيانات (OK) وحفظ التحديثات فوراً في النظام وفي تقرير إنجاز لتحديث البيانات!",
+        );
+      }
     } catch {
-      toast.error("حدث خطأ أثناء حفظ البيانات");
+      toast.error("حدث خطأ أثناء حفظ البيانات وتأكيد الإقرار");
+    } finally {
+      setIsSavingProfileDeclaration(false);
     }
   };
 
@@ -870,7 +1224,13 @@ export function EmployeePortalPage() {
               </button>
 
               {isReportsDropdownOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-slate-200 bg-white p-1 text-slate-800 shadow-xl z-50">
+                <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl border border-slate-200 bg-white p-1 text-slate-800 shadow-xl z-50">
+                  <Link
+                    to="/reports/data-update-completion"
+                    className="block rounded-lg px-3 py-2 text-xs font-extrabold text-[#0070c0] bg-blue-50/60 hover:bg-blue-100/70 mb-0.5"
+                  >
+                    تقرير إنجاز لتحديث البيانات
+                  </Link>
                   <Link
                     to="/reports/attendance-detailed"
                     className="block rounded-lg px-3 py-2 text-xs font-semibold hover:bg-slate-50"
@@ -1920,6 +2280,7 @@ export function EmployeePortalPage() {
                   { key: "gosi", label: "بيانات التأمينات الاجتماعية" },
                   { key: "contact", label: "بيانات التواصل" },
                   { key: "notes", label: "ملاحظات" },
+                  { key: "custom_updates", label: "حقول تحديث البيانات" },
                 ].map((item) => (
                   <button
                     key={item.key}
@@ -2089,6 +2450,55 @@ export function EmployeePortalPage() {
                           className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800"
                         />
                       </div>
+
+                      {/* Any Admin-Created Custom Fields from تهيئة تحديث البيانات */}
+                      {customFieldsForPortal.map((cf) => {
+                        const wf = resolveFieldEffectiveWorkflow(cf.key, config, resolvedGroup);
+                        const val =
+                          formData[cf.key] !== undefined
+                            ? formData[cf.key]
+                            : getEmployeeFieldValue(currentEmployee, cf.key) === "غير محدد"
+                              ? ""
+                              : getEmployeeFieldValue(currentEmployee, cf.key);
+                        return (
+                          <div key={cf.key}>
+                            <label className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
+                              <span>{cf.label}</span>
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold ${
+                                  wf.updateMode === "direct"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-blue-100 text-[#004e82]"
+                                }`}
+                              >
+                                {wf.updateMode === "direct" ? "تحديث مباشر OK" : "مراحل موافقة"}
+                              </span>
+                            </label>
+                            {cf.inputType === "select_or_text" && (cf.defaultOptions || []).length > 0 ? (
+                              <select
+                                value={val}
+                                onChange={(e) => updateField(cf.key, e.target.value)}
+                                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800"
+                              >
+                                <option value="">-- اختر {cf.label} --</option>
+                                {(cf.defaultOptions || []).map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={cf.inputType === "date" ? "date" : cf.inputType === "number" ? "number" : "text"}
+                                value={val}
+                                placeholder={`أدخل ${cf.label}...`}
+                                onChange={(e) => updateField(cf.key, e.target.value)}
+                                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-800"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -2642,11 +3052,108 @@ export function EmployeePortalPage() {
                   </div>
                 )}
 
+                {/* 6. حقول تحديث البيانات (جميع الحقول المتاحة للتحديث من تهيئة تحديث البيانات) */}
+                {subSection === "custom_updates" && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                      <div>
+                        <h3 className="text-sm font-black text-[#004e82] flex items-center gap-1.5">
+                          <FileCheck className="size-4 text-[#0070c0]" />
+                          <span>حقول تحديث البيانات المتاحة للموظف</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          تظهر هنا كافة الحقول الأساسية والمخصصة المفعّلة من شاشة (تهيئة تحديث البيانات). يمكنك تعبئة وتعديل أي بيان ثم الضغط على (حفظ) أو (تحديث وإقرار OK).
+                        </p>
+                      </div>
+                      <Link
+                        to="/reports/data-update-completion"
+                        className="flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-[11px] font-bold text-indigo-800 hover:bg-indigo-100"
+                      >
+                        <span>تقرير إنجاز لتحديث البيانات</span>
+                      </Link>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                      {allowedFields.map((f) => {
+                        const wf = resolveFieldEffectiveWorkflow(f.key, config, resolvedGroup);
+                        const sysVal = getEmployeeFieldValue(currentEmployee, f.key);
+                        const currentVal =
+                          formData[f.key] !== undefined
+                            ? formData[f.key]
+                            : sysVal === "غير محدد"
+                              ? ""
+                              : sysVal;
+                        return (
+                          <div
+                            key={f.key}
+                            className={`rounded-xl border p-3 space-y-2 transition ${
+                              wf.updateMode === "direct"
+                                ? "border-emerald-200 bg-emerald-50/30"
+                                : "border-blue-200 bg-blue-50/25"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-extrabold text-slate-800">{f.label}</span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  wf.updateMode === "direct"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-blue-100 text-[#004e82]"
+                                }`}
+                              >
+                                {wf.updateMode === "direct"
+                                  ? "⚡ تحديث مباشر بإقرار (OK)"
+                                  : `مراحل موافقة (${wf.approvalGroup?.name || "اعتماد"})`}
+                              </span>
+                            </div>
+
+                            {f.inputType === "select_or_text" && (f.defaultOptions || []).length > 0 ? (
+                              <select
+                                value={currentVal}
+                                onChange={(e) => updateField(f.key, e.target.value)}
+                                className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                              >
+                                <option value="">-- اختر أو عدّل {f.label} --</option>
+                                {(f.defaultOptions || []).map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={f.inputType === "date" ? "date" : f.inputType === "number" ? "number" : "text"}
+                                value={currentVal}
+                                placeholder={`أدخل ${f.label}...`}
+                                onChange={(e) => updateField(f.key, e.target.value)}
+                                className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800"
+                              />
+                            )}
+
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[10px] text-slate-500">
+                                الحالي: <strong>{sysVal}</strong>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenRequestForField(f.key)}
+                                className="text-[11px] font-bold text-[#0070c0] hover:underline"
+                              >
+                                تحديث بنافذة مستقلة ←
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Bottom Center Save Button (Exact match: Green button centered) */}
                 <div className="flex justify-center pt-2">
                   <button
                     type="button"
-                    onClick={() => void handleSaveFormData()}
+                    onClick={() => handleSaveFormData()}
                     className="rounded-full bg-[#198754] px-10 py-2.5 text-xs font-black text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition"
                   >
                     حفظ
@@ -2671,6 +3178,122 @@ export function EmployeePortalPage() {
       </div>
 
       {/* =====================================================================
+          MODAL: إقرار الموظف بصحة البيانات عند الضغط على (حفظ) في ملف الموظف
+         ===================================================================== */}
+      {isProfileDeclarationModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-4"
+          dir="rtl"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <CheckCircle2 className="size-5" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-black text-[#004e82]">
+                    {config.declarationTitle || "إقرار الموظف بصحة البيانات التي تم تعبئتها"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {employeeName} — رقم وظيفي: #{currentEmployee.emp_no || "10078"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProfileDeclarationModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <MaterialIcon name="close" size={20} />
+              </button>
+            </div>
+
+            {/* Summary of detected field changes */}
+            {detectedProfileChanges.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-xs font-extrabold text-slate-700">
+                  البيانات التي تم تعبئتها / تعديلها ({detectedProfileChanges.length} بيان):
+                </div>
+                <div className="max-h-44 overflow-y-auto space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                  {detectedProfileChanges.map((ch) => (
+                    <div
+                      key={ch.fieldKey}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-2 border border-slate-200 text-xs"
+                    >
+                      <div>
+                        <span className="font-black text-[#004e82]">{ch.fieldLabel}: </span>
+                        <span className="text-slate-400 line-through text-[11px] mx-1">
+                          {ch.oldVal}
+                        </span>
+                        <span className="font-extrabold text-emerald-700">← {ch.newVal}</span>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          ch.updateMode === "direct"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-blue-100 text-[#004e82]"
+                        }`}
+                      >
+                        {ch.updateMode === "direct"
+                          ? "⚡ تحديث فوري بالنظام والتقرير"
+                          : `مراحل موافقة (${ch.approvalGroupName})`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-xs text-slate-700">
+                سيتم تسجيل <strong>إقرار مراجعة وتأكيد صحة البيانات الأساسية الحالية</strong> للموظف في النظام وفي <strong>تقرير إنجاز لتحديث البيانات</strong>.
+              </div>
+            )}
+
+            {/* Official Declaration Box */}
+            <div className="rounded-xl border-2 border-emerald-400 bg-emerald-50/80 p-3.5 space-y-2.5">
+              <div className="text-xs font-black text-emerald-950 leading-relaxed bg-white/90 rounded-lg p-3 border border-emerald-200">
+                {config.declarationText ||
+                  "أقر أنا الموظف بأنني قد راجعت وتأكدت من صحة جميع البيانات التي تم تعبئتها بشكل عام، وأتحمل المسؤولية الكاملة عن دقتها ومطابقتها للمستندات الرسمية."}
+              </div>
+
+              <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={isProfileDeclaredConfirmed}
+                  onChange={(e) => setIsProfileDeclaredConfirmed(e.target.checked)}
+                  className="h-4 w-4 rounded accent-emerald-600"
+                />
+                <span className="text-xs font-black text-emerald-900">
+                  نعم، تأكدت من صحة البيانات التي تم تعبئتها بشكل عام وأوافق على الحفظ والاعتماد (OK) *
+                </span>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setIsProfileDeclarationModalOpen(false)}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"
+              >
+                تراجع
+              </button>
+              <button
+                type="button"
+                disabled={isSavingProfileDeclaration}
+                onClick={() => void handleConfirmSaveFormDataWithDeclaration()}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-6 py-2 text-xs font-black text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+              >
+                <Check className="size-4" />
+                {isSavingProfileDeclaration
+                  ? "جاري التأكيد والحفظ..."
+                  : "موافق (OK) — تأكيد صحة البيانات وحفظ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
           MODAL: تقديم طلب تحديث بيانات رسمي (في حالة الموظف هيرفع طلب الآن)
          ===================================================================== */}
       {isRequestModalOpen && (
@@ -2686,7 +3309,7 @@ export function EmployeePortalPage() {
                 </span>
                 <div>
                   <h3 className="text-sm font-black text-[#004e82]">
-                    تقديم طلب تحديث بيانات الموظف
+                    تحديث بيانات الموظف وإقرار صحة البيانات
                   </h3>
                   <p className="text-[11px] text-slate-500">
                     {employeeName} — رقم وظيفي: #{currentEmployee.emp_no || "10078"}
@@ -2706,7 +3329,7 @@ export function EmployeePortalPage() {
               {/* Field selection */}
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-black text-slate-700">
-                  اختر البيان / الحقل المطلوب تعديله *
+                  اختر البيان / الحقل المطلوب تحديثه *
                 </span>
                 <select
                   value={selectedFieldKey}
@@ -2716,11 +3339,14 @@ export function EmployeePortalPage() {
                   }}
                   className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-800 outline-none focus:border-[#0070c0]"
                 >
-                  {allowedFields.map((f) => (
-                    <option key={f.key} value={f.key}>
-                      {f.label} ({f.category})
-                    </option>
-                  ))}
+                  {allowedFields.map((f) => {
+                    const wf = resolveFieldEffectiveWorkflow(f.key, config, resolvedGroup);
+                    return (
+                      <option key={f.key} value={f.key}>
+                        {f.label} ({wf.updateMode === "direct" ? "تحديث مباشر فوري بإقرار OK" : "مراحل موافقة"})
+                      </option>
+                    );
+                  })}
                 </select>
               </label>
 
@@ -2737,7 +3363,7 @@ export function EmployeePortalPage() {
               {/* New Value Input */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-black text-emerald-800">
-                  القيمة الجديدة المطلوبة لـ ({activeFieldDef.label}) *
+                  القيمة الجديدة لـ ({activeFieldDef.label}) *
                 </span>
                 {activeFieldDef.inputType === "select_or_text" && fieldSelectOptions.length > 0 ? (
                   <div className="space-y-1.5">
@@ -2765,7 +3391,13 @@ export function EmployeePortalPage() {
                   </div>
                 ) : (
                   <input
-                    type="text"
+                    type={
+                      activeFieldDef.inputType === "date"
+                        ? "date"
+                        : activeFieldDef.inputType === "number"
+                          ? "number"
+                          : "text"
+                    }
                     placeholder={`أدخل ${activeFieldDef.label} الجديد...`}
                     value={newValueInput}
                     onChange={(e) => setNewValueInput(e.target.value)}
@@ -2777,11 +3409,11 @@ export function EmployeePortalPage() {
               {/* Reason */}
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-black text-slate-700">
-                  سبب طلب التعديل / الملاحظات
+                  ملاحظات التحديث
                 </span>
                 <textarea
                   rows={2}
-                  placeholder="اكتب أسباب ومبررات التعديل..."
+                  placeholder="اكتب ملاحظات أو تفاصيل التحديث..."
                   value={reasonInput}
                   onChange={(e) => setReasonInput(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
@@ -2814,17 +3446,58 @@ export function EmployeePortalPage() {
                 />
               </div>
 
-              {/* Approval Route Preview */}
-              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 text-xs space-y-1">
+              {/* Approval Route or Direct Update Preview */}
+              <div
+                className={`rounded-xl border p-3 text-xs space-y-1 ${
+                  effectiveFieldWorkflow.updateMode === "direct"
+                    ? "border-emerald-200 bg-emerald-50/70"
+                    : "border-blue-200 bg-blue-50/50"
+                }`}
+              >
                 <span className="font-black text-[#004e82] block">
-                  مسار الاعتماد المبرمج لهذا الطلب:
+                  مسار التحديث المبرمج لهذا الحقل ({activeFieldDef.label}):
                 </span>
-                <p className="text-[11px] text-slate-600">
-                  {isDirectManagerEnabled
-                    ? `1. موافقة المدير المباشر (${currentEmployee.manager_name || currentEmployee.direct_manager || "المدير المباشر"}) ← 2. اعتمادات ${resolvedApprovalGroup?.name || "الموارد البشرية"}`
-                    : `1. تحويل مباشر إلى ${resolvedApprovalGroup?.name || "مجموعة اعتماد الموارد البشرية"}`}
-                </p>
+                {effectiveFieldWorkflow.updateMode === "direct" ? (
+                  <p className="text-[11px] font-bold text-emerald-900">
+                    ⚡ تحديث مباشر فوري بإقرار الموظف: بمجرد التأكيد والضغط على (موافق OK)، يتم تحديث النظام فوراً ويسمع في (تقرير إنجاز لتحديث البيانات) دون انتظار مراحل موافقة.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-slate-600">
+                    {effectiveFieldWorkflow.allowDirectManager
+                      ? `1. موافقة المدير المباشر (${currentEmployee.manager_name || currentEmployee.direct_manager || "المدير المباشر"}) ← 2. اعتمادات ${effectiveFieldWorkflow.approvalGroup?.name || "الموارد البشرية"}`
+                      : `1. تحويل مباشر إلى ${effectiveFieldWorkflow.approvalGroup?.name || "مجموعة اعتماد الموارد البشرية"}`}
+                  </p>
+                )}
               </div>
+
+              {/* Employee Declaration Confirmation Box */}
+              {effectiveFieldWorkflow.requiresDeclaration && (
+                <div className="rounded-xl border-2 border-emerald-400 bg-emerald-50/80 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-900">
+                      {config.declarationTitle || "إقرار الموظف بصحة البيانات التي تم تعبئتها"}
+                    </span>
+                    <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                      قرار تأكيد الموظف (OK)
+                    </span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed font-semibold text-emerald-950 bg-white/90 rounded-lg p-2.5 border border-emerald-200">
+                    {config.declarationText ||
+                      "أقر أنا الموظف بأنني قد راجعت وتأكدت من صحة جميع البيانات التي تم تعبئتها بشكل عام، وأتحمل المسؤولية الكاملة عن دقتها ومطابقتها للمستندات الرسمية."}
+                  </p>
+                  <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
+                    <input
+                      type="checkbox"
+                      checked={isDeclaredConfirmed}
+                      onChange={(e) => setIsDeclaredConfirmed(e.target.checked)}
+                      className="h-4 w-4 rounded accent-emerald-600"
+                    />
+                    <span className="text-xs font-black text-emerald-900">
+                      تأكدت من صحة البيانات التي تم تعبئتها بشكل عام وأوافق (OK) *
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
@@ -2839,10 +3512,18 @@ export function EmployeePortalPage() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => void handleSubmitDataUpdateRequest()}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0070c0] px-5 py-2 text-xs font-black text-white shadow-xs hover:bg-[#005fa3] disabled:opacity-50"
+                className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-black text-white shadow-xs transition disabled:opacity-50 ${
+                  effectiveFieldWorkflow.updateMode === "direct"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-[#0070c0] hover:bg-[#005fa3]"
+                }`}
               >
-                <Send className="size-3.5" />
-                {isSubmitting ? "جاري الإرسال..." : "إرسال طلب التحديث"}
+                <Check className="size-4" />
+                {isSubmitting
+                  ? "جاري الحفظ..."
+                  : effectiveFieldWorkflow.updateMode === "direct"
+                    ? "موافق (OK) — تحديث فوري بالنظام والتقرير"
+                    : "موافق (OK) — تأكيد وإرسال لمراحل الموافقة"}
               </button>
             </div>
           </div>

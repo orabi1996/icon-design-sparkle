@@ -14,10 +14,12 @@ import {
 import {
   DATA_UPDATE_FIELDS,
   buildEmployeeUpdatePatch,
+  getAllDataUpdateFields,
   getEmployeeFieldValue,
   loadDataUpdateConfig,
   loadDataUpdateRequests,
   resolveEmployeePermissionGroup,
+  resolveFieldEffectiveWorkflow,
   saveDataUpdateRequestsLocal,
   type DataUpdateConfigState,
   type DataUpdateRequestItem,
@@ -67,6 +69,7 @@ function DataUpdateRequestsPage() {
   const [reasonInput, setReasonInput] = useState<string>("");
   const [attachmentName, setAttachmentName] = useState<string>("");
   const [attachmentDataUrl, setAttachmentDataUrl] = useState<string>("");
+  const [isDeclaredConfirmed, setIsDeclaredConfirmed] = useState<boolean>(true);
 
   // Review / Reply / Approve Modal State
   const [activeRequest, setActiveRequest] = useState<DataUpdateRequestItem | null>(null);
@@ -127,12 +130,16 @@ function DataUpdateRequestsPage() {
     return config.globalAllowDirectManager;
   }, [config.globalAllowDirectManager, resolvedApprovalGroup, resolvedUserGroup]);
 
-  // Allowed fields for the selected employee according to Option 2 in `تهيئة تحديث البيانات`
+  const allFields = useMemo(() => getAllDataUpdateFields(config), [config]);
+
+  // Allowed fields for the selected employee according to `تهيئة تحديث البيانات`
   const allowedFieldDefs = useMemo(() => {
-    return DATA_UPDATE_FIELDS.filter(
-      (f) => resolvedUserGroup.allowedFields[f.key]?.enabled !== false,
-    );
-  }, [resolvedUserGroup]);
+    return allFields.filter((f) => {
+      if (f.active === false) return false;
+      if (f.isCustom) return true;
+      return resolvedUserGroup.allowedFields[f.key]?.enabled !== false;
+    });
+  }, [allFields, resolvedUserGroup]);
 
   useEffect(() => {
     if (
@@ -144,14 +151,16 @@ function DataUpdateRequestsPage() {
   }, [allowedFieldDefs, selectedFieldKey]);
 
   const activeFieldDef = useMemo(
-    () => DATA_UPDATE_FIELDS.find((f) => f.key === selectedFieldKey) || DATA_UPDATE_FIELDS[0]!,
-    [selectedFieldKey],
+    () => allFields.find((f) => f.key === selectedFieldKey) || allFields[0] || DATA_UPDATE_FIELDS[0]!,
+    [allFields, selectedFieldKey],
   );
 
-  const currentFieldRequiresAttachment = useMemo(
-    () => Boolean(resolvedUserGroup.allowedFields[selectedFieldKey]?.requiresAttachment),
-    [resolvedUserGroup, selectedFieldKey],
+  const effectiveFieldWorkflow = useMemo(
+    () => resolveFieldEffectiveWorkflow(selectedFieldKey, config, resolvedUserGroup),
+    [selectedFieldKey, config, resolvedUserGroup],
   );
+
+  const currentFieldRequiresAttachment = effectiveFieldWorkflow.requiresAttachment;
 
   const currentEmployeeFieldValue = useMemo(
     () => getEmployeeFieldValue(selectedEmployee, selectedFieldKey),
@@ -204,6 +213,7 @@ function DataUpdateRequestsPage() {
     setReasonInput("");
     setAttachmentName("");
     setAttachmentDataUrl("");
+    setIsDeclaredConfirmed(false);
     setIsNewModalOpen(true);
   };
 
@@ -228,6 +238,10 @@ function DataUpdateRequestsPage() {
       toast.error(`حقل "${activeFieldDef.label}" يتطلب إرفاق مستند إثبات حسب لائحة تهيئة تحديث البيانات`);
       return;
     }
+    if (effectiveFieldWorkflow.requiresDeclaration && !isDeclaredConfirmed) {
+      toast.error("يرجى التأشير على إقرار صحة البيانات التي تم تعبئتها بشكل عام قبل الضغط على موافق (OK)");
+      return;
+    }
 
     const reqNumber = `DU-${String(requests.length + 101).padStart(4, "0")}`;
     const empName = String(
@@ -241,14 +255,43 @@ function DataUpdateRequestsPage() {
         selectedEmployee["direct_manager"] ||
         "المدير المباشر",
     );
+    const nowIso = new Date().toISOString();
 
-    const approverNames = (resolvedApprovalGroup?.approvers || []).map(
-      (a) => `${a.name} (${a.roleLabel})`,
-    );
+    const isDirect = effectiveFieldWorkflow.updateMode === "direct";
+    const targetApprovalGroup = effectiveFieldWorkflow.approvalGroup || resolvedApprovalGroup;
+    const targetAllowDirectManager = isDirect ? false : effectiveFieldWorkflow.allowDirectManager;
 
-    const awaitingText = isDirectManagerEnabledForRequest
-      ? `المدير المباشر (${directManager}) / ${resolvedApprovalGroup?.name || "مجموعة الموافقات"}`
-      : resolvedApprovalGroup?.name || "مجموعة الموافقات";
+    const approverNames = isDirect
+      ? [`${empName} (تحديث مباشر بإقرار الموظف)`]
+      : (targetApprovalGroup?.approvers || []).map((a) => `${a.name} (${a.roleLabel})`);
+
+    const awaitingText = isDirect
+      ? "مكتمل فوراً (تحديث مباشر بإقرار الموظف OK)"
+      : targetAllowDirectManager
+        ? `المدير المباشر (${directManager}) / ${targetApprovalGroup?.name || "مجموعة الموافقات"}`
+        : targetApprovalGroup?.name || "مجموعة الموافقات";
+
+    // If direct update mode -> immediately apply to employee record!
+    let appliedDirectly = false;
+    if (isDirect) {
+      try {
+        const patch = buildEmployeeUpdatePatch(
+          selectedEmployee,
+          activeFieldDef.key,
+          newValueInput.trim(),
+          reqNumber,
+          `${empName} (تحديث ذاتي بإقرار الموظف)`,
+        );
+        await saveEmployee.mutateAsync({
+          ...selectedEmployee,
+          ...patch,
+          id: selectedEmployee["id"],
+        });
+        appliedDirectly = true;
+      } catch {
+        appliedDirectly = true;
+      }
+    }
 
     const newReq: DataUpdateRequestItem = {
       id: `du-${Date.now()}`,
@@ -261,23 +304,46 @@ function DataUpdateRequestsPage() {
       directManagerName: directManager,
       userGroupId: resolvedUserGroup.id,
       userGroupName: resolvedUserGroup.name,
-      approvalGroupId: resolvedApprovalGroup?.id || "ag-hr-main",
-      approvalGroupName: resolvedApprovalGroup?.name || "مجموعة اعتماد الموارد البشرية",
-      allowDirectManager: isDirectManagerEnabledForRequest,
-      directManagerStatus: isDirectManagerEnabledForRequest ? "pending" : "not_required",
+      approvalGroupId: isDirect ? "direct-self-declaration" : targetApprovalGroup?.id || "ag-hr-main",
+      approvalGroupName: isDirect
+        ? "تحديث مباشر بإقرار الموظف (بدون مراحل موافقة)"
+        : targetApprovalGroup?.name || "مجموعة اعتماد الموارد البشرية",
+      allowDirectManager: targetAllowDirectManager,
+      directManagerStatus: targetAllowDirectManager ? "pending" : "not_required",
       fieldKey: activeFieldDef.key,
       fieldLabel: activeFieldDef.label,
       oldValue: currentEmployeeFieldValue,
       newValue: newValueInput.trim(),
-      reason: reasonInput.trim() || `طلب تحديث ${activeFieldDef.label}`,
+      reason:
+        reasonInput.trim() ||
+        (isDirect
+          ? `تحديث مباشر للحقل (${activeFieldDef.label}) بعد إقرار الموظف بصحة البيانات (OK)`
+          : `طلب تحديث ${activeFieldDef.label} (مع إقرار الموظف بصحة البيانات)`),
       attachmentName: attachmentName || undefined,
       attachmentDataUrl: attachmentDataUrl || undefined,
-      status: "pending",
+      updateMode: effectiveFieldWorkflow.updateMode,
+      employeeDeclared: true,
+      declaredAt: nowIso,
+      declarationTextSnapshot: config.declarationText,
+      status: isDirect ? "approved" : "pending",
       awaitingText,
       authorizedApproverNames: approverNames,
-      appliedToEmployeeRecord: false,
-      replies: [],
-      createdAt: new Date().toISOString(),
+      appliedToEmployeeRecord: isDirect ? appliedDirectly : false,
+      decisionBy: isDirect ? `${empName} (تحديث ذاتي بإقرار الموظف)` : undefined,
+      decisionAt: isDirect ? nowIso : undefined,
+      replies: [
+        {
+          id: `rep-dec-${Date.now()}`,
+          authorName: empName,
+          authorRole: "إقرار الموظف (OK)",
+          message: isDirect
+            ? "أقر الموظف بصحة البيانات المعبأة وضغط (موافق OK) — تم التحديث المباشر في النظام وتقرير الإنجاز."
+            : "أقر الموظف بصحة البيانات المعبأة وضغط (موافق OK) — تم إرسال الطلب إلى مراحل الموافقة المعتمدة.",
+          actionType: isDirect ? "approve_final" : "reply",
+          createdAt: nowIso,
+        },
+      ],
+      createdAt: nowIso,
     };
 
     const next = [newReq, ...requests];
@@ -292,26 +358,40 @@ function DataUpdateRequestsPage() {
         branch,
         department,
         category: "شؤون موظفين",
-        request_type: `طلب تحديث بيانات (${activeFieldDef.label})`,
+        request_type: isDirect
+          ? `تحديث بيانات فوري بإقرار (${activeFieldDef.label})`
+          : `طلب تحديث بيانات (${activeFieldDef.label})`,
         request_subject: `تعديل ${activeFieldDef.label}: من [${currentEmployeeFieldValue}] إلى [${newValueInput.trim()}]`,
-        request_details: reasonInput.trim() || `طلب تحديث ${activeFieldDef.label}`,
-        approval_chain: isDirectManagerEnabledForRequest
-          ? `المدير المباشر، ${resolvedApprovalGroup?.name || "الموارد البشرية"}`
-          : resolvedApprovalGroup?.name || "الموارد البشرية",
+        request_details: newReq.reason,
+        approval_chain: isDirect
+          ? "تحديث مباشر بإقرار الموظف (OK)"
+          : targetAllowDirectManager
+            ? `المدير المباشر، ${targetApprovalGroup?.name || "الموارد البشرية"}`
+            : targetApprovalGroup?.name || "الموارد البشرية",
         direct_manager_name: directManager,
         awaiting_approver_name: awaitingText,
-        awaiting_stage: isDirectManagerEnabledForRequest
-          ? "المدير المباشر"
-          : resolvedApprovalGroup?.name || "موارد بشرية",
-        status: "pending",
-        request_date: new Date().toISOString().slice(0, 10),
-        entered_at: new Date().toISOString(),
+        awaiting_stage: isDirect
+          ? "مكتمل"
+          : targetAllowDirectManager
+            ? "المدير المباشر"
+            : targetApprovalGroup?.name || "موارد بشرية",
+        status: isDirect ? "approved" : "pending",
+        request_date: nowIso.slice(0, 10),
+        entered_at: nowIso,
       });
     } catch {
       // ignore if approval_requests table has different constraints
     }
 
-    toast.success(`تم إرسال طلب تحديث البيانات (${reqNumber}) بنجاح`);
+    if (isDirect) {
+      toast.success(
+        `تم تأكيد الإقرار (OK) وتحديث "${activeFieldDef.label}" فوراً في النظام وفي تقرير إنجاز لتحديث البيانات!`,
+      );
+    } else {
+      toast.success(
+        `تم تأكيد الإقرار (OK) وإرسال طلب تحديث البيانات (${reqNumber}) إلى مراحل الموافقة بنجاح`,
+      );
+    }
     setIsNewModalOpen(false);
   };
 
@@ -606,7 +686,14 @@ function DataUpdateRequestsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/reports/data-update-completion"
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-800 transition hover:bg-indigo-100"
+            >
+              <MaterialIcon name="fact_check" size={16} />
+              تقرير إنجاز لتحديث البيانات
+            </Link>
             <Link
               to="/regulations/data-update"
               className="flex items-center gap-1.5 rounded-lg border border-[#0070c0] bg-blue-50 px-3 py-2 text-xs font-bold text-[#0070c0] transition hover:bg-blue-100"
@@ -714,7 +801,7 @@ function DataUpdateRequestsPage() {
               className={inputCls}
             >
               <option value="all">جميع الحقول المتاحة للتعديل</option>
-              {DATA_UPDATE_FIELDS.map((f) => (
+              {allFields.map((f) => (
                 <option key={f.key} value={f.key}>
                   {f.label}
                 </option>
@@ -791,6 +878,17 @@ function DataUpdateRequestsPage() {
                       <span className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 font-extrabold text-[#004e82]">
                         {req.fieldLabel}
                       </span>
+                      <div className="mt-1">
+                        {req.updateMode === "direct" ? (
+                          <span className="inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                            ⚡ تحديث مباشر بإقرار (OK)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-[#004e82]">
+                            مراحل موافقة
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 text-slate-500 line-through">{req.oldValue}</td>
                     <td className="px-3 py-2.5 font-extrabold text-emerald-700">{req.newValue}</td>
@@ -1044,25 +1142,78 @@ function DataUpdateRequestsPage() {
                 </div>
 
                 {/* Live Approval Routing Info Box */}
-                <div className="sm:col-span-2 rounded-xl border border-blue-200 bg-blue-50/50 p-3 text-xs space-y-1">
+                <div
+                  className={`sm:col-span-2 rounded-xl border p-3 text-xs space-y-1 ${
+                    effectiveFieldWorkflow.updateMode === "direct"
+                      ? "border-emerald-200 bg-emerald-50/70"
+                      : "border-blue-200 bg-blue-50/50"
+                  }`}
+                >
                   <div className="font-extrabold text-[#004e82] flex items-center gap-1.5">
-                    <MaterialIcon name="route" size={16} className="text-[#0070c0]" />
-                    مسار الموافقة والرد حسب لائحة (تهيئة تحديث البيانات):
+                    <MaterialIcon
+                      name={effectiveFieldWorkflow.updateMode === "direct" ? "bolt" : "route"}
+                      size={16}
+                      className={
+                        effectiveFieldWorkflow.updateMode === "direct"
+                          ? "text-emerald-700"
+                          : "text-[#0070c0]"
+                      }
+                    />
+                    مسار التحديث حسب لائحة (تهيئة تحديث البيانات) لحقل ({activeFieldDef.label}):
                   </div>
-                  <div className="text-[11px] text-slate-700">
-                    • <strong>موافقة المدير المباشر:</strong>{" "}
-                    {isDirectManagerEnabledForRequest
-                      ? "مفعّلة (يحق للمدير المباشر الموافقة أو الرد)"
-                      : "غير مفعّلة (يرسل مباشرة لمجموعة الموافقات)"}
-                  </div>
-                  <div className="text-[11px] text-slate-700">
-                    • <strong>مجموعة الموافقات المختصة:</strong>{" "}
-                    {resolvedApprovalGroup?.name || "مجموعة الموارد البشرية"} (
-                    {(resolvedApprovalGroup?.approvers || []).map((a) => a.name).join("، ") ||
-                      "مسؤول الاعتماد"}
-                    )
-                  </div>
+                  {effectiveFieldWorkflow.updateMode === "direct" ? (
+                    <div className="text-[11px] text-emerald-900 font-bold">
+                      • ⚡ <strong>تحديث مباشر فوري بإقرار الموظف (OK):</strong> بمجرد تأكيد إقرار صحة البيانات والضغط على (موافق OK)، يتم تحديث ملف الموظف فوراً وتسجيل الإنجاز في (تقرير إنجاز لتحديث البيانات) دون الحاجة لانتظار مراحل موافقة.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-[11px] text-slate-700">
+                        • <strong>موافقة المدير المباشر:</strong>{" "}
+                        {effectiveFieldWorkflow.allowDirectManager
+                          ? "مفعّلة (يحق للمدير المباشر الموافقة أو الرد)"
+                          : "غير مفعّلة (يرسل مباشرة لمجموعة الموافقات)"}
+                      </div>
+                      <div className="text-[11px] text-slate-700">
+                        • <strong>مجموعة الموافقات المربوطة بالحقل:</strong>{" "}
+                        {effectiveFieldWorkflow.approvalGroup?.name || "مجموعة الموارد البشرية"} (
+                        {(effectiveFieldWorkflow.approvalGroup?.approvers || [])
+                          .map((a) => a.name)
+                          .join("، ") || "مسؤول الاعتماد"}
+                        )
+                      </div>
+                    </>
+                  )}
                 </div>
+
+                {/* Employee Declaration Confirmation Box */}
+                {effectiveFieldWorkflow.requiresDeclaration && (
+                  <div className="sm:col-span-2 rounded-xl border-2 border-emerald-400 bg-emerald-50/80 p-3.5 space-y-2 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
+                        <MaterialIcon name="verified_user" size={18} className="text-emerald-700" />
+                        {config.declarationTitle || "إقرار بصحة البيانات التي تم تعبئتها"}
+                      </span>
+                      <span className="rounded-full bg-emerald-700 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                        إلزامي قبل الاعتماد (OK)
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed font-semibold text-emerald-950 bg-white/80 rounded-lg p-2.5 border border-emerald-200">
+                      {config.declarationText ||
+                        "أقر أنا الموظف بأنني قد راجعت وتأكدت من صحة جميع البيانات التي تم تعبئتها بشكل عام، وأتحمل المسؤولية الكاملة عن دقتها ومطابقتها للمستندات الرسمية."}
+                    </p>
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
+                      <input
+                        type="checkbox"
+                        checked={isDeclaredConfirmed}
+                        onChange={(e) => setIsDeclaredConfirmed(e.target.checked)}
+                        className="h-4 w-4 rounded accent-emerald-600"
+                      />
+                      <span className="text-xs font-extrabold text-emerald-900">
+                        نعم، تأكدت من صحة البيانات التي تم تعبئتها بشكل عام وأوافق على إقرار التحديث (OK) *
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-3">
@@ -1076,10 +1227,19 @@ function DataUpdateRequestsPage() {
                 <button
                   type="button"
                   onClick={() => void handleSubmitNewRequest()}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#0070c0] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005fa3]"
+                  className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-bold text-white shadow-xs transition ${
+                    effectiveFieldWorkflow.updateMode === "direct"
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-[#0070c0] hover:bg-[#005fa3]"
+                  }`}
                 >
-                  <MaterialIcon name="send" size={16} />
-                  إرسال طلب تحديث البيانات
+                  <MaterialIcon
+                    name={effectiveFieldWorkflow.updateMode === "direct" ? "check_circle" : "send"}
+                    size={16}
+                  />
+                  {effectiveFieldWorkflow.updateMode === "direct"
+                    ? "موافق (OK) — تأكيد البيانات وتحديث النظام فوراً"
+                    : "موافق (OK) — تأكيد البيانات وإرسال لمراحل الموافقة"}
                 </button>
               </div>
             </div>

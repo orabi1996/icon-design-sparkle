@@ -58,6 +58,7 @@ import { Route as ReportsAttendanceStatisticsRouteImport } from './routes/report
 import { Route as ReportsBankStatementRouteImport } from './routes/reports.bank-statement'
 import { Route as ReportsBasicDataRouteImport } from './routes/reports.basic-data'
 import { Route as ReportsDailyLateRouteImport } from './routes/reports.daily-late'
+import { Route as ReportsDataUpdateCompletionRouteImport } from './routes/reports.data-update-completion'
 import { Route as ReportsEarlyCheckoutDaysRouteImport } from './routes/reports.early-checkout-days'
 import { Route as ReportsEmployeeAccountStatementRouteImport } from './routes/reports.employee-account-statement'
 import { Route as ReportsEmployeeCertificatesRouteImport } from './routes/reports.employee-certificates'
@@ -378,6 +379,12 @@ const ReportsDailyLateRoute = ReportsDailyLateRouteImport.update({
   path: '/reports/daily-late',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsDataUpdateCompletionRoute =
+  ReportsDataUpdateCompletionRouteImport.update({
+    id: '/reports/data-update-completion',
+    path: '/reports/data-update-completion',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ReportsEarlyCheckoutDaysRoute =
   ReportsEarlyCheckoutDaysRouteImport.update({
     id: '/reports/early-checkout-days',
@@ -790,6 +797,7 @@ export interface FileRoutesByFullPath {
   '/reports/bank-statement': typeof ReportsBankStatementRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/daily-late': typeof ReportsDailyLateRoute
+  '/reports/data-update-completion': typeof ReportsDataUpdateCompletionRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-account-statement': typeof ReportsEmployeeAccountStatementRoute
   '/reports/employee-certificates': typeof ReportsEmployeeCertificatesRoute
@@ -909,6 +917,7 @@ export interface FileRoutesByTo {
   '/reports/bank-statement': typeof ReportsBankStatementRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/daily-late': typeof ReportsDailyLateRoute
+  '/reports/data-update-completion': typeof ReportsDataUpdateCompletionRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-account-statement': typeof ReportsEmployeeAccountStatementRoute
   '/reports/employee-certificates': typeof ReportsEmployeeCertificatesRoute
@@ -1031,6 +1040,7 @@ export interface FileRoutesById {
   '/reports/bank-statement': typeof ReportsBankStatementRoute
   '/reports/basic-data': typeof ReportsBasicDataRoute
   '/reports/daily-late': typeof ReportsDailyLateRoute
+  '/reports/data-update-completion': typeof ReportsDataUpdateCompletionRoute
   '/reports/early-checkout-days': typeof ReportsEarlyCheckoutDaysRoute
   '/reports/employee-account-statement': typeof ReportsEmployeeAccountStatementRoute
   '/reports/employee-certificates': typeof ReportsEmployeeCertificatesRoute
@@ -1154,6 +1164,7 @@ export interface FileRouteTypes {
     | '/reports/bank-statement'
     | '/reports/basic-data'
     | '/reports/daily-late'
+    | '/reports/data-update-completion'
     | '/reports/early-checkout-days'
     | '/reports/employee-account-statement'
     | '/reports/employee-certificates'
@@ -1273,6 +1284,7 @@ export interface FileRouteTypes {
     | '/reports/bank-statement'
     | '/reports/basic-data'
     | '/reports/daily-late'
+    | '/reports/data-update-completion'
     | '/reports/early-checkout-days'
     | '/reports/employee-account-statement'
     | '/reports/employee-certificates'
@@ -1394,6 +1406,7 @@ export interface FileRouteTypes {
     | '/reports/bank-statement'
     | '/reports/basic-data'
     | '/reports/daily-late'
+    | '/reports/data-update-completion'
     | '/reports/early-checkout-days'
     | '/reports/employee-account-statement'
     | '/reports/employee-certificates'
@@ -1504,6 +1517,7 @@ export interface RootRouteChildren {
   ReportsBankStatementRoute: typeof ReportsBankStatementRoute
   ReportsBasicDataRoute: typeof ReportsBasicDataRoute
   ReportsDailyLateRoute: typeof ReportsDailyLateRoute
+  ReportsDataUpdateCompletionRoute: typeof ReportsDataUpdateCompletionRoute
   ReportsEarlyCheckoutDaysRoute: typeof ReportsEarlyCheckoutDaysRoute
   ReportsEmployeeAccountStatementRoute: typeof ReportsEmployeeAccountStatementRoute
   ReportsEmployeeCertificatesRoute: typeof ReportsEmployeeCertificatesRoute
@@ -1900,6 +1914,13 @@ declare module '@tanstack/react-router' {
       path: '/reports/daily-late'
       fullPath: '/reports/daily-late'
       preLoaderRoute: typeof ReportsDailyLateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/data-update-completion': {
+      id: '/reports/data-update-completion'
+      path: '/reports/data-update-completion'
+      fullPath: '/reports/data-update-completion'
+      preLoaderRoute: typeof ReportsDataUpdateCompletionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/early-checkout-days': {
@@ -2533,6 +2554,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsBankStatementRoute: ReportsBankStatementRoute,
   ReportsBasicDataRoute: ReportsBasicDataRoute,
   ReportsDailyLateRoute: ReportsDailyLateRoute,
+  ReportsDataUpdateCompletionRoute: ReportsDataUpdateCompletionRoute,
   ReportsEarlyCheckoutDaysRoute: ReportsEarlyCheckoutDaysRoute,
   ReportsEmployeeAccountStatementRoute: ReportsEmployeeAccountStatementRoute,
   ReportsEmployeeCertificatesRoute: ReportsEmployeeCertificatesRoute,

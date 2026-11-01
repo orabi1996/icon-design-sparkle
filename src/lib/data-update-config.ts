@@ -1,18 +1,37 @@
 import type { Row } from "@/lib/hr-db";
 
+export type DataUpdateCategory =
+  | "البيانات الوظيفية والتنظيمية"
+  | "البيانات الشخصية والهوية"
+  | "بيانات التواصل والبنك"
+  | "حقول مخصصة لتحديث البيانات";
+
+export type FieldUpdateMode = "direct" | "approval_required";
+
 export interface DataUpdateFieldDef {
   key: string;
   label: string;
-  category: "البيانات الوظيفية والتنظيمية" | "البيانات الشخصية والهوية" | "بيانات التواصل والبنك";
-  inputType: "select_or_text" | "text";
-  lookupCategory?: string;
-  defaultOptions?: string[];
-  isCoreRequested?: boolean;
+  category: DataUpdateCategory;
+  inputType: "select_or_text" | "text" | "date" | "number";
+  lookupCategory?: string | undefined;
+  defaultOptions?: string[] | undefined;
+  isCoreRequested?: boolean | undefined;
+  isCustom?: boolean | undefined;
+  /**
+   * آلية التحديث:
+   * - "direct": تحديث مباشر فوري بعد إقرار الموظف والضغط على موافق (يسمع فوراً في النظام والتقارير)
+   * - "approval_required": مربوط بمجموعة موافقة ويمر بمراحل اعتماد بعد إقرار الموظف
+   */
+  updateMode?: FieldUpdateMode | undefined;
+  linkedApprovalGroupId?: string | undefined;
+  allowDirectManager?: boolean | null | undefined;
+  requiresAttachment?: boolean | undefined;
+  requiresDeclaration?: boolean | undefined;
+  active?: boolean | undefined;
 }
 
 /**
- * الحقول المتاحة لطلب تعديل وتحديث البيانات
- * تشمل الحقول الـ 11 الأساسية المطلوبة + حقول إضافية مساندة
+ * الحقول الأساسية المتاحة لطلب تعديل وتحديث البيانات
  */
 export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
   {
@@ -30,8 +49,17 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
       "المبيعات والتسويق",
       "خدمة العملاء",
       "المشتريات",
+      "ابتدائي",
+      "متوسط",
+      "ثانوي",
     ],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "job_title",
@@ -48,8 +76,15 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
       "مشرف تشغيل",
       "منسق إداري",
       "أخصائي مبيعات",
+      "معلم",
     ],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "job_level",
@@ -57,8 +92,23 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     category: "البيانات الوظيفية والتنظيمية",
     inputType: "select_or_text",
     lookupCategory: "المستويات الوظيفية",
-    defaultOptions: ["إداري", "تعليمي", "تشغيلي", "إشرافي", "قيادي", "المستوى الأول", "المستوى الثاني", "المستوى الثالث"],
+    defaultOptions: [
+      "إداري",
+      "تعليمي",
+      "تشغيلي",
+      "إشرافي",
+      "قيادي",
+      "المستوى الأول",
+      "المستوى الثاني",
+      "المستوى الثالث",
+    ],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "employment_category",
@@ -68,6 +118,12 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     lookupCategory: "الفئات الوظيفية",
     defaultOptions: ["إداري", "تعليمي", "فني", "تشغيلي", "طبي", "هندسي"],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "specialization",
@@ -83,8 +139,17 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
       "هندسة",
       "قانون",
       "علاقات عامة",
+      "تربية بدنية",
+      "لغة عربية",
+      "رياضيات",
     ],
     isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "branch",
@@ -92,8 +157,22 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     category: "البيانات الوظيفية والتنظيمية",
     inputType: "select_or_text",
     lookupCategory: "الفروع",
-    defaultOptions: ["الفرع الرئيسي", "فرع الرياض", "فرع جدة", "فرع الدمام", "فرع مكة المكرمة", "فرع المدينة المنورة"],
+    defaultOptions: [
+      "الفرع الرئيسي",
+      "فرع الرياض",
+      "فرع جدة",
+      "فرع الدمام",
+      "فرع مكة المكرمة",
+      "فرع المدينة المنورة",
+      "المتقدمة الاهلية - فرع قرطبة",
+    ],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "main_department",
@@ -107,8 +186,16 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
       "الإدارة المالية والإدارية",
       "إدارة العمليات والتشغيل",
       "إدارة تقنية المعلومات",
+      "بنين",
+      "بنات",
     ],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "national_id",
@@ -116,6 +203,12 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     category: "البيانات الشخصية والهوية",
     inputType: "text",
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-branch-ops",
+    allowDirectManager: false,
+    requiresAttachment: true,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "nationality",
@@ -123,8 +216,25 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     category: "البيانات الشخصية والهوية",
     inputType: "select_or_text",
     lookupCategory: "الجنسيات",
-    defaultOptions: ["سعودي", "مصري", "سوداني", "يمني", "أردني", "سوري", "هندي", "باكستاني", "فلبيني", "أخرى"],
+    defaultOptions: [
+      "سعودي",
+      "مصري",
+      "سوداني",
+      "يمني",
+      "أردني",
+      "سوري",
+      "هندي",
+      "باكستاني",
+      "فلبيني",
+      "أخرى",
+    ],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-branch-ops",
+    allowDirectManager: false,
+    requiresAttachment: true,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "social_status",
@@ -133,6 +243,12 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     inputType: "select_or_text",
     defaultOptions: ["أعزب", "متزوج", "مطلق", "أرمل"],
     isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-branch-ops",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "career_path",
@@ -140,10 +256,25 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     category: "البيانات الوظيفية والتنظيمية",
     inputType: "select_or_text",
     lookupCategory: "المسارات الوظيفية",
-    defaultOptions: ["مسار أساسي", "مسار السعودية", "مسار إداري", "مسار تقني", "المسار الإداري", "المسار التخصصي"],
+    defaultOptions: [
+      "مسار أساسي",
+      "مسار السعودية",
+      "مسار إداري",
+      "مسار تقني",
+      "المسار الإداري",
+      "المسار التخصصي",
+      "الأهلي",
+      "العالمي",
+    ],
     isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
-  // حقول إضافية مساندة يمكن تفعيلها عند الرغبة
+  // حقول إضافية مساندة (افتراضياً تحديث مباشر بإقرار الموظف أو بموافقة حسب التهيئة)
   {
     key: "id_type",
     label: "نوع الهوية",
@@ -152,20 +283,65 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     lookupCategory: "نوع الهوية",
     defaultOptions: ["الهوية الوطنية", "الإقامة", "جواز سفر", "الرقم القومي"],
     isCoreRequested: false,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-branch-ops",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "phone",
     label: "رقم الجوال",
     category: "بيانات التواصل والبنك",
     inputType: "text",
-    isCoreRequested: false,
+    isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "email",
     label: "البريد الإلكتروني",
     category: "بيانات التواصل والبنك",
     inputType: "text",
-    isCoreRequested: false,
+    isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "current_address",
+    label: "العنوان الوطني / الحالي",
+    category: "بيانات التواصل والبنك",
+    inputType: "text",
+    isCoreRequested: true,
+    updateMode: "direct",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: false,
+    requiresDeclaration: true,
+    active: true,
+  },
+  {
+    key: "last_qualification",
+    label: "المؤهل الدراسي",
+    category: "البيانات الشخصية والهوية",
+    inputType: "select_or_text",
+    defaultOptions: ["ثانوية عامة", "دبلوم", "بكالوريوس", "ماجستير", "دكتوراه"],
+    isCoreRequested: true,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: true,
+    requiresAttachment: true,
+    requiresDeclaration: true,
+    active: true,
   },
   {
     key: "iban",
@@ -173,6 +349,12 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     category: "بيانات التواصل والبنك",
     inputType: "text",
     isCoreRequested: false,
+    updateMode: "approval_required",
+    linkedApprovalGroupId: "ag-hr-main",
+    allowDirectManager: false,
+    requiresAttachment: true,
+    requiresDeclaration: true,
+    active: true,
   },
 ];
 
@@ -205,6 +387,9 @@ export interface FieldPermissionRule {
   fieldKey: string;
   enabled: boolean;
   requiresAttachment: boolean;
+  updateMode?: FieldUpdateMode | undefined;
+  linkedApprovalGroupId?: string | undefined;
+  allowDirectManager?: boolean | null | undefined;
 }
 
 export interface UserFieldPermissionGroup {
@@ -215,15 +400,34 @@ export interface UserFieldPermissionGroup {
   scopeType: "all" | "department" | "branch" | "category" | "specific_employees";
   scopeValue: string; // مثال: "الكل" أو اسم القسم أو الفرع أو الفئة
   specificEmployeeIds: string[];
-  linkedApprovalGroupId: string; // ربط بمجموعة الموافقات من الأوبشن الأول
+  linkedApprovalGroupId: string; // ربط بمجموعة الموافقات الافتراضية
   allowDirectManagerOverride?: boolean | null; // إذا كان null يتبع إعداد مجموعة الموافقة
   allowedFields: Record<string, FieldPermissionRule>;
+  active: boolean;
+}
+
+export interface FieldCustomConfigOverride {
+  fieldKey: string;
+  label?: string | undefined;
+  category?: DataUpdateCategory | undefined;
+  inputType?: "select_or_text" | "text" | "date" | "number" | undefined;
+  defaultOptions?: string[] | undefined;
+  updateMode: FieldUpdateMode;
+  linkedApprovalGroupId?: string | undefined;
+  allowDirectManager?: boolean | null | undefined;
+  requiresAttachment: boolean;
+  requiresDeclaration: boolean;
   active: boolean;
 }
 
 export interface DataUpdateConfigState {
   globalAllowDirectManager: boolean;
   autoApplyOnApproval: boolean;
+  requireEmployeeDeclaration: boolean;
+  declarationTitle: string;
+  declarationText: string;
+  customFields: DataUpdateFieldDef[];
+  fieldConfigs: Record<string, FieldCustomConfigOverride>;
   approvalGroups: DataUpdateApprovalGroup[];
   userPermissionGroups: UserFieldPermissionGroup[];
 }
@@ -233,7 +437,7 @@ export interface DataUpdateReplyItem {
   authorName: string;
   authorRole: string;
   message: string;
-  actionType: "reply" | "approve_direct_manager" | "approve_final" | "reject";
+  actionType: "reply" | "approve_direct_manager" | "approve_final" | "reject" | "direct_self_update";
   createdAt: string;
 }
 
@@ -248,6 +452,18 @@ export interface DataUpdateRequestItem {
   directManagerName: string;
   userGroupId: string;
   userGroupName: string;
+  /**
+   * آلية التحديث لهذا الحقل:
+   * - "direct": تحديث فوري مباشر بإقرار الموظف
+   * - "approval_required": يمر عبر مراحل موافقة
+   */
+  updateMode?: FieldUpdateMode | undefined;
+  /**
+   * بيانات إقرار الموظف بصحة البيانات
+   */
+  employeeDeclared?: boolean | undefined;
+  declaredAt?: string | undefined;
+  declarationTextSnapshot?: string | undefined;
   approvalGroupId: string;
   approvalGroupName: string;
   allowDirectManager: boolean;
@@ -275,21 +491,60 @@ export interface DataUpdateRequestItem {
 const STORAGE_KEY_CONFIG = "hr_data_update_config_v1";
 const STORAGE_KEY_REQUESTS = "hr_data_update_requests_v1";
 
-export function buildDefaultFieldMap(enableCoreOnly = true): Record<string, FieldPermissionRule> {
-  const map: Record<string, FieldPermissionRule> = {};
+export function buildDefaultFieldConfigs(): Record<string, FieldCustomConfigOverride> {
+  const map: Record<string, FieldCustomConfigOverride> = {};
   for (const f of DATA_UPDATE_FIELDS) {
     map[f.key] = {
       fieldKey: f.key,
-      enabled: enableCoreOnly ? Boolean(f.isCoreRequested) : true,
-      requiresAttachment: f.key === "national_id" || f.key === "social_status" || f.key === "iban",
+      label: f.label,
+      category: f.category,
+      inputType: f.inputType,
+      defaultOptions: f.defaultOptions,
+      updateMode: f.updateMode || "approval_required",
+      linkedApprovalGroupId: f.linkedApprovalGroupId || "ag-hr-main",
+      allowDirectManager: f.allowDirectManager ?? true,
+      requiresAttachment: Boolean(f.requiresAttachment),
+      requiresDeclaration: f.requiresDeclaration ?? true,
+      active: f.active ?? true,
     };
   }
   return map;
 }
 
+export function buildDefaultFieldMap(
+  enableCoreOnly = true,
+  customFields: DataUpdateFieldDef[] = [],
+): Record<string, FieldPermissionRule> {
+  const map: Record<string, FieldPermissionRule> = {};
+  const all = [...DATA_UPDATE_FIELDS, ...customFields];
+  for (const f of all) {
+    map[f.key] = {
+      fieldKey: f.key,
+      enabled: enableCoreOnly ? Boolean(f.isCoreRequested || f.isCustom) : true,
+      requiresAttachment:
+        Boolean(f.requiresAttachment) ||
+        f.key === "national_id" ||
+        f.key === "iban",
+      updateMode: f.updateMode || "approval_required",
+      linkedApprovalGroupId: f.linkedApprovalGroupId || "ag-hr-main",
+      allowDirectManager: f.allowDirectManager ?? null,
+    };
+  }
+  return map;
+}
+
+export const DEFAULT_DECLARATION_TITLE = "إقرار وتأكيد صحة البيانات المدخلة";
+export const DEFAULT_DECLARATION_TEXT =
+  "أقر أنا الموظف بأنني قد راجعت وتأكدت من صحة ودقة جميع البيانات التي تم تعبئتها بشكل عام، وأنها مطابقة للوثائق والمستندات الرسمية، وأتحمل كامل المسؤولية النظامية عن صحتها.";
+
 export const DEFAULT_DATA_UPDATE_CONFIG: DataUpdateConfigState = {
   globalAllowDirectManager: true,
   autoApplyOnApproval: true,
+  requireEmployeeDeclaration: true,
+  declarationTitle: DEFAULT_DECLARATION_TITLE,
+  declarationText: DEFAULT_DECLARATION_TEXT,
+  customFields: [],
+  fieldConfigs: buildDefaultFieldConfigs(),
   approvalGroups: [
     {
       id: "ag-hr-main",
@@ -346,7 +601,7 @@ export const DEFAULT_DATA_UPDATE_CONFIG: DataUpdateConfigState = {
       id: "ug-all-employees",
       code: "UG-01",
       name: "جميع الموظفين (المجموعة العامة)",
-      description: "الحقول المتاحة لجميع موظفي المنشأة لطلب تعديلها عبر الخدمة الذاتية وطلبات التحديث",
+      description: "الحقول المتاحة لجميع موظفي المنشأة لتحديثها أو طلب تعديلها عبر الخدمة الذاتية",
       scopeType: "all",
       scopeValue: "الكل",
       specificEmployeeIds: [],
@@ -359,7 +614,7 @@ export const DEFAULT_DATA_UPDATE_CONFIG: DataUpdateConfigState = {
       id: "ug-admin-staff",
       code: "UG-02",
       name: "مجموعة الكادر الإداري والإشرافي",
-      description: "صلاحية طلب تحديث كافة البيانات الوظيفية والتنظيمية والشخصية",
+      description: "صلاحية تحديث وطلب تعديل كافة البيانات الوظيفية والتنظيمية والشخصية",
       scopeType: "category",
       scopeValue: "إداري",
       specificEmployeeIds: [],
@@ -370,6 +625,137 @@ export const DEFAULT_DATA_UPDATE_CONFIG: DataUpdateConfigState = {
     },
   ],
 };
+
+/**
+ * استرجاع كافة الحقول (الأساسية + الحقول المخصصة التي أنشأها المسؤول) مع إعداداتها المحدثة
+ */
+export function getAllDataUpdateFields(config?: DataUpdateConfigState): DataUpdateFieldDef[] {
+  if (!config) return DATA_UPDATE_FIELDS;
+  const customList = Array.isArray(config.customFields) ? config.customFields : [];
+  const overrides = config.fieldConfigs || {};
+
+  const combined: DataUpdateFieldDef[] = [];
+  const seenKeys = new Set<string>();
+
+  for (const baseField of DATA_UPDATE_FIELDS) {
+    seenKeys.add(baseField.key);
+    const ov = overrides[baseField.key];
+    combined.push({
+      ...baseField,
+      label: ov?.label || baseField.label,
+      category: ov?.category || baseField.category,
+      inputType: ov?.inputType || baseField.inputType,
+      defaultOptions: ov?.defaultOptions || baseField.defaultOptions,
+      updateMode: ov?.updateMode || baseField.updateMode || "approval_required",
+      linkedApprovalGroupId: ov?.linkedApprovalGroupId || baseField.linkedApprovalGroupId || "ag-hr-main",
+      allowDirectManager:
+        ov?.allowDirectManager !== undefined ? ov.allowDirectManager : (baseField.allowDirectManager ?? true),
+      requiresAttachment:
+        ov?.requiresAttachment !== undefined ? ov.requiresAttachment : Boolean(baseField.requiresAttachment),
+      requiresDeclaration:
+        ov?.requiresDeclaration !== undefined ? ov.requiresDeclaration : (baseField.requiresDeclaration ?? true),
+      active: ov?.active !== undefined ? ov.active : (baseField.active ?? true),
+    });
+  }
+
+  for (const cf of customList) {
+    if (!cf.key || seenKeys.has(cf.key)) continue;
+    seenKeys.add(cf.key);
+    const ov = overrides[cf.key];
+    combined.push({
+      ...cf,
+      isCustom: true,
+      updateMode: ov?.updateMode || cf.updateMode || "direct",
+      linkedApprovalGroupId: ov?.linkedApprovalGroupId || cf.linkedApprovalGroupId || "ag-hr-main",
+      allowDirectManager:
+        ov?.allowDirectManager !== undefined ? ov.allowDirectManager : (cf.allowDirectManager ?? false),
+      requiresAttachment:
+        ov?.requiresAttachment !== undefined ? ov.requiresAttachment : Boolean(cf.requiresAttachment),
+      requiresDeclaration:
+        ov?.requiresDeclaration !== undefined ? ov.requiresDeclaration : (cf.requiresDeclaration ?? true),
+      active: ov?.active !== undefined ? ov.active : (cf.active ?? true),
+    });
+  }
+
+  return combined;
+}
+
+/**
+ * استخراج الإعداد الفعلي للحقل (هل هو تحديث مباشر أم يتطلب موافقة، وأي مجموعة موافقة، وهل يتطلب المدير المباشر)
+ */
+export function resolveFieldEffectiveWorkflow(
+  fieldKey: string,
+  config: DataUpdateConfigState,
+  userGroup?: UserFieldPermissionGroup | null,
+): {
+  fieldDef: DataUpdateFieldDef;
+  updateMode: FieldUpdateMode;
+  approvalGroup: DataUpdateApprovalGroup | null;
+  allowDirectManager: boolean;
+  requiresAttachment: boolean;
+  requiresDeclaration: boolean;
+} {
+  const allFields = getAllDataUpdateFields(config);
+  const fieldDef =
+    allFields.find((f) => f.key === fieldKey) ||
+    allFields[0] ||
+    DATA_UPDATE_FIELDS[0]!;
+
+  const groupRule = userGroup?.allowedFields?.[fieldKey];
+  const ov = config.fieldConfigs?.[fieldKey];
+
+  const updateMode: FieldUpdateMode =
+    ov?.updateMode ||
+    groupRule?.updateMode ||
+    fieldDef.updateMode ||
+    "approval_required";
+
+  const linkedGroupId =
+    ov?.linkedApprovalGroupId ||
+    groupRule?.linkedApprovalGroupId ||
+    fieldDef.linkedApprovalGroupId ||
+    userGroup?.linkedApprovalGroupId ||
+    config.approvalGroups[0]?.id ||
+    "ag-hr-main";
+
+  const approvalGroup =
+    config.approvalGroups.find((ag) => ag.id === linkedGroupId) ||
+    config.approvalGroups[0] ||
+    null;
+
+  let allowDirectManager = config.globalAllowDirectManager;
+  if (typeof ov?.allowDirectManager === "boolean") {
+    allowDirectManager = ov.allowDirectManager;
+  } else if (typeof groupRule?.allowDirectManager === "boolean") {
+    allowDirectManager = groupRule.allowDirectManager;
+  } else if (typeof fieldDef.allowDirectManager === "boolean") {
+    allowDirectManager = fieldDef.allowDirectManager;
+  } else if (typeof userGroup?.allowDirectManagerOverride === "boolean") {
+    allowDirectManager = userGroup.allowDirectManagerOverride;
+  } else if (approvalGroup) {
+    allowDirectManager = approvalGroup.allowDirectManager;
+  }
+
+  const requiresAttachment =
+    ov?.requiresAttachment !== undefined
+      ? ov.requiresAttachment
+      : groupRule?.requiresAttachment !== undefined
+        ? groupRule.requiresAttachment
+        : Boolean(fieldDef.requiresAttachment);
+
+  const requiresDeclaration =
+    config.requireEmployeeDeclaration !== false &&
+    (ov?.requiresDeclaration ?? fieldDef.requiresDeclaration ?? true);
+
+  return {
+    fieldDef,
+    updateMode,
+    approvalGroup,
+    allowDirectManager: updateMode === "approval_required" ? allowDirectManager : false,
+    requiresAttachment,
+    requiresDeclaration,
+  };
+}
 
 export function loadDataUpdateConfig(rawFromDb?: unknown): DataUpdateConfigState {
   if (typeof rawFromDb === "string" && rawFromDb.trim()) {
@@ -399,24 +785,76 @@ export function loadDataUpdateConfig(rawFromDb?: unknown): DataUpdateConfigState
 }
 
 function normalizeConfig(input: Partial<DataUpdateConfigState>): DataUpdateConfigState {
-  const approvalGroups = Array.isArray(input.approvalGroups) && input.approvalGroups.length > 0
-    ? input.approvalGroups
-    : DEFAULT_DATA_UPDATE_CONFIG.approvalGroups;
+  const approvalGroups =
+    Array.isArray(input.approvalGroups) && input.approvalGroups.length > 0
+      ? input.approvalGroups
+      : DEFAULT_DATA_UPDATE_CONFIG.approvalGroups;
+
+  const customFields: DataUpdateFieldDef[] = Array.isArray(input.customFields)
+    ? input.customFields
+    : [];
+
+  const defaultFieldConfigs = buildDefaultFieldConfigs();
+  const mergedFieldConfigs: Record<string, FieldCustomConfigOverride> = {
+    ...defaultFieldConfigs,
+    ...(input.fieldConfigs || {}),
+  };
+
+  for (const cf of customFields) {
+    if (!mergedFieldConfigs[cf.key]) {
+      mergedFieldConfigs[cf.key] = {
+        fieldKey: cf.key,
+        label: cf.label,
+        category: cf.category,
+        inputType: cf.inputType,
+        defaultOptions: cf.defaultOptions,
+        updateMode: cf.updateMode || "direct",
+        linkedApprovalGroupId: cf.linkedApprovalGroupId || approvalGroups[0]?.id || "ag-hr-main",
+        allowDirectManager: cf.allowDirectManager ?? false,
+        requiresAttachment: Boolean(cf.requiresAttachment),
+        requiresDeclaration: cf.requiresDeclaration ?? true,
+        active: cf.active ?? true,
+      };
+    }
+  }
+
+  const allFields = [...DATA_UPDATE_FIELDS, ...customFields];
 
   const userPermissionGroups = (
     Array.isArray(input.userPermissionGroups) && input.userPermissionGroups.length > 0
       ? input.userPermissionGroups
       : DEFAULT_DATA_UPDATE_CONFIG.userPermissionGroups
   ).map((g) => {
-    const defaultMap = buildDefaultFieldMap(true);
+    const defaultMap = buildDefaultFieldMap(true, customFields);
     const mergedFields: Record<string, FieldPermissionRule> = { ...defaultMap };
     if (g.allowedFields && typeof g.allowedFields === "object") {
-      for (const f of DATA_UPDATE_FIELDS) {
-        if (g.allowedFields[f.key]) {
+      for (const f of allFields) {
+        const existingRule = g.allowedFields[f.key];
+        const fc = mergedFieldConfigs[f.key];
+        if (existingRule) {
           mergedFields[f.key] = {
             fieldKey: f.key,
-            enabled: Boolean(g.allowedFields[f.key]?.enabled),
-            requiresAttachment: Boolean(g.allowedFields[f.key]?.requiresAttachment),
+            enabled: Boolean(existingRule.enabled),
+            requiresAttachment: Boolean(existingRule.requiresAttachment ?? fc?.requiresAttachment),
+            updateMode: existingRule.updateMode || fc?.updateMode || f.updateMode || "approval_required",
+            linkedApprovalGroupId:
+              existingRule.linkedApprovalGroupId ||
+              fc?.linkedApprovalGroupId ||
+              f.linkedApprovalGroupId ||
+              g.linkedApprovalGroupId,
+            allowDirectManager:
+              existingRule.allowDirectManager !== undefined
+                ? existingRule.allowDirectManager
+                : (fc?.allowDirectManager ?? null),
+          };
+        } else if (f.isCustom) {
+          mergedFields[f.key] = {
+            fieldKey: f.key,
+            enabled: fc?.active !== false,
+            requiresAttachment: Boolean(fc?.requiresAttachment),
+            updateMode: fc?.updateMode || "direct",
+            linkedApprovalGroupId: fc?.linkedApprovalGroupId || g.linkedApprovalGroupId,
+            allowDirectManager: fc?.allowDirectManager ?? false,
           };
         }
       }
@@ -430,6 +868,11 @@ function normalizeConfig(input: Partial<DataUpdateConfigState>): DataUpdateConfi
   return {
     globalAllowDirectManager: input.globalAllowDirectManager ?? true,
     autoApplyOnApproval: input.autoApplyOnApproval ?? true,
+    requireEmployeeDeclaration: input.requireEmployeeDeclaration ?? true,
+    declarationTitle: input.declarationTitle || DEFAULT_DECLARATION_TITLE,
+    declarationText: input.declarationText || DEFAULT_DECLARATION_TEXT,
+    customFields,
+    fieldConfigs: mergedFieldConfigs,
     approvalGroups,
     userPermissionGroups,
   };
@@ -519,7 +962,7 @@ export function getEmployeeFieldValue(employee: Row | null | undefined, fieldKey
 }
 
 /**
- * بناء حزمة التحديث لسجل الموظف عند اعتماد طلب تحديث البيانات
+ * بناء حزمة التحديث لسجل الموظف عند اعتماد طلب تحديث البيانات أو التحديث الفوري المباشر
  */
 export function buildEmployeeUpdatePatch(
   employee: Row,
@@ -527,6 +970,7 @@ export function buildEmployeeUpdatePatch(
   newValue: string,
   requestNumber: string,
   approverName: string,
+  fieldLabelOverride?: string,
 ): Record<string, any> {
   const patch: Record<string, any> = {
     [fieldKey]: newValue,
@@ -546,6 +990,7 @@ export function buildEmployeeUpdatePatch(
       const existingRaw = window.localStorage.getItem(storageKey);
       const existingExtras = existingRaw ? JSON.parse(existingRaw) : {};
       const fieldDef = DATA_UPDATE_FIELDS.find((f) => f.key === fieldKey);
+      const label = fieldLabelOverride || fieldDef?.label || fieldKey;
       const oldValue = getEmployeeFieldValue(employee, fieldKey);
       const prevArchive = Array.isArray(existingExtras.emp_archive) ? existingExtras.emp_archive : [];
 
@@ -555,11 +1000,11 @@ export function buildEmployeeUpdatePatch(
         emp_archive: [
           {
             id: `arch-req-${Date.now()}`,
-            field_name: `${fieldDef?.label || fieldKey} (طلب تحديث #${requestNumber})`,
+            field_name: `${label} (تحديث #${requestNumber})`,
             old_value: oldValue,
             new_value: newValue,
             modified_at: new Date().toISOString().slice(0, 10),
-            user: approverName || "اعتماد طلب تحديث بيانات",
+            user: approverName || "تحديث بيانات معتمد",
           },
           ...prevArchive,
         ],

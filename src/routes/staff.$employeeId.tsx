@@ -3,11 +3,19 @@ import { EmployeeProfileView } from "@/components/hr/employee-profile/EmployeePr
 
 export const Route = createFileRoute("/staff/$employeeId")({
   validateSearch: (search: Record<string, unknown>): {
-    tab?: "employee" | "financial" | "attendance";
+    tab?: "employee" | "financial" | "attendance" | "requests";
   } => {
     const t = search?.["tab"];
-    if (t === "employee" || t === "financial" || t === "attendance") {
+    if (
+      t === "employee" ||
+      t === "financial" ||
+      t === "attendance" ||
+      t === "requests"
+    ) {
       return { tab: t };
+    }
+    if (t === "data-update") {
+      return { tab: "requests" };
     }
     return {};
   },

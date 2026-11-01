@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   GraduationCap,
   Award,
+  FileEdit,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -36,6 +37,7 @@ interface EmployeeDataTabProps {
   onSaveEmployee: (patch: Record<string, any>) => Promise<void>;
   profileExtras: any;
   onSaveExtras: (patch: Record<string, any>) => void;
+  onNavigateToDataUpdate?: () => void;
 }
 
 export function EmployeeDataTab({
@@ -43,6 +45,7 @@ export function EmployeeDataTab({
   onSaveEmployee,
   profileExtras,
   onSaveExtras,
+  onNavigateToDataUpdate,
 }: EmployeeDataTabProps) {
   const [subTab, setSubTab] = useState<
     "basic" | "contracts" | "documents" | "medical" | "dependents" | "archive"
@@ -571,6 +574,16 @@ export function EmployeeDataTab({
                   <h3 className="text-sm font-extrabold text-slate-800">
                     البيانات الشخصيه
                   </h3>
+                  {onNavigateToDataUpdate && (
+                    <button
+                      type="button"
+                      onClick={onNavigateToDataUpdate}
+                      className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0070c0] hover:bg-blue-100 transition shadow-2xs cursor-pointer"
+                    >
+                      <FileEdit className="h-3.5 w-3.5" />
+                      تقديم طلب تحديث بيانات الموظف
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <ProfileField label="اسم الموظف رباعى" required>
@@ -710,6 +723,16 @@ export function EmployeeDataTab({
                   <h3 className="text-sm font-extrabold text-slate-800">
                     بيانات العمل
                   </h3>
+                  {onNavigateToDataUpdate && (
+                    <button
+                      type="button"
+                      onClick={onNavigateToDataUpdate}
+                      className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0070c0] hover:bg-blue-100 transition shadow-2xs cursor-pointer"
+                    >
+                      <FileEdit className="h-3.5 w-3.5" />
+                      تقديم طلب تحديث بيانات الموظف
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <ProfileField label="المنطقة">

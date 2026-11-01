@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { UserCheck, Wallet, CalendarClock, ArrowRight } from "lucide-react";
+import { UserCheck, Wallet, CalendarClock, ArrowRight, FileEdit } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useRows, useSaveRow } from "@/lib/hr-db";
@@ -7,10 +7,11 @@ import { EmployeeProfileHeader } from "./EmployeeProfileHeader";
 import { EmployeeDataTab } from "./EmployeeDataTab";
 import { EmployeeFinancialTab } from "./EmployeeFinancialTab";
 import { EmployeeAttendanceTab } from "./EmployeeAttendanceTab";
+import { EmployeeDataUpdateTab } from "./EmployeeDataUpdateTab";
 
 interface EmployeeProfileViewProps {
   employeeId: string;
-  initialTab?: "employee" | "financial" | "attendance" | undefined;
+  initialTab?: "employee" | "financial" | "attendance" | "requests" | undefined;
 }
 
 export function EmployeeProfileView({
@@ -30,7 +31,7 @@ export function EmployeeProfileView({
   const saveEmployee = useSaveRow("employees");
 
   const [mainTab, setMainTab] = useState<
-    "employee" | "financial" | "attendance"
+    "employee" | "financial" | "attendance" | "requests"
   >(initialTab);
 
   useEffect(() => {
@@ -234,6 +235,11 @@ export function EmployeeProfileView({
       icon: UserCheck,
     },
     {
+      key: "requests" as const,
+      label: "طلبات تحديث البيانات",
+      icon: FileEdit,
+    },
+    {
       key: "financial" as const,
       label: "البيانات المالية",
       icon: Wallet,
@@ -266,10 +272,11 @@ export function EmployeeProfileView({
           handleSaveExtras({ avatar_url: dataUrl });
           toast.success("تم تحديث الصورة الشخصية للموظف");
         }}
+        onRequestDataUpdate={() => setMainTab("requests")}
       />
 
-      {/* 3 Main Segmented Tabs */}
-      <div className="grid grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xs sm:grid-cols-3">
+      {/* 4 Main Segmented Tabs */}
+      <div className="grid grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xs sm:grid-cols-2 lg:grid-cols-4">
         {mainTabs.map((tab) => {
           const Icon = tab.icon;
           const active = mainTab === tab.key;
@@ -278,7 +285,7 @@ export function EmployeeProfileView({
               key={tab.key}
               type="button"
               onClick={() => setMainTab(tab.key)}
-              className={`flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-extrabold transition ${
+              className={`flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-extrabold transition cursor-pointer ${
                 active
                   ? "bg-gradient-to-l from-blue-600 to-blue-700 text-white shadow-sm"
                   : "bg-slate-50/70 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -298,6 +305,16 @@ export function EmployeeProfileView({
           onSaveEmployee={handleSaveEmployee}
           profileExtras={profileExtras}
           onSaveExtras={handleSaveExtras}
+          onNavigateToDataUpdate={() => setMainTab("requests")}
+        />
+      )}
+
+      {mainTab === "requests" && (
+        <EmployeeDataUpdateTab
+          employee={employee}
+          onRefreshEmployee={() => {
+            // refresh data
+          }}
         />
       )}
 

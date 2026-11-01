@@ -249,6 +249,14 @@ function AuthenticatedShell({ children }: { children: ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/requests/data-update" className="flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <MaterialIcon name="manage_accounts" size={17} className="text-muted-foreground" />
+                      <span>طلبات تحديث البيانات</span>
+                    </span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/tasks" className="flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer">
                     <span className="flex items-center gap-2">
                       <MaterialIcon name="task_alt" size={17} className="text-muted-foreground" />

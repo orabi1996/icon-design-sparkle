@@ -10,6 +10,7 @@ import {
   XCircle,
   Camera,
   ArrowRight,
+  FileEdit,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { formatNumber } from "./shared";
@@ -27,6 +28,7 @@ interface EmployeeProfileHeaderProps {
   };
   onToggleFlag: (key: keyof EmployeeProfileHeaderProps["statusFlags"]) => void;
   onAvatarChange: (dataUrl: string) => void;
+  onRequestDataUpdate?: () => void;
 }
 
 export function EmployeeProfileHeader({
@@ -37,6 +39,7 @@ export function EmployeeProfileHeader({
   statusFlags,
   onToggleFlag,
   onAvatarChange,
+  onRequestDataUpdate,
 }: EmployeeProfileHeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,6 +115,17 @@ export function EmployeeProfileHeader({
             />
             {isActive ? "مفعل" : "غير مفعل"}
           </div>
+
+          {onRequestDataUpdate && (
+            <button
+              type="button"
+              onClick={onRequestDataUpdate}
+              className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/90 px-3.5 py-1.5 text-xs font-bold text-[#0070c0] hover:bg-blue-100 hover:text-[#005fa3] transition shadow-2xs cursor-pointer"
+            >
+              <FileEdit className="h-3.5 w-3.5" />
+              طلب تحديث بيانات
+            </button>
+          )}
         </div>
 
         {/* Left Side: 2 Rows of 3 Summary Cards */}

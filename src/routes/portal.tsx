@@ -735,9 +735,9 @@ export function EmployeePortalPage() {
       {/* =====================================================================
           2. DARK BLUE NAVBAR (Exact match to Screenshots)
          ===================================================================== */}
-      <div className="bg-[#16325c] text-white shadow-xs">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 overflow-x-auto py-1">
-          <nav className="flex items-center gap-1 text-xs font-bold py-1">
+      <div className="bg-[#16325c] text-white shadow-xs relative z-30">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-1">
+          <nav className="flex items-center gap-1 text-xs font-bold py-1 flex-wrap sm:flex-nowrap">
             {/* 1. بيانات الموظف */}
             <button
               type="button"
@@ -932,6 +932,17 @@ export function EmployeePortalPage() {
           </button>
         </div>
       </div>
+
+      {/* Backdrop for open dropdowns so clicking outside closes them smoothly */}
+      {(isRequestsDropdownOpen || isReportsDropdownOpen) && (
+        <div
+          className="fixed inset-0 z-20 cursor-default"
+          onClick={() => {
+            setIsRequestsDropdownOpen(false);
+            setIsReportsDropdownOpen(false);
+          }}
+        />
+      )}
 
       {/* =====================================================================
           3. MAIN CONTENT CONTAINER

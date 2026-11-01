@@ -108,10 +108,19 @@ export const nav: NavItem[] = [
         title: "تقارير بيانات الموظفين",
         groups: [
           {
+            title: "تقارير إنجاز وتحديث بيانات الموظفين",
+            items: [
+              { label: "تقرير إنجاز تحديث بيانات الموظفين", to: "/reports/data-update-completion" },
+              { label: "طلبات وتحديثات البيانات", to: "/requests/data-update" },
+              { label: "تهيئة طلبات تحديث البيانات", to: "/regulations/data-update" },
+            ],
+          },
+          {
             title: "البيانات الأساسية للموظف",
             items: [
               { label: "تقرير بيانات الموظفين", to: "/reports/employee-data" },
               { label: "تقرير البيانات الاساسية", to: "/reports/basic-data" },
+              { label: "تقرير إنجاز تحديث بيانات الموظفين", to: "/reports/data-update-completion" },
               { label: "تقرير ملفات الموظفين", to: "/reports/employee-files" },
               { label: "تقرير المرافقين", to: "/reports/employee-dependents" },
               { label: "تقرير البيانات المالية", to: "/reports/financial-data" },
@@ -122,7 +131,7 @@ export const nav: NavItem[] = [
             items: [
               { label: "تقرير التعيينات وإنهاء الخدمة", to: "/reports/hire-and-termination" },
               { label: "تقرير عقود الموظفين", to: "/reports/employee-contracts-report" },
-              { label: "تقرير إنجاز لتحديث البيانات", to: "/reports/data-update-completion" },
+              { label: "تقرير إنجاز تحديث بيانات الموظفين", to: "/reports/data-update-completion" },
               { label: "تقرير الطلبات المتنوعة", to: "/reports/requests-summary" },
               { label: "طلبات نهاية الخدمة", to: "/end-of-service-requests" },
               { label: "المسائلات", to: "/inquiries" },
@@ -153,9 +162,9 @@ export const nav: NavItem[] = [
           },
         ],
         items: [
+          { label: "تقرير إنجاز تحديث بيانات الموظفين", to: "/reports/data-update-completion" },
           { label: "تقرير بيانات الموظفين", to: "/reports/employee-data" },
           { label: "تقرير البيانات الاساسية", to: "/reports/basic-data" },
-          { label: "تقرير إنجاز لتحديث البيانات", to: "/reports/data-update-completion" },
           { label: "تقرير التعيينات وإنهاء الخدمة", to: "/reports/hire-and-termination" },
           { label: "تقرير ملفات الموظفين", to: "/reports/employee-files" },
           { label: "تقرير التقييم", to: "/reports/evaluation" },
@@ -292,7 +301,7 @@ export const nav: NavItem[] = [
         items: [
           { label: "الطلبات", to: "/approval-requests" },
           { label: "تحديث البيانات", to: "/requests/data-update" },
-          { label: "تقرير إنجاز لتحديث البيانات", to: "/reports/data-update-completion" },
+          { label: "تقرير إنجاز تحديث بيانات الموظفين", to: "/reports/data-update-completion" },
           { label: "بوابة الموظف (الخدمة الذاتية)", to: "/portal" },
           { label: "ميزانية الشراء", to: "/requests/purchase-budget" },
           { label: "تهيئة الطلبات", to: "/requests/setup" },

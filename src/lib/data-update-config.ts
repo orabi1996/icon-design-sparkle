@@ -1,4 +1,9 @@
 import type { Row } from "@/lib/hr-db";
+import {
+  ANDALUS_BRANCHES,
+  ANDALUS_DEPARTMENTS,
+  generateAndalusDataUpdateHistory,
+} from "@/lib/andalus-seed";
 
 export type DataUpdateCategory =
   | "البيانات الوظيفية والتنظيمية"
@@ -40,19 +45,19 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     category: "البيانات الوظيفية والتنظيمية",
     inputType: "select_or_text",
     lookupCategory: "الأقسام",
-    defaultOptions: [
-      "الموارد البشرية",
-      "الشؤون الإدارية",
-      "الشؤون المالية",
-      "تقنية المعلومات",
-      "التشغيل",
-      "المبيعات والتسويق",
-      "خدمة العملاء",
-      "المشتريات",
-      "ابتدائي",
-      "متوسط",
-      "ثانوي",
-    ],
+    defaultOptions: Array.from(
+      new Set([
+        ...ANDALUS_DEPARTMENTS,
+        "الموارد البشرية",
+        "الشؤون الإدارية",
+        "الشؤون المالية",
+        "تقنية المعلومات",
+        "التشغيل",
+        "المبيعات والتسويق",
+        "خدمة العملاء",
+        "المشتريات",
+      ]),
+    ),
     isCoreRequested: true,
     updateMode: "approval_required",
     linkedApprovalGroupId: "ag-hr-main",
@@ -158,12 +163,7 @@ export const DATA_UPDATE_FIELDS: DataUpdateFieldDef[] = [
     inputType: "select_or_text",
     lookupCategory: "الفروع",
     defaultOptions: [
-      "الفرع الرئيسي",
-      "فرع الرياض",
-      "فرع جدة",
-      "فرع الدمام",
-      "فرع مكة المكرمة",
-      "فرع المدينة المنورة",
+      ...ANDALUS_BRANCHES.map((b) => b.name_ar),
       "المتقدمة الاهلية - فرع قرطبة",
     ],
     isCoreRequested: true,
@@ -1074,26 +1074,41 @@ export function saveDataUpdateConfigLocal(config: DataUpdateConfigState): string
 }
 
 export function loadDataUpdateRequests(rawFromDb?: unknown): DataUpdateRequestItem[] {
+  const seedRequests = generateAndalusDataUpdateHistory();
+  let customRequests: DataUpdateRequestItem[] = [];
+
   if (typeof rawFromDb === "string" && rawFromDb.trim()) {
     try {
       const parsed = JSON.parse(rawFromDb);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) customRequests = parsed;
     } catch {
       // ignore
     }
   }
-  if (typeof window !== "undefined") {
+  if (customRequests.length === 0 && typeof window !== "undefined") {
     try {
       const localRaw = window.localStorage.getItem(STORAGE_KEY_REQUESTS);
       if (localRaw) {
         const parsed = JSON.parse(localRaw);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) customRequests = parsed;
       }
     } catch {
       // ignore
     }
   }
-  return [];
+
+  if (customRequests.length === 0) return seedRequests;
+
+  const map = new Map<string, DataUpdateRequestItem>();
+  for (const item of customRequests) {
+    if (item && item.id) map.set(item.id, item);
+  }
+  for (const seed of seedRequests) {
+    if (!map.has(seed.id)) {
+      map.set(seed.id, seed);
+    }
+  }
+  return Array.from(map.values());
 }
 
 export function saveDataUpdateRequestsLocal(requests: DataUpdateRequestItem[]): string {

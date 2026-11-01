@@ -12,6 +12,18 @@ type CompanyWorkspaceValue = {
 };
 const CompanyWorkspaceContext = createContext<CompanyWorkspaceValue | null>(null);
 
+const DEFAULT_ANDALUS_COMPANY: CompanyDirectoryEntry = {
+  id: "comp-andalus-01",
+  tenant_id: "tenant-andalus-01",
+  tenant_name: "مجموعة الأندلس التعليمية",
+  display_name: "شركة مدارس الأندلس التعليمية",
+  display_name_en: "Al-Andalus Educational Schools Co.",
+  country_code: "SA",
+  version: 1,
+  updated_at: "2026-11-01T08:00:00Z",
+  can_manage: true,
+};
+
 export function CompanyWorkspaceProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [preferredId, setPreferredId] = useState("");
@@ -38,8 +50,8 @@ export function CompanyWorkspaceProvider({ children }: { children: ReactNode }) 
     return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
-  const companies = directory.data ?? [];
-  const selectedCompany = companies.find((company) => company.id === preferredId) ?? companies[0] ?? null;
+  const companies = directory.data && directory.data.length > 0 ? directory.data : [DEFAULT_ANDALUS_COMPANY];
+  const selectedCompany = companies.find((company) => company.id === preferredId) ?? companies[0] ?? DEFAULT_ANDALUS_COMPANY;
   const selectCompany = (id: string) => {
     setPreferredId(id);
     try { if (userId) localStorage.setItem("hr-company:" + userId, id); } catch { /* storage may be disabled */ }

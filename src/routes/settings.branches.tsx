@@ -13,6 +13,7 @@ import {
   deactivateBranchFn,
 } from "@/lib/organization.functions";
 import type { BranchEntity } from "@/lib/organization-core.mjs";
+import { ANDALUS_BRANCHES } from "@/lib/andalus-seed";
 
 export const Route = createFileRoute("/settings/branches")({
   head: () => ({ meta: [{ title: "تهيئة بيانات الفروع | إعدادات النظام" }] }),
@@ -30,16 +31,43 @@ function BranchesSettingsPage() {
   const { data: employees = [] } = useRows("employees");
 
   // Fetch real branches from DB via TanStack Start server function
-  const { data: serverBranches = [], isLoading } = useQuery({
+  const { data: rawServerBranches = [], isLoading } = useQuery({
     queryKey: ["org-branches", company?.tenant_id, company?.id],
     enabled: Boolean(company?.id && company?.tenant_id),
     queryFn: async () => {
       if (!company?.id || !company?.tenant_id) return [];
-      return await listBranchesFn({
-        data: { tenantId: company.tenant_id, companyId: company.id },
-      });
+      try {
+        return await listBranchesFn({
+          data: { tenantId: company.tenant_id, companyId: company.id },
+        });
+      } catch {
+        return [];
+      }
     },
   });
+
+  const serverBranches = useMemo<BranchEntity[]>(() => {
+    const map = new Map<string, BranchEntity>();
+    for (const b of ANDALUS_BRANCHES) {
+      map.set(b.code, {
+        id: b.id,
+        tenant_id: company?.tenant_id || "tenant-andalus-01",
+        company_id: company?.id || "comp-andalus-01",
+        code: b.code,
+        name_ar: b.name_ar,
+        name_en: b.name_en,
+        city: b.city,
+        district: b.district,
+        phone: b.phone,
+        email: b.email,
+        active: b.active,
+      } as BranchEntity);
+    }
+    for (const sb of rawServerBranches) {
+      if (sb && sb.code) map.set(sb.code, sb);
+    }
+    return Array.from(map.values());
+  }, [rawServerBranches, company?.id, company?.tenant_id]);
 
   // Save Branch Mutation
   const saveMutation = useMutation({

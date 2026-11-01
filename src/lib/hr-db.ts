@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ANDALUS_BRANCHES,
+  ANDALUS_DEPARTMENTS,
+  generateAndalusEmployees500,
+} from "@/lib/andalus-seed";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LooseTableClient = any;
@@ -545,14 +550,79 @@ export function useRows(table: HrTable, opts?: RowsOptions) {
 
         for (const vr of virtualFallbackRows) {
           const id = String(vr["id"] ?? "");
-          if (id && !mergedById.has(id)) {
-            mergedById.set(id, vr);
+          if (id) {
+            const extra = extrasMap[id] ?? {};
+            mergedById.set(id, { ...vr, ...extra });
           }
         }
 
-        return Array.from(mergedById.values());
+        // دمج بيانات شركة مدارس الأندلس (500 موظف + كافة الفروع والأقسام)
+        if (table === "employees") {
+          const seenEmpNos = new Set<string>();
+          for (const existing of mergedById.values()) {
+            if (existing["emp_no"]) seenEmpNos.add(String(existing["emp_no"]));
+          }
+          for (const seedEmp of generateAndalusEmployees500()) {
+            const sId = String(seedEmp["id"]);
+            const sNo = String(seedEmp["emp_no"]);
+            if (!mergedById.has(sId) && !seenEmpNos.has(sNo)) {
+              const extra = extrasMap[sId] ?? {};
+              mergedById.set(sId, { ...seedEmp, ...extra });
+              seenEmpNos.add(sNo);
+            }
+          }
+        } else if (table === "departments") {
+          for (let i = 0; i < ANDALUS_DEPARTMENTS.length; i++) {
+            const dName = ANDALUS_DEPARTMENTS[i]!;
+            const dId = `andalus-dept-${i + 1}`;
+            if (!mergedById.has(dId)) {
+              const br = ANDALUS_BRANCHES[i % ANDALUS_BRANCHES.length]!;
+              mergedById.set(dId, {
+                id: dId,
+                name: dName,
+                branch: br.name_ar,
+                manager_name: br.manager_name,
+                created_at: "2026-01-01T00:00:00Z",
+              });
+            }
+          }
+        } else if (table === "basic_lookups") {
+          for (const br of ANDALUS_BRANCHES) {
+            const lId = `lookup-br-${br.code}`;
+            if (!mergedById.has(lId)) {
+              mergedById.set(lId, {
+                id: lId,
+                category: "الفروع",
+                code: br.code,
+                name: br.name_ar,
+                name_ar: br.name_ar,
+                name_en: br.name_en,
+                active: true,
+              });
+            }
+          }
+          for (let i = 0; i < ANDALUS_DEPARTMENTS.length; i++) {
+            const deptName = ANDALUS_DEPARTMENTS[i]!;
+            const lId = `lookup-dept-${i + 1}`;
+            if (!mergedById.has(lId)) {
+              mergedById.set(lId, {
+                id: lId,
+                category: "الأقسام",
+                code: `DEP-${i + 1}`,
+                name: deptName,
+                name_ar: deptName,
+                active: true,
+              });
+            }
+          }
+        }
+
+        return applyClientQueryOptions(Array.from(mergedById.values()), opts);
       } catch {
         const virtualRows = await readVirtualTableRows(table);
+        if (table === "employees" && virtualRows.length < 500) {
+          return applyClientQueryOptions([...virtualRows, ...generateAndalusEmployees500()], opts);
+        }
         return applyClientQueryOptions(virtualRows, opts);
       }
     },

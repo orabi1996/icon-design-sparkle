@@ -1032,7 +1032,7 @@ export function EmployeePortalPage() {
           1. TOP APP BAR (Exact match to Screenshots)
          ===================================================================== */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-2xs">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="flex h-16 w-full max-w-none items-center justify-between px-3 sm:px-5 lg:px-6">
           {/* Right side (RTL): Logo + Title */}
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-full bg-teal-500 text-white shadow-xs">
@@ -1090,7 +1090,7 @@ export function EmployeePortalPage() {
           2. DARK BLUE NAVBAR (Exact match to Screenshots)
          ===================================================================== */}
       <div className="bg-[#16325c] text-white shadow-xs relative z-30">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-1">
+        <div className="flex w-full max-w-none items-center justify-between px-3 sm:px-5 lg:px-6 py-1">
           <nav className="flex items-center gap-1 text-xs font-bold py-1 flex-wrap sm:flex-nowrap">
             {/* 1. بيانات الموظف */}
             <button
@@ -1307,7 +1307,7 @@ export function EmployeePortalPage() {
       {/* =====================================================================
           3. MAIN CONTENT CONTAINER
          ===================================================================== */}
-      <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6 space-y-4">
+      <main className="w-full max-w-none px-3 py-4 sm:px-5 lg:px-6 space-y-4">
 
         {/* ===================================================================
             VIEW 1: المسائلات (SCREENSHOT 1)

@@ -342,9 +342,9 @@ export function ReportDocumentViewer({
       )}
 
       {/* ------------------------ Document Paper Preview ------------------------ */}
-      <div className="report-paper-container overflow-x-auto p-4 sm:p-8 flex justify-center items-start">
+      <div className="report-paper-container overflow-x-auto p-3 sm:p-5 flex justify-center items-start">
         <div
-          className="report-sheet bg-white text-slate-900 shadow-xl border border-slate-200 rounded-sm w-full max-w-[920px] min-h-[1150px] p-8 sm:p-10 flex flex-col justify-between transition-all duration-150 origin-top"
+          className="report-sheet bg-white text-slate-900 shadow-xl border border-slate-200 rounded-sm w-full max-w-none min-h-[1150px] p-6 sm:p-8 flex flex-col justify-between transition-all duration-150 origin-top"
           style={{
             transform: zoom !== 100 ? `scale(${zoom / 100})` : undefined,
             transformOrigin: "top center",

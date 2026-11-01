@@ -291,7 +291,7 @@ function AuthenticatedShell({ children }: { children: ReactNode }) {
         <MegaMenu items={nav} />
       </header>
 
-      <main className="min-w-0 px-4 py-6 md:px-8 max-w-[1720px] mx-auto">
+      <main className="w-full max-w-none min-w-0 px-3 py-4 sm:px-5 lg:px-6">
         {children}
 
         <footer className="mt-12 mb-6 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 pt-5 text-xs font-semibold text-slate-500">

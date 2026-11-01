@@ -1489,7 +1489,7 @@ function DataUpdateRegulationPage() {
                                   `تم ربط "${field.label}" بمجموعة الموافقة المختارة`,
                                 )
                               }
-                              className="h-8 w-full max-w-[220px] rounded-lg border border-blue-200 bg-blue-50/40 px-2 text-[11px] font-bold text-[#004e82]"
+                              className="h-8 w-full rounded-lg border border-blue-200 bg-blue-50/40 px-2 text-[11px] font-bold text-[#004e82]"
                             >
                               {config.approvalGroups.map((ag) => (
                                 <option key={ag.id} value={ag.id}>
@@ -2242,7 +2242,7 @@ function DataUpdateRegulationPage() {
                 </div>
 
                 {/* Grid of All Fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 pt-2">
                   {allFields.map((field) => {
                     const rule = activeUserGroup.allowedFields[field.key] || {
                       fieldKey: field.key,

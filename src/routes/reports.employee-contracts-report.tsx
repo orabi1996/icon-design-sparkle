@@ -3,7 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import * as XLSX from "xlsx";
 import { AppShell } from "@/components/hr/AppShell";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { useRows, type Row } from "@/lib/hr-db";
+import { useRows } from "@/lib/hr-db";
+import {
+  useContractTypes,
+  useManagedEmployeeContracts,
+  evaluateContractStatus,
+} from "@/components/hr/ContractTypeSettings";
 
 export const Route = createFileRoute("/reports/employee-contracts-report")({
   head: () => ({ meta: [{ title: "تقرير عقود الموظفين وتواريخ التجديد | التقارير الإحصائية" }] }),
@@ -40,6 +45,8 @@ const inputCls =
 
 function EmployeeContractsReport() {
   const { data: employees = [], isLoading } = useRows("employees", { orderBy: "emp_no", ascending: true });
+  const { contractTypes } = useContractTypes();
+  const { contracts: managedContracts } = useManagedEmployeeContracts(employees);
 
   const [filters, setFilters] = useState({
     branch: "",
@@ -58,51 +65,47 @@ function EmployeeContractsReport() {
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
   const options = useMemo(() => ({
-    branches: uniq(employees.map((e) => String(e["branch"] ?? ""))),
-    departments: uniq(employees.map((e) => String(e["department"] ?? ""))),
-  }), [employees]);
+    branches: uniq(managedContracts.map((e) => String(e.branch ?? ""))),
+    departments: uniq(managedContracts.map((e) => String(e.department ?? ""))),
+    contractTypes: [
+      "الكل",
+      ...uniq([
+        ...contractTypes.map((t) => t.name_ar),
+        ...managedContracts.map((c) => c.contract_type),
+      ]),
+    ],
+  }), [managedContracts, contractTypes]);
 
-  // Generate contract rows
+  // Generate contract rows from live managed contracts
   const contractRows = useMemo(() => {
-    return employees.map((emp, i) => {
-      const basic = Number(emp["basic_salary"] || (i % 2 === 0 ? 6500 : 9000));
-      const housing = Math.round(basic * 0.25);
-      const transport = Math.round(basic * 0.1);
-      const total = basic + housing + transport;
-      const isSaudi = emp["nationality"] === "سعودي";
-      const cType = isSaudi ? "غير محدد المدة" : "محدد المدة";
-
-      const startYear = 2024;
-      const endYear = 2026;
-      const startMonth = ((i % 12) + 1).toString().padStart(2, "0");
-      const endMonth = ((i % 12) + 1).toString().padStart(2, "0");
-      const endDay = "28";
-      const endDateStr = `${endYear}/${endMonth}/${endDay}`;
-
-      // Remaining days relative to mid 2026
-      const daysRem = 30 + (i * 35) % 360;
+    return managedContracts.map((mc) => {
+      const evalRes = evaluateContractStatus(mc.end_date, mc.is_running_on_system);
       let status = "ساري الفعالية";
-      if (daysRem <= 60) status = "قارب على الانتهاء (أقل من 60 يوم)";
+      if (!mc.is_running_on_system || evalRes.status === "منتهي") {
+        status = "منتهي الصلاحية";
+      } else if (evalRes.status === "قريب الانتهاء") {
+        status = "قارب على الانتهاء (أقل من 60 يوم)";
+      }
 
       return {
-        id: `cnt-${emp["emp_no"] || i}`,
-        contract_no: `CNT-${startYear}-00${i + 1}`,
-        emp_no: emp["emp_no"] || String(i + 1),
-        employee_name: emp["full_name"] || "—",
-        branch: emp["branch"] || "شركة الحلول الخبيرة",
-        department: emp["department"] || "التطوير",
-        contract_type: cType,
-        start_date: `${startYear}/${startMonth}/01`,
-        end_date: endDateStr,
-        duration_months: 24,
-        basic_salary: basic,
-        total_salary: total,
+        id: mc.id,
+        contract_no: mc.contract_no,
+        emp_no: mc.emp_no,
+        employee_name: mc.employee_name,
+        branch: mc.branch,
+        department: mc.department,
+        contract_type: mc.contract_type,
+        start_date: mc.start_date,
+        end_date: mc.end_date,
+        duration_months: mc.duration_months,
+        basic_salary: mc.basic_salary,
+        total_salary: mc.total_salary,
         probation_period: "90 يوم",
-        days_remaining: daysRem,
+        days_remaining: evalRes.daysRemaining,
         status,
       } as ContractReportItem;
     });
-  }, [employees]);
+  }, [managedContracts]);
 
   // Filtering
   const filtered = useMemo(() => {
@@ -283,7 +286,7 @@ function EmployeeContractsReport() {
               onChange={(e) => setFilters((p) => ({ ...p, contractType: e.target.value }))}
               className={inputCls}
             >
-              {CONTRACT_TYPES.map((o) => (
+              {options.contractTypes.map((o) => (
                 <option key={o} value={o}>{o}</option>
               ))}
             </select>

@@ -4,6 +4,7 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 import { Breadcrumbs, PageBanner } from "@/components/hr/ui";
 import { CrudTable, type FieldDef } from "@/components/hr/CrudTable";
 import { IdTypeSettingsSection } from "@/components/hr/IdTypeSettings";
+import { ContractTypeSettingsSection } from "@/components/hr/ContractTypeSettings";
 
 export const Route = createFileRoute("/settings/basic")({
   head: () => ({
@@ -280,6 +281,8 @@ function BasicData() {
         <div>
           {section.key === "نوع الهوية" ? (
             <IdTypeSettingsSection />
+          ) : section.key === "نوع العقد" ? (
+            <ContractTypeSettingsSection />
           ) : (
             <CrudTable
               key={section.key}

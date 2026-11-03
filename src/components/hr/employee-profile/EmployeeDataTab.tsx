@@ -31,6 +31,10 @@ import {
   toHijriDate,
 } from "./shared";
 import { useRows, useSaveRow, useDeleteRow } from "@/lib/hr-db";
+import {
+  useContractTypes,
+  calculateDurationBetweenDates,
+} from "@/components/hr/ContractTypeSettings";
 
 interface EmployeeDataTabProps {
   employee: any;
@@ -249,10 +253,25 @@ export function EmployeeDataTab({
   };
 
   // --- Sub-tab 2: Contracts State ---
+  const { activeContractTypes, contractTypes: allDefinedContractTypes } = useContractTypes();
+  const availableContractTypeOptions =
+    activeContractTypes.length > 0
+      ? activeContractTypes.map((ct) => ct.name_ar)
+      : [
+          "عقد محدد المدة",
+          "عقد عام دراسي (بتاريخ بداية ونهاية)",
+          "عقد فترة محددة / مؤقت (بتاريخ بداية ونهاية)",
+          "عقد غير محدد المدة",
+          "عقد عمل مرن",
+        ];
+
   const [contractForm, setContractForm] = useState({
     contract_type: employee.contract_type || "عقد محدد المدة",
     leave_days: "30",
-    end_date: "2026-12-31",
+    start_date:
+      String(employee.start_date || employee.hire_date || "2026-08-20").replace(/\//g, "-"),
+    end_date: String(employee.contract_end || "2027-06-30").replace(/\//g, "-"),
+    is_active: true,
     work_type: "دوام كامل",
     work_scope: "داخل المملكة",
     weekly_work_days: "6",
@@ -263,15 +282,24 @@ export function EmployeeDataTab({
     attachment: "",
   });
 
+  const contractDurationInfo = calculateDurationBetweenDates(
+    contractForm.start_date,
+    contractForm.end_date,
+  );
+
   const contractsList: any[] = profileExtras.contracts || [
     {
       id: "cnt-1",
       contract_no: `CNT-${employee.emp_no || "100"}-01`,
       leave_days: 30,
       contract_type: employee.contract_type || "عقد محدد المدة",
-      start_date: employee.start_date || employee.hire_date || "2024-01-01",
-      end_date: "2026-12-31",
+      start_date: String(employee.start_date || employee.hire_date || "2026-01-01").replace(
+        /\//g,
+        "-",
+      ),
+      end_date: String(employee.contract_end || "2026-12-31").replace(/\//g, "-"),
       status: "ساري",
+      is_active: true,
       work_type: "دوام كامل",
       work_scope: "داخل المملكة",
       work_hours_standard: "يومي",
@@ -284,15 +312,40 @@ export function EmployeeDataTab({
     },
   ];
 
-  const handleSaveContract = () => {
+  const handleSelectContractType = (typeName: string) => {
+    const matched = allDefinedContractTypes.find((ct) => ct.name_ar === typeName);
+    if (matched) {
+      setContractForm((p) => ({
+        ...p,
+        contract_type: typeName,
+        start_date: matched.defaultStartDate || p.start_date,
+        end_date: matched.defaultEndDate || p.end_date,
+        leave_days: String(matched.defaultLeaveDays || p.leave_days),
+        work_type: matched.workType || p.work_type,
+      }));
+    } else {
+      setContractForm((p) => ({ ...p, contract_type: typeName }));
+    }
+  };
+
+  const handleSaveContract = async () => {
+    if (!contractForm.start_date || !contractForm.end_date) {
+      toast.error("يرجى تحديد تاريخ بداية العقد وتاريخ نهاية العقد");
+      return;
+    }
+    if (new Date(contractForm.end_date) < new Date(contractForm.start_date)) {
+      toast.error("تاريخ نهاية العقد يجب أن يكون بعد تاريخ بداية العقد");
+      return;
+    }
     const nextContract = {
       id: `cnt-${Date.now()}`,
       contract_no: `CNT-${employee.emp_no || "100"}-0${contractsList.length + 1}`,
       leave_days: Number(contractForm.leave_days) || 30,
       contract_type: contractForm.contract_type || "عقد محدد المدة",
-      start_date: employee.start_date || new Date().toISOString().slice(0, 10),
-      end_date: contractForm.end_date || "2026-12-31",
-      status: "ساري",
+      start_date: contractForm.start_date,
+      end_date: contractForm.end_date,
+      status: contractForm.is_active ? "ساري" : "موقوف",
+      is_active: contractForm.is_active,
       work_type: contractForm.work_type || "دوام كامل",
       work_scope: contractForm.work_scope || "داخل المملكة",
       work_hours_standard: contractForm.work_hours_standard || "يومي",
@@ -308,12 +361,58 @@ export function EmployeeDataTab({
         ),
       ),
       attachment: contractForm.attachment || "—",
-      end_archive: "—",
+      end_archive: contractDurationInfo.label,
     };
+    const updatedList = contractForm.is_active
+      ? [
+          nextContract,
+          ...contractsList.map((c) => ({ ...c, is_active: false, status: "مؤرشف" })),
+        ]
+      : [nextContract, ...contractsList];
+
     onSaveExtras({
-      contracts: [nextContract, ...contractsList],
+      contracts: updatedList,
     });
-    toast.success("تم تحديث وحفظ بيانات العقد بنجاح");
+
+    if (contractForm.is_active) {
+      await onSaveEmployee({
+        contract_type: nextContract.contract_type,
+        start_date: nextContract.start_date,
+        contract_end: nextContract.end_date,
+        work_type: nextContract.work_type,
+      });
+    }
+    toast.success(
+      `تم حفظ وتشغيل العقد (${nextContract.contract_type}) من ${nextContract.start_date} إلى ${nextContract.end_date} بنجاح`,
+    );
+  };
+
+  const handleToggleActivateContractRow = async (targetRow: any) => {
+    const updatedList = contractsList.map((c) => {
+      if (c.id === targetRow.id) {
+        const nextActive = c.is_active === false ? true : !c.is_active;
+        return {
+          ...c,
+          is_active: nextActive,
+          status: nextActive ? "ساري" : "موقوف",
+        };
+      }
+      return c;
+    });
+    onSaveExtras({ contracts: updatedList });
+    const toggled = updatedList.find((c) => c.id === targetRow.id);
+    if (toggled?.is_active) {
+      await onSaveEmployee({
+        contract_type: toggled.contract_type,
+        start_date: toggled.start_date,
+        contract_end: toggled.end_date,
+      });
+      toast.success(
+        `تم تشغيل وتفعيل العقد رقم ${toggled.contract_no} (${toggled.start_date} ← ${toggled.end_date}) على النظام`,
+      );
+    } else {
+      toast.info(`تم إيقاف العقد رقم ${targetRow.contract_no}`);
+    }
   };
 
   // --- Sub-tab 3: Documents Forms ---
@@ -1265,19 +1364,46 @@ export function EmployeeDataTab({
       {subTab === "contracts" && (
         <div className="space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800">
+                <FileSignature className="h-4 w-4 text-[#0070c0]" />
+                <span>إعداد وتشغيل عقد الموظف (بتاريخ بداية وتاريخ نهاية)</span>
+              </div>
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-extrabold text-[#005799] border border-sky-200">
+                المدة المحسوبة: {contractDurationInfo.label}
+              </span>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               <ProfileField label="نوع العقد">
                 <ClearableSelect
                   value={contractForm.contract_type}
-                  onChange={(v) =>
-                    setContractForm((p) => ({ ...p, contract_type: v }))
+                  onChange={handleSelectContractType}
+                  options={availableContractTypeOptions}
+                />
+              </ProfileField>
+
+              <ProfileField label="تاريخ بداية العقد">
+                <input
+                  type="date"
+                  dir="ltr"
+                  className={fieldInputClass}
+                  value={contractForm.start_date}
+                  onChange={(e) =>
+                    setContractForm((p) => ({ ...p, start_date: e.target.value }))
                   }
-                  options={[
-                    "عقد محدد المدة",
-                    "عقد غير محدد المدة",
-                    "عقد عمل مرن",
-                    "عقد تدريب",
-                  ]}
+                />
+              </ProfileField>
+
+              <ProfileField label="تاريخ نهاية العقد">
+                <input
+                  type="date"
+                  dir="ltr"
+                  className={fieldInputClass}
+                  value={contractForm.end_date}
+                  onChange={(e) =>
+                    setContractForm((p) => ({ ...p, end_date: e.target.value }))
+                  }
                 />
               </ProfileField>
 
@@ -1291,25 +1417,13 @@ export function EmployeeDataTab({
                 />
               </ProfileField>
 
-              <ProfileField label="تاريخ نهايه العقد">
-                <input
-                  type="date"
-                  dir="ltr"
-                  className={fieldInputClass}
-                  value={contractForm.end_date}
-                  onChange={(e) =>
-                    setContractForm((p) => ({ ...p, end_date: e.target.value }))
-                  }
-                />
-              </ProfileField>
-
               <ProfileField label="نوع العمل">
                 <ClearableSelect
                   value={contractForm.work_type}
                   onChange={(v) =>
                     setContractForm((p) => ({ ...p, work_type: v }))
                   }
-                  options={["دوام كامل", "دوام جزئي", "عمل عن بعد"]}
+                  options={["دوام كامل", "دوام جزئي", "عمل مرن", "عمل عن بعد"]}
                 />
               </ProfileField>
 
@@ -1368,7 +1482,7 @@ export function EmployeeDataTab({
                 />
               </ProfileField>
 
-              <ProfileField label="بنود العقد" className="lg:col-span-2">
+              <ProfileField label="بنود العقد">
                 <textarea
                   rows={2}
                   className={fieldInputClass}
@@ -1392,14 +1506,26 @@ export function EmployeeDataTab({
               </ProfileField>
             </div>
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3.5 py-2 text-xs font-extrabold text-emerald-800">
+                <input
+                  type="checkbox"
+                  checked={contractForm.is_active}
+                  onChange={(e) =>
+                    setContractForm((p) => ({ ...p, is_active: e.target.checked }))
+                  }
+                  className="size-4 accent-emerald-600"
+                />
+                <span>تشغيل وتفعيل هذا العقد على النظام فوراً</span>
+              </label>
+
               <button
                 type="button"
                 onClick={handleSaveContract}
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700"
               >
                 <Save className="h-4 w-4" />
-                تحديث
+                حفظ وتشغيل العقد على النظام
               </button>
             </div>
           </div>
@@ -1409,13 +1535,19 @@ export function EmployeeDataTab({
               { key: "contract_no", label: "رقم العقد" },
               { key: "leave_days", label: "الأجازات" },
               { key: "contract_type", label: "نوع العقد" },
-              { key: "start_date", label: "تاريخ بدايه العقد" },
-              { key: "end_date", label: "تاريخ نهايه العقد" },
+              { key: "start_date", label: "تاريخ بداية العقد" },
+              { key: "end_date", label: "تاريخ نهاية العقد" },
               {
                 key: "status",
                 label: "الحاله",
                 render: (r) => (
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                      r.status === "ساري"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
                     {r.status}
                   </span>
                 ),
@@ -1438,7 +1570,9 @@ export function EmployeeDataTab({
                       setContractForm({
                         contract_type: r.contract_type,
                         leave_days: String(r.leave_days),
+                        start_date: r.start_date || "2026-08-20",
                         end_date: r.end_date,
+                        is_active: r.is_active !== false,
                         work_type: r.work_type,
                         work_scope: r.work_scope,
                         weekly_work_days: String(r.weekly_work_days),
@@ -1459,15 +1593,26 @@ export function EmployeeDataTab({
               },
               {
                 key: "activate",
-                label: "تفعيل",
-                render: () => (
-                  <span className="inline-flex items-center gap-1 text-emerald-600 font-bold">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    مفعل
-                  </span>
-                ),
+                label: "التشغيل على النظام",
+                render: (r) => {
+                  const isRunning = r.is_active !== false && r.status === "ساري";
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActivateContractRow(r)}
+                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                        isRunning
+                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                          : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {isRunning ? "مشغل على النظام" : "تشغيل العقد"}
+                    </button>
+                  );
+                },
               },
-              { key: "end_archive", label: "ارشيف نهايه العقد" },
+              { key: "end_archive", label: "مدة العقد / الأرشيف" },
             ]}
             rows={contractsList}
           />

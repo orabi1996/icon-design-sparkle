@@ -18,6 +18,10 @@ import {
   validateIdNumberAgainstRule,
   type IdTypeRule,
 } from "@/components/hr/IdTypeSettings";
+import {
+  useContractTypes,
+  calculateDurationBetweenDates,
+} from "@/components/hr/ContractTypeSettings";
 
 type Value = string | number | boolean;
 
@@ -387,6 +391,11 @@ export function EmployeeWizard() {
   const [contractFile, setContractFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const [dupAlert, setDupAlert] = useState<{ field: string; name: string; empNo: string } | null>(null);
+  const { activeContractTypes, contractTypes: allDefinedContractTypes } = useContractTypes();
+  const dynamicContractOptions =
+    activeContractTypes.length > 0
+      ? activeContractTypes.map((ct) => ct.name_ar)
+      : contractTypes;
 
   const { data: rawIdTypes = [] } = useRows("basic_lookups", {
     filters: { category: "نوع الهوية" },
@@ -706,7 +715,7 @@ export function EmployeeWizard() {
         بيانات العمل
       </div>
       <Panel title="حالة العمل والبصمة والتقارير">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <CheckCard label="على رأس العمل" helper="حالة العمل والبصمة والتقارير" checked={Boolean(form.on_duty)} onChange={(value) => set("on_duty", value)} />
           <CheckCard label="مستثنى من خصومات البصمة" helper="استثناء من نظام البصمة" checked={Boolean(form.fingerprint_deduction_exempt)} onChange={(value) => set("fingerprint_deduction_exempt", value)} />
           <CheckCard label="عرض في تقارير البصمة" helper="إظهار في التقارير" checked={Boolean(form.show_in_fingerprint_reports)} onChange={(value) => set("show_in_fingerprint_reports", value)} />
@@ -769,7 +778,7 @@ export function EmployeeWizard() {
       </Panel>
 
       <Panel index={4} title="بيانات الخبرة العملية">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Field label="عدد سنوات الخبرة">
             <InputControl type="number" min={0} value={form.experience_years} onChange={(value) => set("experience_years", Number(value))} />
           </Field>
@@ -827,7 +836,7 @@ export function EmployeeWizard() {
       </Panel>
 
       <Panel index={4} title="البريد الإلكتروني">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Field label="البريد الإلكتروني" required><InputControl type="email" value={form.email} onChange={(value) => set("email", value)} /></Field>
           <Field label="البريد الإلكتروني الخاص"><InputControl type="email" value={form.private_email} onChange={(value) => set("private_email", value)} /></Field>
           <Field label="مكان الميلاد"><SelectControl value={form.birth_place} onChange={(value) => set("birth_place", value)} options={regions} /></Field>
@@ -890,7 +899,7 @@ export function EmployeeWizard() {
       </Panel>
 
       <Panel>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <CheckCard label="حظر تعديل البيانات البنكية" helper="منع الموظف من تعديل بياناته البنكية" checked={Boolean(form.bank_data_blocked)} onChange={(value) => set("bank_data_blocked", value)} />
           <CheckCard label="مقيد موارد" helper="ربط الموظف بقيود الموارد" checked={Boolean(form.resource_restricted)} onChange={(value) => set("resource_restricted", value)} />
           <CheckCard label="إضافة استحقاقات واستقطاعات" helper="إتاحة إعداد عناصر الرواتب" checked={Boolean(form.add_entitlements_deductions)} onChange={(value) => set("add_entitlements_deductions", value)} />
@@ -905,9 +914,10 @@ export function EmployeeWizard() {
         العقود
       </div>
       <Panel index={1} title="تفاصيل العقد الأساسية">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Field label="نوع العقد" required><SelectControl value={form.contract_type} onChange={(value) => set("contract_type", value)} options={contractTypes} /></Field>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Field label="نوع العقد" required><SelectControl value={form.contract_type} onChange={(value) => { set("contract_type", value); const matched = allDefinedContractTypes.find((t) => t.name_ar === value); if (matched) { if (matched.defaultStartDate) set("start_date", matched.defaultStartDate); if (matched.defaultEndDate) set("contract_end", matched.defaultEndDate); if (matched.workType) set("work_type", matched.workType); } }} options={dynamicContractOptions} /></Field>
           <Field label="لائحة الإجازة السنوية" required><SelectControl value={form.annual_leave_policy} onChange={(value) => set("annual_leave_policy", value)} options={leavePolicies} /></Field>
+          <Field label="تاريخ بداية العقد" required><InputControl type="date" value={form.start_date} onChange={(value) => set("start_date", value)} /></Field>
           <Field label="تاريخ نهاية العقد" required><InputControl type="date" value={form.contract_end} onChange={(value) => set("contract_end", value)} /></Field>
         </div>
       </Panel>
@@ -923,7 +933,7 @@ export function EmployeeWizard() {
       </Panel>
 
       <Panel index={3} title="تنظيم الإجازات والأجرة">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Field label="عدد أيام الراحة الأسبوعية" required><InputControl type="number" min={1} value={form.weekly_rest_days} onChange={(value) => set("weekly_rest_days", Number(value))} /></Field>
           <Field label="بنود العقد"><SelectControl value={form.contract_terms} onChange={(value) => set("contract_terms", value)} options={contractTerms} /></Field>
           <Field label="المرفقات">

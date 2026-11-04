@@ -372,10 +372,12 @@ export function generateAndalusEmployees500(): Row[] {
   if (_cachedEmployees) return _cachedEmployees;
 
   const list: Row[] = [];
+  const usedNames = new Set<string>();
 
   // الموظف رقم 1: أحمد محمد السيد السيد (حساب الموظف الأساسي 10078)
+  usedNames.add("أحمد محمد السيد السيد");
   list.push({
-    id: "emp-andalus-10078",
+    id: "cdfac520-782f-40f2-b40d-5895a9c9d5e3",
     emp_no: "10078",
     full_name: "أحمد محمد السيد السيد",
     full_name_en: "Ahmed Mohammed Alsayed Alsayed",
@@ -434,6 +436,7 @@ export function generateAndalusEmployees500(): Row[] {
   for (let i = 1; i <= 549; i++) {
     const empNoNum = 10000 + i + (10000 + i >= 10078 ? 1 : 0);
     const empNo = String(empNoNum);
+    const detUuid = `00000000-0001-4000-8000-${(i + 1).toString(16).padStart(12, "0")}`;
 
     const branchObj = ANDALUS_BRANCHES[i % ANDALUS_BRANCHES.length]!;
     const isGirlsBranch =
@@ -447,14 +450,23 @@ export function generateAndalusEmployees500(): Row[] {
       : NATIONALITIES[1 + (i % (NATIONALITIES.length - 1))]!;
 
     const firstPool = gender === "أنثى" ? FIRST_NAMES_FEMALE : FIRST_NAMES_MALE;
-    const fName = firstPool[i % firstPool.length]!;
-    const mName1 = MIDDLE_NAMES[(i * 3) % MIDDLE_NAMES.length]!;
-    const mName2 = MIDDLE_NAMES[(i * 7 + 5) % MIDDLE_NAMES.length]!;
-    const lName = isSaudi
-      ? FAMILY_NAMES_SAUDI[(i * 5) % FAMILY_NAMES_SAUDI.length]!
-      : FAMILY_NAMES_RESIDENT[(i * 5) % FAMILY_NAMES_RESIDENT.length]!;
+    const famPool = isSaudi ? FAMILY_NAMES_SAUDI : FAMILY_NAMES_RESIDENT;
+    let fullName = "";
+    let attempt = 0;
+    while (!fullName || usedNames.has(fullName)) {
+      const fName = firstPool[(i + attempt) % firstPool.length]!;
+      const mName1 = MIDDLE_NAMES[(i * 3 + attempt * 5) % MIDDLE_NAMES.length]!;
+      const mName2 = MIDDLE_NAMES[(i * 7 + 5 + attempt * 11) % MIDDLE_NAMES.length]!;
+      const mName3 = MIDDLE_NAMES[(i * 11 + 3 + attempt * 13) % MIDDLE_NAMES.length]!;
+      const lName = famPool[(i * 5 + attempt * 7) % famPool.length]!;
+      fullName =
+        attempt < 20
+          ? `${fName} ${mName1} ${mName2} ${lName}`
+          : `${fName} ${mName1} ${mName2} ${mName3} ${lName}`;
+      attempt++;
+    }
+    usedNames.add(fullName);
 
-    const fullName = `${fName} ${mName1} ${mName2} ${lName}`;
     const nationalId = isSaudi
       ? `10${String(24500000 + i * 137).slice(0, 8)}`
       : `24${String(68100000 + i * 193).slice(0, 8)}`;
@@ -498,7 +510,7 @@ export function generateAndalusEmployees500(): Row[] {
             : "عقد محدد المدة";
 
     list.push({
-      id: `emp-andalus-${empNo}`,
+      id: detUuid,
       emp_no: empNo,
       full_name: fullName,
       full_name_en: `Employee ${empNo} - Al-Andalus`,
@@ -948,8 +960,8 @@ export function generateAndalusSeedForTable(table: string): Row[] {
           work_date: workDate,
           record_date: workDate,
           date: workDate,
-          check_in: isAbsent ? "—" : isLate ? `07:${String(15 + (idx % 35)).padStart(2, "0")}` : "06:55",
-          check_out: isAbsent ? "—" : "14:15",
+          check_in: isAbsent ? null : isLate ? `07:${String(15 + (idx % 35)).padStart(2, "0")}:00` : "06:55:00",
+          check_out: isAbsent ? null : "14:15:00",
           late_minutes: lateMins,
           status: isAbsent ? "غائب" : isLate ? "متأخر" : "حاضر",
           created_at: `${workDate}T07:00:00Z`,

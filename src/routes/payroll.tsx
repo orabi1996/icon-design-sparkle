@@ -4,7 +4,8 @@ import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router"
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { AppShell } from "@/components/hr/AppShell";
 import { CrudTable } from "@/components/hr/CrudTable";
-import { useRows, useSaveRow } from "@/lib/hr-db";
+import { useRows, useSaveRow, money } from "@/lib/hr-db";
+import { ANDALUS_BRANCHES, ANDALUS_DEPARTMENTS } from "@/lib/andalus-seed";
 import {
   Breadcrumbs,
   Btn,
@@ -50,8 +51,8 @@ function PayrollRoute() {
 
 const years = ["اختر ....", "٢٠٢٦", "٢٠٢٥", "٢٠٢٤"];
 const months = ["اختر ....", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠", "١١", "١٢"];
-const branches = ["اختر ....", "شركة الحلول الخبيرة", "شركةالحلول٢"];
-const opt = ["اختر ...."];
+const branches = ["الكل", ...ANDALUS_BRANCHES.map((b) => b.name_ar), "شركة الحلول الخبيرة"];
+const opt = ["الكل", ...ANDALUS_DEPARTMENTS];
 
 const tabs = [
   { key: "draft", label: "مسودة المسير", icon: "draft" },
@@ -436,13 +437,65 @@ const unlockCols = [
 ];
 
 function TableBlock({ columns }: { columns: string[] }) {
+  const { data: employees = [] } = useRows("employees", { orderBy: "emp_no", ascending: true });
+  const { data: runs = [] } = useRows("payroll_runs");
+  const generatedRows = columns.includes("رقم المسير")
+    ? runs.map((r, idx) => ({
+        "رقم المسير": String(r["run_no"] || `PR-2026-${idx + 1}`),
+        "الشهر": `${r["year"] || 2026}/${String(r["month"] || 10).padStart(2, "0")}`,
+        "تاريخ الاغلاق": String(r["closed_at"] || "2026-10-27"),
+        "نوع المسير": String(r["payroll_type"] || "رواتب"),
+        "الفرع": String(r["branch"] || "جميع فروع مدارس الأندلس"),
+        "اغلاق": <Chip label={String(r["status"] || "مقفل")} tone="teal" />,
+        "صافى الرواتب": money(Number(r["total_net"] || 4250000)),
+      }))
+    : columns.includes("رقم القيد")
+      ? runs.slice(0, 12).map((r, idx) => ({
+          "رقم القيد": `JV-2026-${1001 + idx}`,
+          "التاريخ": String(r["closed_at"] || "2026-10-27"),
+          "نوع المسير": "قيد رواتب وأجور شهري",
+          "الفرع": String(r["branch"] || "جميع فروع مدارس الأندلس"),
+          "مدين": money(Number(r["total_gross"] || 4550000)),
+          "دائن": money(Number(r["total_net"] || 4250000)),
+          "الحالة": <Chip label="مرحل ومعتمد" tone="teal" />,
+        }))
+      : employees.slice(0, 30).map((emp, idx) => {
+          const basic = Number(emp["basic_salary"] || 6500);
+          const allow = Number(emp["allowances"] || 1850);
+          const ded = idx % 3 === 0 ? 500 : 150;
+          const net = basic + allow - ded;
+          const rowObj: Record<string, React.ReactNode> = {};
+          for (const col of columns) {
+            if (col === "اسم الموظف") rowObj[col] = String(emp["full_name"] || "—");
+            else if (col === "الرقم الوظيفى") rowObj[col] = String(emp["emp_no"] || idx + 1);
+            else if (col === "رقم الهويه") rowObj[col] = String(emp["national_id"] || "—");
+            else if (col === "الفرع") rowObj[col] = String(emp["branch"] || "—");
+            else if (col === "القسم" || col === "الأقسام") rowObj[col] = String(emp["department"] || "—");
+            else if (col === "القسم الرئيسى") rowObj[col] = String(emp["main_department"] || "بنين");
+            else if (col === "القطاع") rowObj[col] = String(emp["sector"] || "شركة مدارس الأندلس التعليمية");
+            else if (col === "المسار") rowObj[col] = String(emp["career_path"] || "الأهلي");
+            else if (col === "السنه") rowObj[col] = "2026";
+            else if (col === "الشهور") rowObj[col] = "10";
+            else if (col === "تاريخ الادخال" || col === "Insert Date") rowObj[col] = "2026-10-25";
+            else if (col === "المستخدم" || col === "اسم المستخدم") rowObj[col] = "إدارة الرواتب";
+            else if (col === "نوع المسير") rowObj[col] = "رواتب شهرية";
+            else if (col === "طريقة الاحتساب") rowObj[col] = "آلي (30 يوم)";
+            else if (col === "اسم البند" || col === "الاستحقاقات") rowObj[col] = "راتب أساسي + بدلات";
+            else if (col === "الاستقطاعات") rowObj[col] = idx % 3 === 0 ? "قسط سلفة" : "تأمينات";
+            else if (col === "القيمة" || col === "الاستحقاق القيمة") rowObj[col] = money(net);
+            else if (col === "الاستقطاع القيمة") rowObj[col] = money(ded);
+            else if (col === "إجراءات") rowObj[col] = <Chip label="معتمد بالمسير" tone="teal" />;
+            else rowObj[col] = "—";
+          }
+          return rowObj;
+        });
   return (
     <div
       className="overflow-hidden rounded-2xl border border-border bg-card"
       style={{ boxShadow: "var(--shadow-card)" }}
     >
       <TableToolbar title="النتائج" />
-      <DataTable columns={columns} rows={[]} empty="لا توجد بيانات" />
+      <DataTable columns={columns} rows={generatedRows} empty="لا توجد بيانات" />
       <Pager />
     </div>
   );
@@ -949,8 +1002,8 @@ function Payroll() {
 
   const content = (() => {
     if (tab === "draft") {
-      if (sub === 0) return <DraftPrepare />;
-      if (sub === 1) return <SettlementPrepare />;
+      if (sub === 0) return <div className="space-y-4"><DraftPrepare /><TableBlock columns={editCols} /></div>;
+      if (sub === 1) return <div className="space-y-4"><SettlementPrepare /><TableBlock columns={editCols} /></div>;
       if (sub === 2)
         return (
           <div className="space-y-4">

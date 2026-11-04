@@ -414,19 +414,24 @@ export function generateAndalusEmployees500(): Row[] {
     iqama_issue_place: "الرياض",
     last_qualification: "بكالوريوس",
     basic_salary: 6500,
-    allowances: 1850,
+    housing_allowance: 1625,
+    transport_allowance: 650,
+    other_allowance: 500,
+    allowances: 2775,
+    contract_type: "عقد عام دراسي (بتاريخ بداية ونهاية)",
     bank_name: "مصرف الراجحي",
     iban: "SA4480000412608010100780",
     hire_date: "2022-08-25",
     start_date: "2022-08-25",
     contract_end: "2027-06-30",
-    status: "active",
+    status: "نشط",
+    employment_status: "active",
     created_at: "2026-01-10T08:00:00Z",
     updated_at: "2026-11-01T08:00:00Z",
   });
 
-  // توليد 499 موظفاً إضافياً ليصبح الإجمالي 500 موظف بالضبط
-  for (let i = 1; i <= 499; i++) {
+  // توليد 549 موظفاً إضافياً ليصبح الإجمالي 550 موظفاً
+  for (let i = 1; i <= 549; i++) {
     const empNoNum = 10000 + i + (10000 + i >= 10078 ? 1 : 0);
     const empNo = String(empNoNum);
 
@@ -475,11 +480,22 @@ export function generateAndalusEmployees500(): Row[] {
     const iqamaExpiry = `${iqamaYear}-${iqamaMonth}-${iqamaDay}`;
 
     const basicSalary = 5500 + (i % 12) * 450;
-    const allowances = Math.round(basicSalary * 0.35);
+    const housingAllowance = Math.round(basicSalary * 0.25);
+    const transportAllowance = Math.round(basicSalary * 0.1);
+    const otherAllowance = i % 3 === 0 ? 500 : 0;
+    const allowances = housingAllowance + transportAllowance + otherAllowance;
 
     const hireYear = 2018 + (i % 8);
     const hireMonth = String(1 + ((i * 3) % 12)).padStart(2, "0");
     const hireDate = `${hireYear}-${hireMonth}-01`;
+    const contractType =
+      i % 4 === 0
+        ? "عقد عام دراسي (بتاريخ بداية ونهاية)"
+        : i % 6 === 0
+          ? "عقد فترة محددة / مؤقت (بتاريخ بداية ونهاية)"
+          : isSaudi && i % 3 === 0
+            ? "عقد غير محدد المدة"
+            : "عقد محدد المدة";
 
     list.push({
       id: `emp-andalus-${empNo}`,
@@ -507,7 +523,7 @@ export function generateAndalusEmployees500(): Row[] {
           : "تعليمي",
       specialization: spec,
       career_path: isInternational ? "العالمي" : "الأهلي",
-      manager_name: branchObj.manager_name,
+      manager_name: i <= 18 ? "أحمد محمد السيد السيد" : branchObj.manager_name,
       phone,
       mobile: phone,
       email,
@@ -524,13 +540,18 @@ export function generateAndalusEmployees500(): Row[] {
       iqama_issue_place: city,
       last_qualification: i % 7 === 0 ? "ماجستير" : "بكالوريوس",
       basic_salary: basicSalary,
+      housing_allowance: housingAllowance,
+      transport_allowance: transportAllowance,
+      other_allowance: otherAllowance,
       allowances,
+      contract_type: contractType,
       bank_name: i % 3 === 0 ? "البنك الأهلي السعودي" : i % 3 === 1 ? "مصرف الراجحي" : "بنك الإنماء",
       iban: `SA${String(10 + (i % 89))}80000000608010${empNo}`,
       hire_date: hireDate,
       start_date: hireDate,
       contract_end: "2027-06-30",
-      status: "active",
+      status: "نشط",
+      employment_status: "active",
       created_at: `${hireDate}T08:00:00Z`,
       updated_at: "2026-11-01T08:00:00Z",
     });
@@ -710,3 +731,598 @@ export function generateAndalusDataUpdateHistory(): DataUpdateRequestItem[] {
   _cachedUpdateRequests = items;
   return items;
 }
+
+const _tableSeedCache = new Map<string, Row[]>();
+
+/**
+ * توليد البيانات التجريبية الشاملة لجميع جداول النظام (550 موظف، مسيرات رواتب، حضور وبصمة، إجازات، سلف، مساءلات، أذونات، مراسلات، نهاية خدمة، طلبات اعتماد، مهام، لوائح)
+ */
+export function generateAndalusSeedForTable(table: string): Row[] {
+  const cached = _tableSeedCache.get(table);
+  if (cached) return cached;
+
+  const employees = generateAndalusEmployees500();
+  let rows: Row[] = [];
+
+  switch (table) {
+    case "employees": {
+      rows = employees;
+      break;
+    }
+
+    case "departments": {
+      rows = ANDALUS_DEPARTMENTS.map((dName, i) => {
+        const br = ANDALUS_BRANCHES[i % ANDALUS_BRANCHES.length]!;
+        return {
+          id: `andalus-dept-${i + 1}`,
+          name: dName,
+          branch: br.name_ar,
+          manager_name: br.manager_name,
+          created_at: "2026-01-01T00:00:00Z",
+        };
+      });
+      break;
+    }
+
+    case "basic_lookups": {
+      const lookups: Row[] = [];
+      for (const br of ANDALUS_BRANCHES) {
+        lookups.push({
+          id: `lookup-br-${br.code}`,
+          category: "الفروع",
+          code: br.code,
+          name: br.name_ar,
+          name_ar: br.name_ar,
+          name_en: br.name_en,
+          active: true,
+          created_at: "2026-01-01T00:00:00Z",
+        });
+      }
+      ANDALUS_DEPARTMENTS.forEach((deptName, i) => {
+        lookups.push({
+          id: `lookup-dept-${i + 1}`,
+          category: "الأقسام",
+          code: `DEP-${i + 1}`,
+          name: deptName,
+          name_ar: deptName,
+          name_en: `Department ${i + 1}`,
+          active: true,
+          created_at: "2026-01-01T00:00:00Z",
+        });
+      });
+      const banks = [
+        { ar: "مصرف الراجحي", en: "Al Rajhi Bank", code: "RJHI", sabb: "80" },
+        { ar: "البنك الأهلي السعودي", en: "Saudi National Bank (SNB)", code: "NCBK", sabb: "10" },
+        { ar: "مصرف الإنماء", en: "Alinma Bank", code: "INMA", sabb: "05" },
+        { ar: "بنك الرياض", en: "Riyad Bank", code: "RIBL", sabb: "20" },
+        { ar: "بنك البلاد", en: "Bank Albilad", code: "ALBI", sabb: "15" },
+        { ar: "البنك السعودي الفرنسي", en: "Banque Saudi Fransi", code: "BSFR", sabb: "55" },
+      ];
+      banks.forEach((b, i) => {
+        lookups.push({
+          id: `lookup-bank-${i + 1}`,
+          category: "البنوك",
+          code: b.code,
+          sabb_code: b.sabb,
+          name_ar: b.ar,
+          name_en: b.en,
+          flag: true,
+          active: true,
+          created_at: "2026-01-01T00:00:00Z",
+        });
+      });
+      rows = lookups;
+      break;
+    }
+
+    case "payroll_runs": {
+      const totalGross = employees.reduce(
+        (sum, e) => sum + Number(e["basic_salary"] || 0) + Number(e["allowances"] || 0),
+        0,
+      );
+      const totalDed = Math.round(totalGross * 0.068);
+      const totalNet = totalGross - totalDed;
+
+      const monthsList = [
+        { year: 2026, month: 11, label: "نوفمبر 2026", status: "مسودة" },
+        { year: 2026, month: 10, label: "أكتوبر 2026", status: "مقفل" },
+        { year: 2026, month: 9, label: "سبتمبر 2026", status: "مقفل" },
+        { year: 2026, month: 8, label: "أغسطس 2026", status: "مقفل" },
+        { year: 2026, month: 7, label: "يوليو 2026", status: "مقفل" },
+        { year: 2026, month: 6, label: "يونيو 2026", status: "مقفل" },
+        { year: 2026, month: 5, label: "مايو 2026", status: "مقفل" },
+        { year: 2026, month: 4, label: "أبريل 2026", status: "مقفل" },
+        { year: 2026, month: 3, label: "مارس 2026", status: "مقفل" },
+        { year: 2026, month: 2, label: "فبراير 2026", status: "مقفل" },
+        { year: 2026, month: 1, label: "يناير 2026", status: "مقفل" },
+        { year: 2025, month: 12, label: "ديسمبر 2025", status: "مقفل" },
+        { year: 2025, month: 11, label: "نوفمبر 2025", status: "مقفل" },
+        { year: 2025, month: 10, label: "أكتوبر 2025", status: "مقفل" },
+        { year: 2025, month: 9, label: "سبتمبر 2025", status: "مقفل" },
+        { year: 2025, month: 8, label: "أغسطس 2025", status: "مقفل" },
+      ];
+
+      rows = monthsList.map((m, idx) => {
+        const variance = 1 - (idx % 4) * 0.005;
+        const g = Math.round(totalGross * variance);
+        const d = Math.round(totalDed * variance);
+        const n = g - d;
+        const mStr = String(m.month).padStart(2, "0");
+        return {
+          id: `pr-andalus-${m.year}-${mStr}`,
+          run_no: `PR-${m.year}-${mStr}`,
+          title: `مسير رواتب شركة مدارس الأندلس التعليمية — ${m.label}`,
+          month: m.month,
+          year: m.year,
+          branch: "جميع فروع مدارس الأندلس (18 فرعاً)",
+          payroll_type: "رواتب",
+          status: m.status,
+          employees_count: employees.length,
+          total_gross: g,
+          total_deductions: d,
+          total_net: n,
+          closed_at: `${m.year}-${mStr}-27`,
+          created_at: `${m.year}-${mStr}-25T09:00:00Z`,
+          updated_at: `${m.year}-${mStr}-27T14:00:00Z`,
+        };
+      });
+      break;
+    }
+
+    case "entitlements": {
+      rows = [
+        { id: "ent-1", name: "بدل سكن (25%)", calc_type: "نسبة مئوية", amount: 25, gosi_subject: true, active: true, notes: "بدل سكن 25% من الراتب الأساسي", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ent-2", name: "بدل نقل ومواصلات (10%)", calc_type: "نسبة مئوية", amount: 10, gosi_subject: false, active: true, notes: "بدل مواصلات شهري", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ent-3", name: "بدل طبيعة عمل وتدريس", calc_type: "مبلغ ثابت", amount: 500, gosi_subject: false, active: true, notes: "خاص بالكادر التعليمي في مدارس الأندلس", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ent-4", name: "بدل إشراف تربوي وقيادة مدرسية", calc_type: "مبلغ ثابت", amount: 1200, gosi_subject: false, active: true, notes: "لقادة المدارس والمشرفين التربويين", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ent-5", name: "مكافأة تميز أكاديمي", calc_type: "مبلغ ثابت", amount: 1000, gosi_subject: false, active: true, notes: "تصرف للمتميزين في تقييم الأداء الفصلي", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ent-6", name: "بدل حصص إضافية ومناوبات", calc_type: "مبلغ ثابت", amount: 450, gosi_subject: false, active: true, notes: "بدل تكليف بالحصص الإضافية", created_at: "2026-01-01T08:00:00Z" },
+      ];
+      break;
+    }
+
+    case "deductions": {
+      rows = [
+        { id: "ded-1", name: "التأمينات الاجتماعية للسعوديين (GOSI 9.75%)", calc_type: "نسبة مئوية", amount: 9.75, active: true, notes: "استقطاع نظامي للموظفين السعوديين", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ded-2", name: "خصم غياب بدون عذر (بصمة)", calc_type: "يومي", amount: 1, active: true, notes: "خصم أجر يوم عمل عن كل يوم غياب", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ded-3", name: "خصم تأخير صباحي متكرر", calc_type: "مبلغ ثابت", amount: 150, active: true, notes: "حسب لائحة خصومات البصمة", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ded-4", name: "قسط سلفة شخصية", calc_type: "مبلغ ثابت", amount: 500, active: true, notes: "استقطاع شهري لسداد السلفة", created_at: "2026-01-01T08:00:00Z" },
+        { id: "ded-5", name: "نسبة تحمل التأمين الطبي للمرافقين", calc_type: "مبلغ ثابت", amount: 250, active: true, notes: "استقطاع شهري للتأمين الطبي الإضافي", created_at: "2026-01-01T08:00:00Z" },
+      ];
+      break;
+    }
+
+    case "employee_entitlements": {
+      rows = employees.slice(0, 250).map((emp, idx) => ({
+        id: `emp-ent-${idx + 1}`,
+        employee_id: emp["id"],
+        emp_no: emp["emp_no"],
+        employee_name: emp["full_name"],
+        branch: emp["branch"],
+        department: emp["department"],
+        entitlement_name: idx % 3 === 0 ? "مكافأة تميز أكاديمي" : idx % 2 === 0 ? "بدل طبيعة عمل وتدريس" : "بدل إشراف تربوي وقيادة مدرسية",
+        amount: idx % 3 === 0 ? 1000 : idx % 2 === 0 ? 500 : 1200,
+        is_percentage: false,
+        year: "2026",
+        month: String(1 + (idx % 11)).padStart(2, "0"),
+        notes: "2026-10 | استحقاق معتمد في مسير الرواتب",
+        created_at: "2026-10-15T08:00:00Z",
+      }));
+      break;
+    }
+
+    case "employee_deductions": {
+      rows = employees.slice(0, 180).map((emp, idx) => ({
+        id: `emp-ded-${idx + 1}`,
+        employee_id: emp["id"],
+        emp_no: emp["emp_no"],
+        employee_name: emp["full_name"],
+        branch: emp["branch"],
+        department: emp["department"],
+        deduction_name: idx % 3 === 0 ? "خصم تأخير صباحي متكرر" : idx % 2 === 0 ? "قسط سلفة شخصية" : "خصم غياب بدون عذر (بصمة)",
+        amount: idx % 3 === 0 ? 150 : idx % 2 === 0 ? 500 : 240,
+        is_percentage: false,
+        year: "2026",
+        month: String(1 + (idx % 11)).padStart(2, "0"),
+        notes: "2026-10 | استقطاع مطبق في المسير",
+        created_at: "2026-10-15T08:00:00Z",
+      }));
+      break;
+    }
+
+    case "attendance_records":
+    case "fingerprint_records": {
+      rows = employees.slice(0, 500).map((emp, idx) => {
+        const isAbsent = idx % 14 === 0;
+        const isLate = !isAbsent && idx % 5 === 0;
+        const day = String(1 + (idx % 28)).padStart(2, "0");
+        const workDate = `2026-10-${day}`;
+        const lateMins = isLate ? 15 + (idx % 35) : 0;
+        return {
+          id: `att-andalus-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          branch: emp["branch"],
+          department: emp["department"],
+          work_date: workDate,
+          record_date: workDate,
+          date: workDate,
+          check_in: isAbsent ? "—" : isLate ? `07:${String(15 + (idx % 35)).padStart(2, "0")}` : "06:55",
+          check_out: isAbsent ? "—" : "14:15",
+          late_minutes: lateMins,
+          status: isAbsent ? "غائب" : isLate ? "متأخر" : "حاضر",
+          created_at: `${workDate}T07:00:00Z`,
+        };
+      });
+      break;
+    }
+
+    case "work_shift_groups": {
+      rows = [
+        { id: "sh-1", name: "دوام الكادر التعليمي الصباحي (مدارس الأندلس)", branch: "جميع الفروع التعليمية", start_time: "06:45", end_time: "14:00", grace_minutes: 15, break_minutes: 30, work_days: "الأحد - الخميس", active: true, notes: "الدوام الرسمي للمعلمين والمعلمات" },
+        { id: "sh-2", name: "دوام الإدارة العامة والكادر الإداري", branch: "الإدارة العامة - شركة مدارس الأندلس التعليمية (جدة)", start_time: "08:00", end_time: "16:00", grace_minutes: 15, break_minutes: 60, work_days: "الأحد - الخميس", active: true, notes: "دوام الموظفين الإداريين والماليين" },
+        { id: "sh-3", name: "دوام رياض الأطفال والطفولة المبكرة", branch: "جميع الفروع", start_time: "07:00", end_time: "13:00", grace_minutes: 15, break_minutes: 30, work_days: "الأحد - الخميس", active: true, notes: "دوام معلمات رياض الأطفال" },
+        { id: "sh-4", name: "دوام المسار الدولي (Al-Andalus International)", branch: "مدارس الأندلس العالمية - فرع جدة (Al-Andalus International)", start_time: "07:30", end_time: "15:00", grace_minutes: 10, break_minutes: 45, work_days: "الأحد - الخميس", active: true, notes: "دوام الدبلوما الأمريكية والبريطانية" },
+      ];
+      break;
+    }
+
+    case "leave_requests": {
+      const leaveTypes = ["أجازة سنوية", "أجازة مرضية", "أجازة اضطرارية", "أجازة بدون راتب", "أجازة وضع", "أجازة زواج"];
+      rows = employees.slice(0, 120).map((emp, idx) => {
+        const days = 2 + (idx % 10);
+        const startDay = String(1 + (idx % 18)).padStart(2, "0");
+        const endDay = String(Math.min(28, Number(startDay) + days)).padStart(2, "0");
+        const status = idx % 5 === 0 ? "بانتظار الموافقة" : idx % 9 === 0 ? "مرفوضة" : "معتمدة";
+        return {
+          id: `lv-andalus-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          branch: emp["branch"],
+          department: emp["department"],
+          leave_type: leaveTypes[idx % leaveTypes.length],
+          from_date: `2026-10-${startDay}`,
+          to_date: `2026-10-${endDay}`,
+          start_date: `2026-10-${startDay}`,
+          end_date: `2026-10-${endDay}`,
+          days,
+          balance_before: 30,
+          status,
+          notes: "طلب إجازة مقدم عبر بوابة الموظف الإلكترونية لمدارس الأندلس",
+          created_at: `2026-10-${startDay}T09:00:00Z`,
+        };
+      });
+      break;
+    }
+
+    case "loans": {
+      const loanTypes = ["سلفة شخصية", "سلفة طارئة", "سلفة سكن", "سلفة زواج", "سلفة سيارة"];
+      rows = employees.slice(0, 90).map((emp, idx) => {
+        const amount = 6000 + (idx % 8) * 3000;
+        const installments = 12;
+        const monthlyAmount = Math.round(amount / installments);
+        const paidMonths = idx % 10;
+        const paidAmount = Math.min(amount, paidMonths * monthlyAmount);
+        const isPaid = paidAmount >= amount;
+        return {
+          id: `loan-andalus-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          national_id: emp["national_id"],
+          branch: emp["branch"],
+          department: emp["department"],
+          main_department: emp["main_department"],
+          sector: emp["sector"],
+          path: emp["career_path"],
+          job_title: emp["job_title"],
+          nationality: emp["nationality"],
+          basic_salary: emp["basic_salary"],
+          allowances: emp["allowances"],
+          total_salary: Number(emp["basic_salary"]) + Number(emp["allowances"]),
+          loan_type: loanTypes[idx % loanTypes.length],
+          loan_name: `${loanTypes[idx % loanTypes.length]} — ${emp["full_name"]}`,
+          amount,
+          approved_amount: amount,
+          installments,
+          monthly_amount: monthlyAmount,
+          paid_amount: paidAmount,
+          deduction_method: "تخصم شهريا",
+          request_date: "2026-03-10",
+          entry_date: "2026-03-10",
+          start_date: "2026-04-01",
+          first_installment_date: "2026-04-01",
+          month: 4,
+          year: 2026,
+          request_status: idx % 8 === 0 ? "بانتظار الموافقة" : "معتمدة",
+          status: isPaid ? "مسددة" : "قيد السداد",
+          stage: idx % 8 === 0 ? "المدير المالي" : "منتهية",
+          expense_account: "110401 - ذمم وسلف العاملين",
+          account_name: "حساب سلف منسوبي مدارس الأندلس",
+          posted: idx % 8 !== 0,
+          notes: "يخصم القسط شهرياً من مسير الرواتب",
+          created_at: "2026-03-10T10:00:00Z",
+        };
+      });
+      break;
+    }
+
+    case "inquiries": {
+      const inqNames = ["غياب الى من البصمة", "مسائلة تأخير", "مسائلة انصراف مبكر", "مسائلة غياب"];
+      const inqTypes = ["غياب", "تأخير", "انصراف مبكر", "غياب"];
+      rows = employees.slice(0, 95).map((emp, idx) => {
+        const day = String(1 + (idx % 25)).padStart(2, "0");
+        const dateStr = `2026-10-${day}`;
+        return {
+          id: `inq-andalus-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          national_id: emp["national_id"],
+          branch: emp["branch"],
+          department: emp["department"],
+          main_department: emp["main_department"],
+          sector: emp["sector"],
+          path: emp["career_path"],
+          inquiry_name: inqNames[idx % inqNames.length],
+          inquiry_type: inqTypes[idx % inqTypes.length],
+          inquiry_date: dateStr,
+          entry_date: dateStr,
+          status: idx % 3 === 0 ? "قيد التنفيذ" : "مغلقة (مقبول)",
+          source: "تلقائي",
+          user_name: emp["manager_name"] || "إدارة شؤون المعلمين",
+          approved_by: "إدارة الموارد البشرية",
+          employee_reply: idx % 3 === 0 ? "بانتظار الرد" : "تم إرفاق العذر الطبي والمهمة الرسمية",
+          email_sent: true,
+          active: true,
+          notes: `مساءلة مسجلة بتاريخ ${dateStr} عبر نظام البصمة`,
+          created_at: `${dateStr}T08:30:00Z`,
+        };
+      });
+      break;
+    }
+
+    case "employee_permits": {
+      rows = employees.slice(0, 90).map((emp, idx) => {
+        const day = String(1 + (idx % 25)).padStart(2, "0");
+        const dateStr = `2026-10-${day}`;
+        const kind = idx % 3 === 0 ? "تأخير" : idx % 3 === 1 ? "انصراف مبكر" : "إذن شخصي";
+        return {
+          id: `perm-andalus-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          national_id: emp["national_id"],
+          branch: emp["branch"],
+          department: emp["department"],
+          main_department: emp["main_department"],
+          sector: emp["sector"],
+          career_path: emp["career_path"],
+          kind,
+          permit_type: kind === "تأخير" ? "إذن تأخير" : kind === "انصراف مبكر" ? "إذن انصراف مبكر" : "إذن بالساعات",
+          permission_date: dateStr,
+          entry_date: dateStr,
+          status: idx % 4 === 0 ? "بانتظار الموافقة" : "معتمد",
+          user_name: emp["manager_name"],
+          morning_shift_in: "06:45",
+          actual_morning_in: kind === "تأخير" ? "07:35" : "06:45",
+          evening_shift_out: "14:00",
+          actual_evening_out: kind === "انصراف مبكر" ? "12:30" : "14:00",
+          total_minutes: kind === "تأخير" ? 50 : 90,
+          notes: "إذن مسجل ومعتمد من إدارة المدرسة",
+          created_at: `${dateStr}T09:00:00Z`,
+        };
+      });
+      break;
+    }
+
+    case "employee_correspondence": {
+      const subjects = [
+        "خطاب تعريف بالراتب موجه للبنك",
+        "خطاب شكر وتقدير للتميز في الأداء الأكاديمي",
+        "تكليف بالإشراف على الاختبارات الفصلية",
+        "قرار نقل داخلي بين فروع مدارس الأندلس",
+        "خطاب تجديد عقد العمل للعام الدراسي الجديد",
+      ];
+      rows = employees.slice(0, 65).map((emp, idx) => ({
+        id: `corr-andalus-${idx + 1}`,
+        employee_id: emp["id"],
+        emp_no: emp["emp_no"],
+        employee_name: emp["full_name"],
+        branch: emp["branch"],
+        department: emp["department"],
+        subject: subjects[idx % subjects.length],
+        correspondence_type: idx % 2 === 0 ? "صادر" : "داخلي",
+        correspondence_date: `2026-10-${String(1 + (idx % 26)).padStart(2, "0")}`,
+        status: "معتمد ومرسل",
+        notes: "تم إصدار الخطاب إلكترونياً من إدارة الموارد البشرية بمدارس الأندلس",
+        created_at: "2026-10-15T10:00:00Z",
+      }));
+      break;
+    }
+
+    case "approval_requests":
+    case "requests": {
+      const reqTypes = [
+        "طلب إجازة",
+        "طلب سلفة",
+        "أذن إنصراف مبكر",
+        "أذن تأخير",
+        "طلب تحديث بيانات",
+        "طلب تعريف بالراتب",
+      ];
+      rows = employees.slice(0, 110).map((emp, idx) => {
+        const day = String(1 + (idx % 27)).padStart(2, "0");
+        const rType = reqTypes[idx % reqTypes.length]!;
+        const st = idx % 3 === 0 ? "pending" : idx % 10 === 0 ? "rejected" : "approved";
+        return {
+          id: `app-req-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          branch: emp["branch"],
+          department: emp["department"],
+          request_type: rType,
+          category: rType.includes("سلفة") || rType.includes("راتب") ? "مالية" : "إدارية وشؤون معلمين",
+          request_date: `2026-10-${day}T09:15:00Z`,
+          entered_at: `2026-10-${day}T09:15:00Z`,
+          approval_chain: "موارد بشرية",
+          direct_manager_name: emp["manager_name"] || "أ. حمدان مانع العمري",
+          awaiting_approver_name: st === "pending" ? "مدير الموارد البشرية" : "مكتمل الاعتماد",
+          status: st,
+          amount: rType === "طلب سلفة" ? 6000 : 0,
+          notes: `${rType} مقدم من ${emp["full_name"]} (${emp["branch"]})`,
+          created_at: `2026-10-${day}T09:15:00Z`,
+        };
+      });
+      break;
+    }
+
+    case "employee_documents": {
+      const docTypes = ["الهوية الوطنية / الإقامة", "جواز السفر", "عقد العمل الموثق", "المؤهل الجامعي", "الرخصة المهنية للمعلمين"];
+      rows = employees.slice(0, 300).map((emp, idx) => ({
+        id: `doc-andalus-${idx + 1}`,
+        employee_id: emp["id"],
+        emp_no: emp["emp_no"],
+        employee_name: emp["full_name"],
+        branch: emp["branch"],
+        department: emp["department"],
+        doc_type: docTypes[idx % docTypes.length],
+        doc_no: `DOC-${emp["emp_no"]}-${idx + 1}`,
+        issue_date: "2024-09-01",
+        expiry_date: emp["iqama_expiry"] || "2027-09-01",
+        status: "ساري",
+        notes: "مستند رسمي محفوظ في أرشيف الموظف",
+        created_at: "2026-01-15T08:00:00Z",
+      }));
+      break;
+    }
+
+    case "employee_relatives": {
+      rows = employees.slice(0, 220).map((emp, idx) => ({
+        id: `rel-andalus-${idx + 1}`,
+        employee_id: emp["id"],
+        emp_no: emp["emp_no"],
+        employee_name: emp["full_name"],
+        branch: emp["branch"],
+        relative_name: idx % 2 === 0 ? `مرافق أول - ${emp["full_name"]}` : `مرافق ثانٍ - ${emp["full_name"]}`,
+        relation: idx % 3 === 0 ? "زوج / زوجة" : idx % 3 === 1 ? "ابن" : "ابنة",
+        birth_date: idx % 3 === 0 ? "1992-05-14" : "2018-09-10",
+        national_id: `25${String(41000000 + idx * 173).slice(0, 8)}`,
+        insurance_class: "VIP - A",
+        insurance_company: "بوبا العربية للتأمين التعاوني",
+        created_at: "2026-01-15T08:00:00Z",
+      }));
+      break;
+    }
+
+    case "employee_eos_provisions": {
+      rows = employees.slice(0, 200).map((emp, idx) => {
+        const years = 2 + (idx % 7);
+        const salary = Number(emp["basic_salary"] || 6500) + Number(emp["allowances"] || 1800);
+        const accrued = Math.round((salary / 2) * years);
+        return {
+          id: `eos-prov-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          branch: emp["branch"],
+          department: emp["department"],
+          hire_date: emp["hire_date"],
+          service_years: years,
+          last_salary: salary,
+          accrued_amount: accrued,
+          month: 10,
+          year: 2026,
+          status: "محتسب ومرحل",
+          created_at: "2026-10-28T10:00:00Z",
+        };
+      });
+      break;
+    }
+
+    case "end_of_service_requests": {
+      rows = employees.slice(0, 25).map((emp, idx) => {
+        const salary = Number(emp["basic_salary"] || 6500) + Number(emp["allowances"] || 1800);
+        return {
+          id: `eos-req-${idx + 1}`,
+          employee_id: emp["id"],
+          emp_no: emp["emp_no"],
+          employee_name: emp["full_name"],
+          branch: emp["branch"],
+          department: emp["department"],
+          job_title: emp["job_title"],
+          hire_date: emp["hire_date"],
+          last_working_day: "2026-10-30",
+          termination_reason: idx % 2 === 0 ? "انتهاء مدة العقد" : "استقالة",
+          service_years: 4,
+          eos_award: Math.round(salary * 2),
+          leave_compensation: Math.round((salary / 30) * 18),
+          net_settlement: Math.round(salary * 2.6),
+          status: idx % 3 === 0 ? "بانتظار الاعتماد" : "معتمد ومصفى",
+          created_at: "2026-10-20T10:00:00Z",
+        };
+      });
+      break;
+    }
+
+    case "tasks": {
+      rows = [
+        { id: "tsk-1", title: "مراجعة واعتماد مسير رواتب فروع مدارس الأندلس لشهر أكتوبر 2026", category: "الرواتب والشؤون المالية", priority: "عاجل جداً", status: "مكتملة", assignee_name: "أ. حمدان مانع العمري", branch: "جميع الفروع", due_date: "2026-10-27", created_at: "2026-10-20T08:00:00Z" },
+        { id: "tsk-2", title: "متابعة تقرير إنجاز تحديث بيانات الموظفين (550 موظف)", category: "شؤون الموظفين", priority: "مرتفعة", status: "قيد التنفيذ", assignee_name: "أحمد محمد السيد السيد", branch: "مدارس الأندلس الأهلية - فرع الرياض (بنين - حي قرطبة)", due_date: "2026-11-10", created_at: "2026-11-01T08:00:00Z" },
+        { id: "tsk-3", title: "تجديد عقود العام الدراسي وتفعيلها على النظام", category: "العقود والوثائق", priority: "مرتفعة", status: "مكتملة", assignee_name: "د. عبدالله بن صالح الغامدي", branch: "الإدارة العامة - شركة مدارس الأندلس التعليمية (جدة)", due_date: "2026-11-05", created_at: "2026-10-25T08:00:00Z" },
+        { id: "tsk-4", title: "إصدار ملف حماية الأجور WPS للبنوك المعتمدة", category: "الرواتب والشؤون المالية", priority: "عاجل جداً", status: "مكتملة", assignee_name: "إدارة الشؤون المالية", branch: "جميع الفروع", due_date: "2026-10-28", created_at: "2026-10-26T08:00:00Z" },
+      ];
+      break;
+    }
+
+    case "announcements": {
+      rows = [
+        { id: "ann-1", title: "تعميم: تحديث بيانات التواصل والعنوان الوطني لمنسوبي مدارس الأندلس", kind: "تعميم إداري", target: "جميع الفروع (550 موظف)", body: "نأمل من جميع المعلمين والإداريين الدخول على بوابة الموظف ومراجعة وتحديث بيانات التواصل والعنوان الوطني.", created_at: "2026-11-01T08:00:00Z" },
+        { id: "ann-2", title: "إيداع مسير رواتب شهر أكتوبر 2026 لجميع فروع شركة مدارس الأندلس", kind: "إشعار مالي", target: "جميع الموظفين", body: "تم اعتماد وصرف رواتب شهر أكتوبر 2026 وإيداعها في الحسابات البنكية لمنسوبي الشركة.", created_at: "2026-10-27T11:00:00Z" },
+        { id: "ann-3", title: "تفعيل عقود العام الدراسي الجديد بتاريخ بداية وتاريخ نهاية على النظام", kind: "تعميم شؤون المعلمين", target: "الكادر التعليمي والإداري", body: "تم تفعيل العقود المحددة بتاريخ بداية وتاريخ نهاية للعام الدراسي 2026-2027 في النظام.", created_at: "2026-10-15T09:00:00Z" },
+      ];
+      break;
+    }
+
+    case "regulation_rules": {
+      rows = [
+        { id: "reg-1", name: "لائحة الإجازة السنوية للكادر التعليمي والإداري", category: "الإجازات", value_type: "أيام", days: 30, amount: 0, active: true, notes: "30 يوماً مدفوعة الأجر سنوياً", created_at: "2026-01-01T08:00:00Z" },
+        { id: "reg-2", name: "لائحة خصم التأخير الصباحي (أكثر من 15 دقيقة)", category: "خصومات البصمة", value_type: "نسبة يوم", days: 1, amount: 25, active: true, notes: "تطبق بعد فترة السماح الصباحية", created_at: "2026-01-01T08:00:00Z" },
+        { id: "reg-3", name: "لائحة السلف الشخصية (الحد الأقصى 3 رواتب أساسية)", category: "السلف", value_type: "أشهر", days: 12, amount: 15000, active: true, notes: "تقسط على 12 شهراً بدون فوائد", created_at: "2026-01-01T08:00:00Z" },
+      ];
+      break;
+    }
+
+    case "account_links": {
+      rows = ANDALUS_BRANCHES.slice(0, 10).map((br, idx) => ({
+        id: `acc-link-${idx + 1}`,
+        branch: br.name_ar,
+        department: ANDALUS_DEPARTMENTS[idx % ANDALUS_DEPARTMENTS.length],
+        main_department: idx % 2 === 0 ? "بنين" : "بنات",
+        sector: "شركة مدارس الأندلس التعليمية",
+        link_type: "رواتب واستحقاقات",
+        operation_type: "قيد مسير الرواتب الشهري",
+        item_name: "الراتب الأساسي والبدلات",
+        debit_account: "510101 - مصروف الرواتب والأجور",
+        credit_account: "210301 - الرواتب المستحقة للصرف",
+        expense_account: "510101 - مصروف الرواتب والأجور",
+        provision_account: "220101 - مخصص مكافأة نهاية الخدمة",
+        cost_center: `CC-${br.code}`,
+        active: true,
+        notes: `ربط محاسبي آلي لفرع ${br.city}`,
+        created_at: "2026-01-01T08:00:00Z",
+      }));
+      break;
+    }
+
+    default:
+      rows = [];
+  }
+
+  _tableSeedCache.set(table, rows);
+  return rows;
+}
+

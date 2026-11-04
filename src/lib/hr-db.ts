@@ -5,6 +5,7 @@ import {
   ANDALUS_BRANCHES,
   ANDALUS_DEPARTMENTS,
   generateAndalusEmployees500,
+  generateAndalusSeedForTable,
 } from "@/lib/andalus-seed";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -477,10 +478,59 @@ export function useRows(table: HrTable, opts?: RowsOptions) {
       opts?.rangeColumn ?? "created_at",
     ],
     queryFn: async (): Promise<Row[]> => {
-      // If table is not in the remote PostgREST schema, read directly from virtual table store
+      const mergeWithSeed = (baseRows: Row[], extrasMap: Record<string, Row> = {}): Row[] => {
+        const mergedById = new Map<string, Row>();
+        const seenEmpNos = new Set<string>();
+
+        for (const r of baseRows) {
+          const id = String(r["id"] ?? "");
+          const extra = id ? (extrasMap[id] ?? {}) : {};
+          const combined: Row = { ...extra, ...r };
+          if (table === "employees") {
+            if (!combined["mobile"] && combined["phone"]) {
+              combined["mobile"] = combined["phone"];
+            }
+            if (!combined["start_date"] && combined["hire_date"]) {
+              combined["start_date"] = combined["hire_date"];
+            }
+            if (combined["emp_no"]) seenEmpNos.add(String(combined["emp_no"]));
+          } else if (table === "leave_requests") {
+            if (!combined["start_date"] && combined["from_date"]) {
+              combined["start_date"] = combined["from_date"];
+            }
+            if (!combined["end_date"] && combined["to_date"]) {
+              combined["end_date"] = combined["to_date"];
+            }
+          } else if (table === "attendance_records") {
+            if (!combined["record_date"] && combined["work_date"]) {
+              combined["record_date"] = combined["work_date"];
+              combined["date"] = combined["work_date"];
+            }
+          }
+          mergedById.set(id || makeUuid(), combined);
+        }
+
+        const seedRows = generateAndalusSeedForTable(table);
+        for (const sr of seedRows) {
+          const sId = String(sr["id"] ?? "");
+          if (!sId || mergedById.has(sId)) continue;
+          if (table === "employees" && sr["emp_no"] && seenEmpNos.has(String(sr["emp_no"]))) {
+            continue;
+          }
+          const extra = extrasMap[sId] ?? {};
+          mergedById.set(sId, { ...sr, ...extra });
+          if (table === "employees" && sr["emp_no"]) {
+            seenEmpNos.add(String(sr["emp_no"]));
+          }
+        }
+
+        return applyClientQueryOptions(Array.from(mergedById.values()), opts);
+      };
+
+      // If table is not in the remote PostgREST schema, read directly from virtual table store + seed
       if (!REMOTE_TABLE_COLUMNS[table]) {
         const virtualRows = await readVirtualTableRows(table);
-        return applyClientQueryOptions(virtualRows, opts);
+        return mergeWithSeed(virtualRows);
       }
 
       try {
@@ -510,120 +560,18 @@ export function useRows(table: HrTable, opts?: RowsOptions) {
         if (opts?.limit) q = q.limit(opts.limit);
 
         const { data, error } = await q;
-        if (error) {
-          const virtualRows = await readVirtualTableRows(table);
-          return applyClientQueryOptions(virtualRows, opts);
-        }
-
-        const remoteRows = (data ?? []) as Row[];
         const extrasMap = await readRowExtrasMap(table);
         const virtualFallbackRows = await readVirtualTableRows(table);
 
-        const mergedById = new Map<string, Row>();
-        for (const r of remoteRows) {
-          const id = String(r["id"] ?? "");
-          const extra = id ? (extrasMap[id] ?? {}) : {};
-          const combined: Row = { ...extra, ...r };
-          // Keep convenient aliases populated for UI components
-          if (table === "employees") {
-            if (!combined["mobile"] && combined["phone"]) {
-              combined["mobile"] = combined["phone"];
-            }
-            if (!combined["start_date"] && combined["hire_date"]) {
-              combined["start_date"] = combined["hire_date"];
-            }
-          } else if (table === "leave_requests") {
-            if (!combined["start_date"] && combined["from_date"]) {
-              combined["start_date"] = combined["from_date"];
-            }
-            if (!combined["end_date"] && combined["to_date"]) {
-              combined["end_date"] = combined["to_date"];
-            }
-          } else if (table === "attendance_records") {
-            if (!combined["record_date"] && combined["work_date"]) {
-              combined["record_date"] = combined["work_date"];
-              combined["date"] = combined["work_date"];
-            }
-          }
-          mergedById.set(id || makeUuid(), combined);
+        if (error) {
+          return mergeWithSeed(virtualFallbackRows, extrasMap);
         }
 
-        for (const vr of virtualFallbackRows) {
-          const id = String(vr["id"] ?? "");
-          if (id) {
-            const extra = extrasMap[id] ?? {};
-            mergedById.set(id, { ...vr, ...extra });
-          }
-        }
-
-        // دمج بيانات شركة مدارس الأندلس (500 موظف + كافة الفروع والأقسام)
-        if (table === "employees") {
-          const seenEmpNos = new Set<string>();
-          for (const existing of mergedById.values()) {
-            if (existing["emp_no"]) seenEmpNos.add(String(existing["emp_no"]));
-          }
-          for (const seedEmp of generateAndalusEmployees500()) {
-            const sId = String(seedEmp["id"]);
-            const sNo = String(seedEmp["emp_no"]);
-            if (!mergedById.has(sId) && !seenEmpNos.has(sNo)) {
-              const extra = extrasMap[sId] ?? {};
-              mergedById.set(sId, { ...seedEmp, ...extra });
-              seenEmpNos.add(sNo);
-            }
-          }
-        } else if (table === "departments") {
-          for (let i = 0; i < ANDALUS_DEPARTMENTS.length; i++) {
-            const dName = ANDALUS_DEPARTMENTS[i]!;
-            const dId = `andalus-dept-${i + 1}`;
-            if (!mergedById.has(dId)) {
-              const br = ANDALUS_BRANCHES[i % ANDALUS_BRANCHES.length]!;
-              mergedById.set(dId, {
-                id: dId,
-                name: dName,
-                branch: br.name_ar,
-                manager_name: br.manager_name,
-                created_at: "2026-01-01T00:00:00Z",
-              });
-            }
-          }
-        } else if (table === "basic_lookups") {
-          for (const br of ANDALUS_BRANCHES) {
-            const lId = `lookup-br-${br.code}`;
-            if (!mergedById.has(lId)) {
-              mergedById.set(lId, {
-                id: lId,
-                category: "الفروع",
-                code: br.code,
-                name: br.name_ar,
-                name_ar: br.name_ar,
-                name_en: br.name_en,
-                active: true,
-              });
-            }
-          }
-          for (let i = 0; i < ANDALUS_DEPARTMENTS.length; i++) {
-            const deptName = ANDALUS_DEPARTMENTS[i]!;
-            const lId = `lookup-dept-${i + 1}`;
-            if (!mergedById.has(lId)) {
-              mergedById.set(lId, {
-                id: lId,
-                category: "الأقسام",
-                code: `DEP-${i + 1}`,
-                name: deptName,
-                name_ar: deptName,
-                active: true,
-              });
-            }
-          }
-        }
-
-        return applyClientQueryOptions(Array.from(mergedById.values()), opts);
+        const remoteRows = (data ?? []) as Row[];
+        return mergeWithSeed([...remoteRows, ...virtualFallbackRows], extrasMap);
       } catch {
         const virtualRows = await readVirtualTableRows(table);
-        if (table === "employees" && virtualRows.length < 500) {
-          return applyClientQueryOptions([...virtualRows, ...generateAndalusEmployees500()], opts);
-        }
-        return applyClientQueryOptions(virtualRows, opts);
+        return mergeWithSeed(virtualRows);
       }
     },
   });

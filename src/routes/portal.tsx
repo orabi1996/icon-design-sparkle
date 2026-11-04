@@ -935,7 +935,7 @@ export function EmployeePortalPage() {
   const [payrollDeduction, setPayrollDeduction] = useState("");
   const [showFingerprintDetails, setShowFingerprintDetails] = useState(true);
   const [exportAllData, setExportAllData] = useState(false);
-  const [showSalaryStatement, setShowSalaryStatement] = useState(false);
+  const [showSalaryStatement, setShowSalaryStatement] = useState(true);
 
   // =========================================================================
   // Screen States: LEAVES & REQUESTS (Screenshot 3)

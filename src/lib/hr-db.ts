@@ -480,12 +480,23 @@ export function useRows(table: HrTable, opts?: RowsOptions) {
     queryFn: async (): Promise<Row[]> => {
       const mergeWithSeed = (baseRows: Row[], extrasMap: Record<string, Row> = {}): Row[] => {
         const mergedById = new Map<string, Row>();
+        const seedRows = generateAndalusSeedForTable(table);
+        const seedById = new Map<string, Row>();
+        const seedByEmpNo = new Map<string, Row>();
+        for (const sr of seedRows) {
+          const sId = String(sr["id"] ?? "");
+          if (sId) seedById.set(sId, sr);
+          if (sr["emp_no"]) seedByEmpNo.set(String(sr["emp_no"]), sr);
+        }
+
         const seenEmpNos = new Set<string>();
 
         for (const r of baseRows) {
           const id = String(r["id"] ?? "");
+          const empNo = r["emp_no"] ? String(r["emp_no"]) : "";
+          const matchingSeed = (id ? seedById.get(id) : null) || (empNo ? seedByEmpNo.get(empNo) : null) || {};
           const extra = id ? (extrasMap[id] ?? {}) : {};
-          const combined: Row = { ...extra, ...r };
+          const combined: Row = { ...matchingSeed, ...extra, ...r };
           if (table === "employees") {
             if (!combined["mobile"] && combined["phone"]) {
               combined["mobile"] = combined["phone"];
@@ -493,7 +504,7 @@ export function useRows(table: HrTable, opts?: RowsOptions) {
             if (!combined["start_date"] && combined["hire_date"]) {
               combined["start_date"] = combined["hire_date"];
             }
-            if (combined["emp_no"]) seenEmpNos.add(String(combined["emp_no"]));
+            if (empNo) seenEmpNos.add(empNo);
           } else if (table === "leave_requests") {
             if (!combined["start_date"] && combined["from_date"]) {
               combined["start_date"] = combined["from_date"];
@@ -510,7 +521,6 @@ export function useRows(table: HrTable, opts?: RowsOptions) {
           mergedById.set(id || makeUuid(), combined);
         }
 
-        const seedRows = generateAndalusSeedForTable(table);
         for (const sr of seedRows) {
           const sId = String(sr["id"] ?? "");
           if (!sId || mergedById.has(sId)) continue;

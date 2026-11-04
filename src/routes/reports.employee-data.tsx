@@ -311,7 +311,7 @@ function TextFilter({ label, value, onChange, placeholder }: { label: string; va
 /* ─── Main Component ─── */
 function EmployeeDataReport() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
-  const [applied, setApplied] = useState<Filters | null>(null);
+  const [applied, setApplied] = useState<Filters | null>(emptyFilters);
   const [page, setPage] = useState(1);
 
   const { data: employees = [], isLoading: empLoading } = useRows("employees", { orderBy: "emp_no", ascending: true });

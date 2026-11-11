@@ -35,6 +35,8 @@ import {
   useContractTypes,
   calculateDurationBetweenDates,
 } from "@/components/hr/ContractTypeSettings";
+import { resolveIdTypesFromLookups } from "@/components/hr/IdTypeSettings";
+import { transliterateArabicNameToUsEnglish } from "@/lib/arabic-name-transliterator";
 
 interface EmployeeDataTabProps {
   employee: any;
@@ -84,11 +86,19 @@ export function EmployeeDataTab({
   }) as { data?: any[] };
 
   const idTypeOptions = React.useMemo(() => {
-    const list = idTypeLookups
-      .filter((l: any) => l.active !== false && l.name)
-      .map((l: any) => String(l.name));
-    if (list.length > 0) return list;
-    return ["الهوية الوطنية", "الإقامة", "جواز سفر", "الرقم القومي"];
+    const resolved = resolveIdTypesFromLookups(idTypeLookups)
+      .filter((l) => l.isActive)
+      .map((l) => l.name_ar);
+    if (resolved.length > 0) return resolved;
+    return [
+      "الهوية الوطنية",
+      "الإقامة",
+      "جواز سفر",
+      "هوية خليجية",
+      "رقم حدود",
+      "هوية زائر",
+      "الرقم القومي",
+    ];
   }, [idTypeLookups]);
 
   const empDocuments = allDocuments.filter(
@@ -690,16 +700,29 @@ export function EmployeeDataTab({
                       type="text"
                       className={fieldInputClass}
                       value={form.full_name || ""}
-                      onChange={(e) => updateField("full_name", e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const en = transliterateArabicNameToUsEnglish(val);
+                        setForm((prev: any) => ({
+                          ...prev,
+                          full_name: val,
+                          full_name_en: en,
+                          employee_name_en: en,
+                        }));
+                      }}
                     />
                   </ProfileField>
 
-                  <ProfileField label="اسم الموظف بالانجليزيه">
+                  <ProfileField label="اسم الموظف بالانجليزيه (US)">
                     <input
                       type="text"
                       dir="ltr"
                       className={fieldInputClass}
-                      value={form.full_name_en || ""}
+                      value={
+                        form.full_name_en ||
+                        form.employee_name_en ||
+                        transliterateArabicNameToUsEnglish(String(form.full_name || ""))
+                      }
                       onChange={(e) =>
                         updateField("full_name_en", e.target.value)
                       }

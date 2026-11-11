@@ -24,38 +24,6 @@ export interface IdTypeRecord {
 
 export const DEFAULT_ID_TYPES: IdTypeRecord[] = [
   {
-    id: "seed-passport",
-    name_ar: "جواز سفر",
-    name_en: "Passport",
-    code: "PASSPORT",
-    isBankAccepted: false,
-    isActive: true,
-    rule: {
-      formatType: "حروف إنجليزية وأرقام",
-      startsWith: "",
-      minDigits: "5",
-      maxDigits: "20",
-      sortOrder: 1,
-      ruleSummary: "حروف إنجليزية وأرقام، عدد الخانات من 5 إلى 20",
-    },
-  },
-  {
-    id: "seed-eg-nat",
-    name_ar: "الرقم القومي",
-    name_en: "National ID (Egypt)",
-    code: "EG_NATIONAL_ID",
-    isBankAccepted: true,
-    isActive: true,
-    rule: {
-      formatType: "أرقام فقط",
-      startsWith: "2, 3",
-      minDigits: "14",
-      maxDigits: "14",
-      sortOrder: 2,
-      ruleSummary: "أرقام فقط، عدد الخانات 14، يبدأ بـ 2 أو 3",
-    },
-  },
-  {
     id: "seed-sa-nat",
     name_ar: "الهوية الوطنية",
     name_en: "Saudi National ID",
@@ -67,7 +35,7 @@ export const DEFAULT_ID_TYPES: IdTypeRecord[] = [
       startsWith: "1",
       minDigits: "10",
       maxDigits: "10",
-      sortOrder: 3,
+      sortOrder: 1,
       ruleSummary: "أرقام فقط، عدد الخانات 10، يبدأ بـ 1",
     },
   },
@@ -83,8 +51,88 @@ export const DEFAULT_ID_TYPES: IdTypeRecord[] = [
       startsWith: "2",
       minDigits: "10",
       maxDigits: "10",
-      sortOrder: 4,
+      sortOrder: 2,
       ruleSummary: "أرقام فقط، عدد الخانات 10، يبدأ بـ 2",
+    },
+  },
+  {
+    id: "seed-passport",
+    name_ar: "جواز سفر",
+    name_en: "Passport",
+    code: "PASSPORT",
+    isBankAccepted: false,
+    isActive: true,
+    rule: {
+      formatType: "حروف إنجليزية وأرقام",
+      startsWith: "",
+      minDigits: "5",
+      maxDigits: "20",
+      sortOrder: 3,
+      ruleSummary: "حروف إنجليزية وأرقام، عدد الخانات من 5 إلى 20",
+    },
+  },
+  {
+    id: "seed-gcc",
+    name_ar: "هوية خليجية",
+    name_en: "GCC National ID",
+    code: "GCC_ID",
+    isBankAccepted: true,
+    isActive: true,
+    rule: {
+      formatType: "أرقام فقط",
+      startsWith: "",
+      minDigits: "8",
+      maxDigits: "15",
+      sortOrder: 4,
+      ruleSummary: "أرقام فقط، عدد الخانات من 8 إلى 15",
+    },
+  },
+  {
+    id: "seed-border",
+    name_ar: "رقم حدود",
+    name_en: "Border Number",
+    code: "BORDER_NO",
+    isBankAccepted: false,
+    isActive: true,
+    rule: {
+      formatType: "أرقام فقط",
+      startsWith: "3, 4",
+      minDigits: "10",
+      maxDigits: "10",
+      sortOrder: 5,
+      ruleSummary: "أرقام فقط، عدد الخانات 10، يبدأ بـ 3 أو 4",
+    },
+  },
+  {
+    id: "seed-visitor",
+    name_ar: "هوية زائر",
+    name_en: "Visitor ID",
+    code: "VISITOR_ID",
+    isBankAccepted: false,
+    isActive: true,
+    rule: {
+      formatType: "أرقام فقط",
+      startsWith: "4",
+      minDigits: "10",
+      maxDigits: "10",
+      sortOrder: 6,
+      ruleSummary: "أرقام فقط، عدد الخانات 10، يبدأ بـ 4",
+    },
+  },
+  {
+    id: "seed-eg-nat",
+    name_ar: "الرقم القومي",
+    name_en: "National ID (Egypt)",
+    code: "EG_NATIONAL_ID",
+    isBankAccepted: true,
+    isActive: true,
+    rule: {
+      formatType: "أرقام فقط",
+      startsWith: "2, 3",
+      minDigits: "14",
+      maxDigits: "14",
+      sortOrder: 7,
+      ruleSummary: "أرقام فقط، عدد الخانات 14، يبدأ بـ 2 أو 3",
     },
   },
 ];
@@ -175,6 +223,66 @@ export function validateIdNumberAgainstRule(
   return { valid: true, message: "مطابق لقاعدة التحقق بنجاح ✓" };
 }
 
+export function resolveIdTypesFromLookups(rawRows: Row[] = []): IdTypeRecord[] {
+  const dbItems: IdTypeRecord[] = rawRows
+    .map((r: Row) => {
+      const nameAr = String(r["name_ar"] ?? r["name"] ?? "").trim();
+      if (!nameAr) return null;
+      const matchedDefault = DEFAULT_ID_TYPES.find((d) => d.name_ar === nameAr);
+      let parsedRule: IdTypeRule = matchedDefault?.rule ?? {
+        formatType: "أرقام فقط",
+        startsWith: "",
+        minDigits: "",
+        maxDigits: "",
+        sortOrder: 0,
+        ruleSummary: "أرقام فقط",
+      };
+      if (typeof r["details"] === "string" && r["details"].startsWith("{")) {
+        try {
+          const obj = JSON.parse(r["details"]);
+          parsedRule = {
+            formatType: obj.formatType || "أرقام فقط",
+            startsWith: obj.startsWith || "",
+            minDigits: String(obj.minDigits ?? ""),
+            maxDigits: String(obj.maxDigits ?? ""),
+            sortOrder: Number(obj.sortOrder ?? 0),
+            ruleSummary:
+              obj.ruleSummary ||
+              computeRuleSummary(
+                obj.formatType,
+                obj.startsWith,
+                String(obj.minDigits ?? ""),
+                String(obj.maxDigits ?? ""),
+              ),
+          };
+        } catch {
+          // ignore
+        }
+      }
+
+      return {
+        id: String(r["id"]),
+        name_ar: nameAr,
+        name_en: String(r["name_en"] ?? matchedDefault?.name_en ?? ""),
+        code: String(r["code"] ?? matchedDefault?.code ?? ""),
+        isBankAccepted: r["flag"] !== undefined ? Boolean(r["flag"]) : (matchedDefault?.isBankAccepted ?? true),
+        isActive: r["active"] !== false,
+        rule: parsedRule,
+      };
+    })
+    .filter((x): x is IdTypeRecord => Boolean(x));
+
+  const seenNames = new Set(dbItems.map((i) => i.name_ar));
+  const merged = [...dbItems];
+  for (const def of DEFAULT_ID_TYPES) {
+    if (!seenNames.has(def.name_ar)) {
+      merged.push(def);
+      seenNames.add(def.name_ar);
+    }
+  }
+  return merged;
+}
+
 export function IdTypeSettingsSection() {
   const formRef = useRef<HTMLDivElement>(null);
   const lookupsQuery = useRows("basic_lookups", {
@@ -222,54 +330,9 @@ export function IdTypeSettingsSection() {
     });
   }, [testNumber, formatType, startsWith, minDigits, maxDigits, sortOrder, currentSummary]);
 
-  // Merge database items or fallback to defaults
+  // Merge database items with defaults
   const items: IdTypeRecord[] = useMemo(() => {
-    const rawRows = lookupsQuery.data ?? [];
-    if (rawRows.length === 0) {
-      return DEFAULT_ID_TYPES;
-    }
-    return rawRows.map((r: Row) => {
-      let parsedRule: IdTypeRule = {
-        formatType: "أرقام فقط",
-        startsWith: "",
-        minDigits: "",
-        maxDigits: "",
-        sortOrder: 0,
-        ruleSummary: "أرقام فقط",
-      };
-      if (typeof r["details"] === "string" && r["details"].startsWith("{")) {
-        try {
-          const obj = JSON.parse(r["details"]);
-          parsedRule = {
-            formatType: obj.formatType || "أرقام فقط",
-            startsWith: obj.startsWith || "",
-            minDigits: String(obj.minDigits ?? ""),
-            maxDigits: String(obj.maxDigits ?? ""),
-            sortOrder: Number(obj.sortOrder ?? 0),
-            ruleSummary:
-              obj.ruleSummary ||
-              computeRuleSummary(
-                obj.formatType,
-                obj.startsWith,
-                String(obj.minDigits ?? ""),
-                String(obj.maxDigits ?? ""),
-              ),
-          };
-        } catch {
-          // ignore
-        }
-      }
-
-      return {
-        id: String(r["id"]),
-        name_ar: String(r["name_ar"] ?? ""),
-        name_en: String(r["name_en"] ?? ""),
-        code: String(r["code"] ?? ""),
-        isBankAccepted: Boolean(r["flag"]),
-        isActive: r["active"] !== false,
-        rule: parsedRule,
-      };
-    });
+    return resolveIdTypesFromLookups(lookupsQuery.data ?? []);
   }, [lookupsQuery.data]);
 
   // Filtered rows for table

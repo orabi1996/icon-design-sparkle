@@ -2,9 +2,8 @@ import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/hr/AppShell";
 import { Breadcrumbs, PageBanner } from "@/components/hr/ui";
-import { MaterialIcon } from "@/components/MaterialIcon";
 import { useRows, useSaveRow, useDeleteRow, type Row } from "@/lib/hr-db";
-import { ANDALUS_BRANCHES } from "@/lib/andalus-seed";
+import { ANDALUS_BRANCHES, ANDALUS_DEPARTMENTS } from "@/lib/andalus-seed";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -36,6 +35,23 @@ import {
   ArrowRight,
   Send,
   Layers,
+  UserCheck,
+  Shield,
+  Award,
+  Briefcase,
+  GraduationCap,
+  MapPin,
+  Target,
+  ChevronDown,
+  ListFilter,
+  SlidersHorizontal,
+  RefreshCw,
+  BarChart3,
+  Info,
+  AlertCircle,
+  X,
+  PlayCircle,
+  Users,
 } from "lucide-react";
 
 export const Route = createFileRoute("/surveys")({
@@ -55,12 +71,23 @@ type AnnouncementKind = "تعميم" | "استبيان";
 type CircularType = "تحديث بيانات التواصل" | "تحديث بيانات المرافقين" | "تعميم عام";
 type SurveyType = "استبيان قياس الرضا" | "استبيان بيئة العمل" | "استطلاع الاحتياجات التدريبية" | "استبيان عام";
 
+interface TargetFilters {
+  branch?: string;
+  department?: string;
+  job_level?: string;
+  job_category?: string;
+  specialization?: string;
+  nationality_group?: string;
+  matched_count?: number;
+}
+
 interface AnnouncementRecord extends Row {
   id?: string;
   title: string;
   kind: AnnouncementKind | string;
   circular_type?: CircularType | SurveyType | string;
   target?: string;
+  target_filters?: TargetFilters | string;
   priority?: "عاجل ومهم" | "هام" | "عادي" | string;
   status?: "سارٍ ومعتمد" | "نشط" | "مكتمل ومغلق" | "مسودة" | string;
   body?: string;
@@ -83,21 +110,43 @@ const SURVEY_SUB_TYPES: SurveyType[] = [
   "استبيان عام",
 ];
 
-const TARGET_OPTIONS = [
-  "جميع الفروع (550 موظف)",
-  "الكادر التعليمي والإداري - كافة الفروع",
-  "الإدارة العامة - جدة (حي الزهراء)",
-  "فرع جدة - بنين (حي الزهراء)",
-  "فرع جدة - بنات (حي الحمراء)",
-  "فرع جدة - المسار الدولي والعالمي",
-  "فرع مكة المكرمة (بنين وبنات)",
-  "فرع الرياض - بنين وبنات (حي الصحافة والياسمين)",
-  "فرع الطائف - بنين وبنات",
-  "فرع خميس مشيط وأبها",
-  "فرع المنطقة الشرقية (الدمام والخبر)",
-  "المشرفون التربويون ورؤساء الأقسام",
-  "الموظفون المقيمون فقط",
-  "الموظفون السعوديون فقط",
+const JOB_LEVELS = [
+  "تعليمي",
+  "إداري",
+  "إشرافي",
+  "قيادي",
+  "تشغيلي",
+];
+
+const JOB_CATEGORIES = [
+  "تعليمي",
+  "إداري",
+  "فني",
+  "تشغيلي",
+];
+
+const SPECIALIZATIONS_LIST = [
+  "لغة عربية",
+  "تربية إسلامية",
+  "رياضيات",
+  "فيزياء",
+  "كيمياء",
+  "أحياء وعلوم",
+  "لغة إنجليزية",
+  "حاسب آلي وتقنية رقمية",
+  "تربية بدنية",
+  "اجتماعيات",
+  "رياض أطفال",
+  "إدارة تربوية",
+  "محاسبة ومالية",
+  "موارد بشرية",
+  "إرشاد طلابي",
+];
+
+const TARGET_AUDIENCE_OPTIONS = [
+  { id: "all", label: "جميع الموظفين (سعوديون ومقيمون)" },
+  { id: "saudi", label: "المواطنون السعوديون فقط" },
+  { id: "resident", label: "الموظفون المقيمون فقط" },
 ];
 
 const TEMPLATES: Record<CircularType, { title: string; body: string; priority: string; action_url: string }> = {
@@ -122,12 +171,16 @@ const TEMPLATES: Record<CircularType, { title: string; body: string; priority: s
 };
 
 function SurveysPage() {
+  // Announcements
   const { data: rawRows = [], isLoading } = useRows("announcements", {
     orderBy: "created_at",
     ascending: false,
   });
   const saveAnnouncement = useSaveRow("announcements");
   const deleteAnnouncement = useDeleteRow("announcements");
+
+  // Employees data for targeting statistics
+  const { data: employees = [] } = useRows("employees");
 
   // Filter States
   const [activeTab, setActiveTab] = useState<"all" | "circular" | "survey">("all");
@@ -144,13 +197,104 @@ function SurveysPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formKind, setFormKind] = useState<AnnouncementKind>("تعميم");
   const [formCircularType, setFormCircularType] = useState<string>("تحديث بيانات التواصل");
-  const [formTarget, setFormTarget] = useState(TARGET_OPTIONS[0]);
   const [formPriority, setFormPriority] = useState<string>("هام");
   const [formStatus, setFormStatus] = useState<string>("سارٍ ومعتمد");
   const [formBody, setFormBody] = useState("");
   const [formActionUrl, setFormActionUrl] = useState("");
   const [formExpiryDate, setFormExpiryDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Advanced Targeting Filters in Form
+  const [targetMode, setTargetMode] = useState<"all" | "custom">("all");
+  const [targetBranch, setTargetBranch] = useState<string>("all");
+  const [targetDepartment, setTargetDepartment] = useState<string>("all");
+  const [targetJobLevel, setTargetJobLevel] = useState<string>("all");
+  const [targetJobCategory, setTargetJobCategory] = useState<string>("all");
+  const [targetSpecialization, setTargetSpecialization] = useState<string>("all");
+  const [targetNationalityGroup, setTargetNationalityGroup] = useState<string>("all");
+
+  // Live Match Calculation based on Targeting Filters
+  const matchedEmployeesCount = useMemo(() => {
+    if (targetMode === "all") {
+      return employees.length;
+    }
+    return employees.filter((emp) => {
+      if (targetBranch !== "all") {
+        const empBranch = String(emp["branch"] ?? "");
+        if (!empBranch.includes(targetBranch) && targetBranch !== empBranch) {
+          return false;
+        }
+      }
+      if (targetDepartment !== "all") {
+        const empDept = String(emp["department"] ?? "");
+        if (empDept !== targetDepartment) return false;
+      }
+      if (targetJobLevel !== "all") {
+        const empLevel = String(emp["job_level"] ?? "");
+        if (empLevel !== targetJobLevel) return false;
+      }
+      if (targetJobCategory !== "all") {
+        const empCat = String(emp["employment_category"] ?? "");
+        if (empCat !== targetJobCategory) return false;
+      }
+      if (targetSpecialization !== "all") {
+        const empSpec = String(emp["specialization"] ?? "");
+        if (empSpec !== targetSpecialization) return false;
+      }
+      if (targetNationalityGroup === "saudi") {
+        const empNat = String(emp["nationality"] ?? "");
+        if (empNat !== "سعودي") return false;
+      }
+      if (targetNationalityGroup === "resident") {
+        const empNat = String(emp["nationality"] ?? "");
+        if (empNat === "سعودي") return false;
+      }
+      return true;
+    }).length;
+  }, [
+    employees,
+    targetMode,
+    targetBranch,
+    targetDepartment,
+    targetJobLevel,
+    targetJobCategory,
+    targetSpecialization,
+    targetNationalityGroup,
+  ]);
+
+  // Generate target label string
+  const computedTargetLabel = useMemo(() => {
+    if (targetMode === "all") {
+      return `جميع الفروع والمنسوبين (${employees.length || 550} موظف)`;
+    }
+
+    const segments: string[] = [];
+    if (targetBranch !== "all") {
+      const bObj = ANDALUS_BRANCHES.find((b) => b.name_ar === targetBranch || b.code === targetBranch);
+      segments.push(bObj ? bObj.name_ar.replace("مدارس الأندلس الأهلية - ", "") : targetBranch);
+    }
+    if (targetDepartment !== "all") segments.push(targetDepartment);
+    if (targetJobLevel !== "all") segments.push(`مستوى: ${targetJobLevel}`);
+    if (targetJobCategory !== "all") segments.push(`فئة: ${targetJobCategory}`);
+    if (targetSpecialization !== "all") segments.push(`تخصص: ${targetSpecialization}`);
+    if (targetNationalityGroup === "saudi") segments.push("سعوديون فقط");
+    if (targetNationalityGroup === "resident") segments.push("مقيمون فقط");
+
+    if (segments.length === 0) {
+      return `كافة منسوبي المدارس (${matchedEmployeesCount} موظف)`;
+    }
+    return `${segments.join(" • ")} (${matchedEmployeesCount} موظف)`;
+  }, [
+    targetMode,
+    targetBranch,
+    targetDepartment,
+    targetJobLevel,
+    targetJobCategory,
+    targetSpecialization,
+    targetNationalityGroup,
+    employees.length,
+    matchedEmployeesCount,
+  ]);
 
   // Typed Rows with fallback
   const items: AnnouncementRecord[] = useMemo(() => {
@@ -160,7 +304,7 @@ function SurveysPage() {
       const rawBody = String(r["body"] ?? "");
       const isSurvey = rawKind.includes("استبيان") || rawTitle.includes("استبيان");
       const kind: AnnouncementKind = isSurvey ? "استبيان" : "تعميم";
-      
+
       let circType = String(r["circular_type"] ?? r["category"] ?? "").trim();
       if (!circType) {
         if (isSurvey) {
@@ -180,6 +324,7 @@ function SurveysPage() {
         kind,
         circular_type: circType,
         target: String(r["target"] ?? "جميع الفروع"),
+        target_filters: r["target_filters"] as TargetFilters,
         priority: String(r["priority"] ?? "عادي"),
         status: String(r["status"] ?? "سارٍ ومعتمد"),
         body: rawBody,
@@ -251,7 +396,15 @@ function SurveysPage() {
       setFormActionUrl("");
     }
 
-    setFormTarget(TARGET_OPTIONS[0]);
+    // Reset targeting
+    setTargetMode("all");
+    setTargetBranch("all");
+    setTargetDepartment("all");
+    setTargetJobLevel("all");
+    setTargetJobCategory("all");
+    setTargetSpecialization("all");
+    setTargetNationalityGroup("all");
+
     setFormStatus("سارٍ ومعتمد");
     setFormExpiryDate("");
     setIsFormOpen(true);
@@ -262,12 +415,32 @@ function SurveysPage() {
     setFormTitle(item.title);
     setFormKind((item.kind as AnnouncementKind) || "تعميم");
     setFormCircularType(item.circular_type || "تعميم عام");
-    setFormTarget(item.target || TARGET_OPTIONS[0]);
     setFormPriority(item.priority || "عادي");
     setFormStatus(item.status || "سارٍ ومعتمد");
     setFormBody(item.body || "");
     setFormActionUrl(item.action_url || "");
     setFormExpiryDate(item.expiry_date || "");
+
+    // Restore target filters if available
+    const tf = (item.target_filters || {}) as TargetFilters;
+    if (tf.branch || tf.department || tf.job_level || tf.job_category || tf.specialization || tf.nationality_group) {
+      setTargetMode("custom");
+      setTargetBranch(tf.branch || "all");
+      setTargetDepartment(tf.department || "all");
+      setTargetJobLevel(tf.job_level || "all");
+      setTargetJobCategory(tf.job_category || "all");
+      setTargetSpecialization(tf.specialization || "all");
+      setTargetNationalityGroup(tf.nationality_group || "all");
+    } else {
+      setTargetMode("all");
+      setTargetBranch("all");
+      setTargetDepartment("all");
+      setTargetJobLevel("all");
+      setTargetJobCategory("all");
+      setTargetSpecialization("all");
+      setTargetNationalityGroup("all");
+    }
+
     setIsFormOpen(true);
   };
 
@@ -294,12 +467,23 @@ function SurveysPage() {
 
     setIsSaving(true);
     try {
+      const filtersObj: TargetFilters = {
+        branch: targetBranch,
+        department: targetDepartment,
+        job_level: targetJobLevel,
+        job_category: targetJobCategory,
+        specialization: targetSpecialization,
+        nationality_group: targetNationalityGroup,
+        matched_count: matchedEmployeesCount,
+      };
+
       const payload: Row = {
         title: formTitle.trim(),
         kind: formKind,
         circular_type: formCircularType,
-        category: formCircularType, // redundancy for cross-compatibility
-        target: formTarget,
+        category: formCircularType,
+        target: computedTargetLabel,
+        target_filters: filtersObj,
         priority: formPriority,
         status: formStatus,
         body: formBody.trim(),
@@ -425,6 +609,233 @@ function SurveysPage() {
           </div>
         </div>
 
+        {/* QUICK PRESETS PLAYLIST: نماذج الإطلاق السريع للتعاميم */}
+        <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50/70 via-white to-sky-50/40 p-5 shadow-xs">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-sky-100 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#0070c0] text-white">
+                  <PlayCircle className="h-4 w-4" />
+                </span>
+                <h3 className="text-sm font-black text-slate-900">
+                  قائمة الإطلاق والنماذج السريعة للتعاميم (Circulars Quick Playlist)
+                </h3>
+                <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-[10px] font-extrabold text-[#0070c0]">
+                  جاهز بنقرة واحدة
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">
+                اختر نموذج التعميم المطلوب للإطلاق الفوري بصيغته الرسمية وتوجيهه للفئات المستهدفة
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleOpenAdd("تعميم")}
+                className="flex items-center gap-1.5 rounded-xl bg-[#0070c0] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005a9e] transition cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>إصدار تعميم مخصص</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Cards Grid */}
+          <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Card 1: تحديث بيانات التواصل */}
+            <div className="group flex flex-col justify-between rounded-xl border border-emerald-200 bg-white p-4 shadow-2xs transition hover:border-emerald-400 hover:shadow-xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+                    <PhoneCall className="h-5 w-5" />
+                  </span>
+                  <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200">
+                    إلزامي وإجرائي
+                  </span>
+                </div>
+                <h4 className="mt-3 text-xs font-black text-slate-900 group-hover:text-emerald-700 transition">
+                  تعميم تحديث بيانات التواصل
+                </h4>
+                <p className="mt-1 text-[11px] leading-5 text-slate-500 line-clamp-2">
+                  إلزام المعلمين والإداريين بتحديث أرقام الجوال والعنوان الوطني وهاتف الطوارئ عبر البوابة.
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => handleOpenAdd("تعميم", "تحديث بيانات التواصل")}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>إصدار تعميم تواصل جديد</span>
+                </button>
+                <div className="flex items-center justify-between text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("circular");
+                      setCircularSubFilter("تحديث بيانات التواصل");
+                    }}
+                    className="font-bold text-emerald-800 hover:underline"
+                  >
+                    عرض الصادر ({contactUpdatesCount})
+                  </button>
+                  <Link
+                    to="/reports/employee-data"
+                    className="font-bold text-slate-500 hover:text-emerald-700 flex items-center gap-0.5"
+                  >
+                    التقرير <ArrowRight className="h-2.5 w-2.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: تحديث بيانات المرافقين */}
+            <div className="group flex flex-col justify-between rounded-xl border border-amber-200 bg-white p-4 shadow-2xs transition hover:border-amber-400 hover:shadow-xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
+                    <Users2 className="h-5 w-5" />
+                  </span>
+                  <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-extrabold text-amber-800 border border-amber-200">
+                    تأمين وإقامات
+                  </span>
+                </div>
+                <h4 className="mt-3 text-xs font-black text-slate-900 group-hover:text-amber-700 transition">
+                  تعميم تحديث بيانات المرافقين
+                </h4>
+                <p className="mt-1 text-[11px] leading-5 text-slate-500 line-clamp-2">
+                  حصر وتحديث بيانات الزوج/الزوجة والأبناء والوثائق لتجديد التأمين الطبي والإقامات.
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => handleOpenAdd("تعميم", "تحديث بيانات المرافقين")}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-amber-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>إصدار تعميم مرافقين جديد</span>
+                </button>
+                <div className="flex items-center justify-between text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("circular");
+                      setCircularSubFilter("تحديث بيانات المرافقين");
+                    }}
+                    className="font-bold text-amber-800 hover:underline"
+                  >
+                    عرض الصادر ({dependentUpdatesCount})
+                  </button>
+                  <Link
+                    to="/reports/employee-dependents"
+                    className="font-bold text-slate-500 hover:text-amber-700 flex items-center gap-0.5"
+                  >
+                    التقرير <ArrowRight className="h-2.5 w-2.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: تعميم عام */}
+            <div className="group flex flex-col justify-between rounded-xl border border-sky-200 bg-white p-4 shadow-2xs transition hover:border-sky-400 hover:shadow-xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-[#0070c0]">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <span className="rounded-md bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-[#0070c0] border border-sky-200">
+                    لوائح وإداري
+                  </span>
+                </div>
+                <h4 className="mt-3 text-xs font-black text-slate-900 group-hover:text-[#0070c0] transition">
+                  تعميم إداري عام
+                </h4>
+                <p className="mt-1 text-[11px] leading-5 text-slate-500 line-clamp-2">
+                  إصدار لوائح الدوام، ضوابط الاختبارات، أو تنظيمات مدرسية مع التوجيه المخصص للفروع.
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => handleOpenAdd("تعميم", "تعميم عام")}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0070c0] px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#005a9e] transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>إصدار تعميم عام</span>
+                </button>
+                <div className="flex items-center justify-between text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("circular");
+                      setCircularSubFilter("تعميم عام");
+                    }}
+                    className="font-bold text-[#0070c0] hover:underline"
+                  >
+                    عرض الصادر ({generalCircularsCount})
+                  </button>
+                  <span className="text-slate-400 font-mono text-[10px]">لوائح الأندلس</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: استبيان واستطلاع رأي */}
+            <div className="group flex flex-col justify-between rounded-xl border border-purple-200 bg-white p-4 shadow-2xs transition hover:border-purple-400 hover:shadow-xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 text-purple-800">
+                    <ClipboardList className="h-5 w-5" />
+                  </span>
+                  <span className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-extrabold text-purple-800 border border-purple-200">
+                    قياس وتقييم
+                  </span>
+                </div>
+                <h4 className="mt-3 text-xs font-black text-slate-900 group-hover:text-purple-700 transition">
+                  استبيان واستطلاع رأي
+                </h4>
+                <p className="mt-1 text-[11px] leading-5 text-slate-500 line-clamp-2">
+                  قياس الرضا الوظيفي، تقييم بيئة العمل المدرسية، وتحديد الاحتياجات التدريبية.
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => handleOpenAdd("استبيان")}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-purple-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>إنشاء استبيان جديد</span>
+                </button>
+                <div className="flex items-center justify-between text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("survey");
+                      setCircularSubFilter("all");
+                    }}
+                    className="font-bold text-purple-800 hover:underline"
+                  >
+                    عرض الاستبيانات ({surveysCount})
+                  </button>
+                  <Link
+                    to="/reports/surveys-report"
+                    className="font-bold text-slate-500 hover:text-purple-700 flex items-center gap-0.5"
+                  >
+                    التقرير <ArrowRight className="h-2.5 w-2.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Main Content Container */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
           {/* Header Controls: Navigation Tabs & Create Buttons */}
@@ -437,7 +848,7 @@ function SurveysPage() {
                   setActiveTab("all");
                   setCircularSubFilter("all");
                 }}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
                   activeTab === "all"
                     ? "bg-[#0070c0] text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -452,7 +863,7 @@ function SurveysPage() {
                 onClick={() => {
                   setActiveTab("circular");
                 }}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
                   activeTab === "circular"
                     ? "bg-[#0070c0] text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -468,7 +879,7 @@ function SurveysPage() {
                   setActiveTab("survey");
                   setCircularSubFilter("all");
                 }}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
                   activeTab === "survey"
                     ? "bg-purple-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -479,7 +890,7 @@ function SurveysPage() {
               </button>
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Actions in Header */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -542,7 +953,7 @@ function SurveysPage() {
                     key={sub.key}
                     type="button"
                     onClick={() => setCircularSubFilter(sub.key)}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
                       active
                         ? "bg-[#0070c0] text-white shadow-2xs"
                         : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
@@ -592,7 +1003,7 @@ function SurveysPage() {
                     setPriorityFilter("all");
                     setCircularSubFilter("all");
                   }}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   إعادة ضبط
                 </button>
@@ -613,7 +1024,7 @@ function SurveysPage() {
                     <th className="px-3 py-3 min-w-[190px] text-center bg-sky-50/60 font-black text-[#0070c0] border-x border-sky-100">
                       نوع التعميم / الغرض الإجرائي
                     </th>
-                    <th className="px-3 py-3 min-w-[170px]">الجهة المستهدفة</th>
+                    <th className="px-3 py-3 min-w-[200px]">الجهة والشرائح المستهدفة</th>
                     <th className="px-3 py-3 min-w-[90px] text-center">الأولوية</th>
                     <th className="px-3 py-3 min-w-[100px] text-center">تاريخ النشر</th>
                     <th className="px-3 py-3 min-w-[100px] text-center">الحالة</th>
@@ -637,7 +1048,6 @@ function SurveysPage() {
                     filteredItems.map((item, index) => {
                       const isContact = item.circular_type === "تحديث بيانات التواصل";
                       const isDependents = item.circular_type === "تحديث بيانات المرافقين";
-                      const isGeneral = item.circular_type === "تعميم عام";
 
                       return (
                         <tr
@@ -720,9 +1130,11 @@ function SurveysPage() {
 
                           {/* Target */}
                           <td className="px-3 py-3.5 text-slate-700">
-                            <div className="flex items-center gap-1 font-semibold">
-                              <Building className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                              <span className="line-clamp-1">{item.target}</span>
+                            <div className="flex items-start gap-1.5 font-semibold text-[11px]">
+                              <Target className="h-3.5 w-3.5 shrink-0 text-[#0070c0] mt-0.5" />
+                              <div>
+                                <span className="line-clamp-2">{item.target}</span>
+                              </div>
                             </div>
                           </td>
 
@@ -820,9 +1232,9 @@ function SurveysPage() {
           </div>
         </div>
 
-        {/* Create / Edit Dialog */}
+        {/* Create / Edit Dialog with Advanced Targeting Matrix */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="max-w-3xl" dir="rtl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-right text-base font-extrabold text-slate-900 flex items-center gap-2">
                 {formKind === "تعميم" ? (
@@ -901,7 +1313,7 @@ function SurveysPage() {
                 </div>
               </div>
 
-              {/* Step 2: CONDITIONAL COLUMN: نوع التعميم / الغرض الإجرائي */}
+              {/* Step 2: CONDITIONAL LIST FOR CIRCULARS: نوع التعميم / الغرض الإجرائي */}
               {formKind === "تعميم" ? (
                 <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3.5 space-y-2.5">
                   <div className="flex items-center justify-between">
@@ -953,7 +1365,7 @@ function SurveysPage() {
                   {/* One-click template applicator */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-sky-100 text-[11px]">
                     <span className="text-slate-600 font-semibold">
-                      صيغ رسمية جاهزة لمنسوبي مدارس الأندلس:
+                      صيغ ونصوص نموذجية معتمدة لمدارس الأندلس:
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -962,7 +1374,7 @@ function SurveysPage() {
                           setFormCircularType("تحديث بيانات التواصل");
                           applyTemplate("تحديث بيانات التواصل");
                         }}
-                        className="rounded-md border border-emerald-300 bg-white px-2 py-1 font-bold text-emerald-800 hover:bg-emerald-50"
+                        className="rounded-md border border-emerald-300 bg-white px-2.5 py-1 font-bold text-emerald-800 hover:bg-emerald-50 cursor-pointer"
                       >
                         قالب تعميم التواصل
                       </button>
@@ -972,9 +1384,19 @@ function SurveysPage() {
                           setFormCircularType("تحديث بيانات المرافقين");
                           applyTemplate("تحديث بيانات المرافقين");
                         }}
-                        className="rounded-md border border-amber-300 bg-white px-2 py-1 font-bold text-amber-800 hover:bg-amber-50"
+                        className="rounded-md border border-amber-300 bg-white px-2.5 py-1 font-bold text-amber-800 hover:bg-amber-50 cursor-pointer"
                       >
                         قالب تعميم المرافقين
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormCircularType("تعميم عام");
+                          applyTemplate("تعميم عام");
+                        }}
+                        className="rounded-md border border-sky-300 bg-white px-2.5 py-1 font-bold text-[#0070c0] hover:bg-sky-50 cursor-pointer"
+                      >
+                        قالب تعميم عام
                       </button>
                     </div>
                   </div>
@@ -1012,51 +1434,234 @@ function SurveysPage() {
                 />
               </div>
 
-              {/* Target & Priority Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    الجهة والفروع المستهدفة:
-                  </label>
-                  <select
-                    value={formTarget}
-                    onChange={(e) => setFormTarget(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
-                  >
-                    {TARGET_OPTIONS.map((tgt) => (
-                      <option key={tgt} value={tgt}>
-                        {tgt}
-                      </option>
-                    ))}
-                  </select>
+              {/* ADVANCED MULTI-DIMENSIONAL TARGETING & ROUTING MATRIX */}
+              <div className="rounded-xl border border-slate-300 bg-slate-50/70 p-4 space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-[#0070c0]" />
+                    <span className="text-xs font-black text-slate-900">
+                      نظام التوجيه والاستهداف المتقدم للموظفين
+                    </span>
+                  </div>
+
+                  {/* Mode switcher: all vs custom */}
+                  <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setTargetMode("all")}
+                      className={`rounded-md px-3 py-1 transition cursor-pointer ${
+                        targetMode === "all"
+                          ? "bg-[#0070c0] text-white shadow-2xs"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      كافة الفروع والمنسوبين
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTargetMode("custom")}
+                      className={`rounded-md px-3 py-1 transition cursor-pointer ${
+                        targetMode === "custom"
+                          ? "bg-[#0070c0] text-white shadow-2xs"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      تخصيص موجه (فلاتر محددة)
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">الأولوية:</label>
-                    <select
-                      value={formPriority}
-                      onChange={(e) => setFormPriority(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
-                    >
-                      <option value="عاجل ومهم">عاجل ومهم</option>
-                      <option value="هام">هام</option>
-                      <option value="عادي">عادي</option>
-                    </select>
+                {targetMode === "custom" ? (
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {/* 1. الفرع (Branch) */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          الفرع المستهدف:
+                        </label>
+                        <select
+                          value={targetBranch}
+                          onChange={(e) => setTargetBranch(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-800 outline-none focus:border-[#0070c0]"
+                        >
+                          <option value="all">جميع الفروع (18 فرعاً)</option>
+                          {ANDALUS_BRANCHES.map((b) => (
+                            <option key={b.id} value={b.name_ar}>
+                              {b.name_ar}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 2. القسم (Department) */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          القسم / المرحلة:
+                        </label>
+                        <select
+                          value={targetDepartment}
+                          onChange={(e) => setTargetDepartment(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-800 outline-none focus:border-[#0070c0]"
+                        >
+                          <option value="all">جميع الأقسام والمراحل</option>
+                          {ANDALUS_DEPARTMENTS.map((dept) => (
+                            <option key={dept} value={dept}>
+                              {dept}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 3. المستوى الوظيفي (Job Level) */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          المستوى الوظيفي:
+                        </label>
+                        <select
+                          value={targetJobLevel}
+                          onChange={(e) => setTargetJobLevel(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-800 outline-none focus:border-[#0070c0]"
+                        >
+                          <option value="all">جميع المستويات الوظيفية</option>
+                          {JOB_LEVELS.map((lvl) => (
+                            <option key={lvl} value={lvl}>
+                              {lvl}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 4. الفئة الوظيفية (Job Category) */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          الفئة الوظيفية:
+                        </label>
+                        <select
+                          value={targetJobCategory}
+                          onChange={(e) => setTargetJobCategory(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-800 outline-none focus:border-[#0070c0]"
+                        >
+                          <option value="all">جميع الفئات الوظيفية</option>
+                          {JOB_CATEGORIES.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 5. التخصص (Specialization) */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          التخصص الأكاديمي / المهني:
+                        </label>
+                        <select
+                          value={targetSpecialization}
+                          onChange={(e) => setTargetSpecialization(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-800 outline-none focus:border-[#0070c0]"
+                        >
+                          <option value="all">جميع التخصصات</option>
+                          {SPECIALIZATIONS_LIST.map((spec) => (
+                            <option key={spec} value={spec}>
+                              {spec}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 6. الجنسية / فئة الموظفين */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          الجنسية / فئة الموظفين:
+                        </label>
+                        <select
+                          value={targetNationalityGroup}
+                          onChange={(e) => setTargetNationalityGroup(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-800 outline-none focus:border-[#0070c0]"
+                        >
+                          {TARGET_AUDIENCE_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Reset custom filters */}
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetBranch("all");
+                          setTargetDepartment("all");
+                          setTargetJobLevel("all");
+                          setTargetJobCategory("all");
+                          setTargetSpecialization("all");
+                          setTargetNationalityGroup("all");
+                        }}
+                        className="text-[11px] font-bold text-[#0070c0] hover:underline"
+                      >
+                        إعادة ضبط الفلاتر المخصصة
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">الحالة:</label>
-                    <select
-                      value={formStatus}
-                      onChange={(e) => setFormStatus(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
-                    >
-                      <option value="سارٍ ومعتمد">سارٍ ومعتمد</option>
-                      <option value="نشط">نشط</option>
-                      <option value="مسودة">مسودة</option>
-                      <option value="مكتمل ومغلق">مكتمل ومغلق</option>
-                    </select>
+                ) : null}
+
+                {/* LIVE AUDIENCE MATCH COUNTER BADGE */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-sky-200 bg-white p-3 shadow-2xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-[#0070c0]">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-extrabold text-slate-900">
+                        الجمهور المستهدف المتوقع: {matchedEmployeesCount} موظف من أصل {employees.length || 550}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        {computedTargetLabel}
+                      </div>
+                    </div>
                   </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-black text-emerald-800">
+                      نسبة التغطية:{" "}
+                      {employees.length
+                        ? Math.round((matchedEmployeesCount / employees.length) * 100)
+                        : 100}
+                      %
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority & Status Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">الأولوية:</label>
+                  <select
+                    value={formPriority}
+                    onChange={(e) => setFormPriority(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
+                  >
+                    <option value="عاجل ومهم">عاجل ومهم</option>
+                    <option value="هام">هام</option>
+                    <option value="عادي">عادي</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">الحالة:</label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 outline-none focus:border-[#0070c0]"
+                  >
+                    <option value="سارٍ ومعتمد">سارٍ ومعتمد</option>
+                    <option value="نشط">نشط</option>
+                    <option value="مسودة">مسودة</option>
+                    <option value="مكتمل ومغلق">مكتمل ومغلق</option>
+                  </select>
                 </div>
               </div>
 
@@ -1107,7 +1712,7 @@ function SurveysPage() {
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 إلغاء
               </button>
@@ -1115,7 +1720,7 @@ function SurveysPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-1.5 rounded-xl bg-[#0070c0] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005a9e] disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-xl bg-[#0070c0] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005a9e] disabled:opacity-50 cursor-pointer"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 <span>{isSaving ? "جارٍ الحفظ..." : "حفظ واعتماد النشر"}</span>
@@ -1196,7 +1801,7 @@ function SurveysPage() {
               <button
                 type="button"
                 onClick={() => setPreviewItem(null)}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 إغلاق
               </button>
@@ -1206,7 +1811,7 @@ function SurveysPage() {
                   onClick={() => {
                     window.print();
                   }}
-                  className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 transition"
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 transition cursor-pointer"
                 >
                   <Printer className="h-4 w-4" />
                   <span>طباعة رسمية</span>

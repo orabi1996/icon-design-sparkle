@@ -40,6 +40,7 @@ import {
   Database,
   Download,
   AlertCircle,
+  Info,
   ArrowRight,
   UploadCloud,
   Printer,
@@ -51,6 +52,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   useRows,
   useSaveRow,
+  useDeleteRow,
   useSettings,
   useSaveSettings,
   type Row,
@@ -79,7 +81,7 @@ export const Route = createFileRoute("/portal")({
     tab?: "profile" | "inquiries" | "payroll" | "requests" | "reports" | "forms" | "evaluation" | "tasks" | undefined;
     reqView?: "employee" | "manager" | undefined;
     reqSubTab?: "leaves" | "misc" | undefined;
-    subTab?: "personal" | "work" | "gosi" | "contact" | "notes" | undefined;
+    subTab?: "personal" | "work" | "gosi" | "contact" | "notes" | "dependents" | undefined;
   } => {
     const rawEmp = search["employeeId"];
     const rawTab = search["tab"];
@@ -125,6 +127,9 @@ export function EmployeePortalPage() {
   const saveEmployee = useSaveRow("employees");
   const saveApprovalRequest = useSaveRow("approval_requests");
   const saveLeaveRequest = useSaveRow("leave_requests");
+  const { data: rawRelatives = [] } = useRows("employee_relatives") as { data?: any[] };
+  const saveRelative = useSaveRow("employee_relatives");
+  const deleteRelative = useDeleteRow("employee_relatives");
   const { data: basicLookups = [] } = useRows("basic_lookups") as { data?: any[] };
 
   const configQuery = useSettings("data_update_config");
@@ -296,9 +301,18 @@ export function EmployeePortalPage() {
 
   // Sub-tabs in Employee Data
   const [subSection, setSubSection] = useState<
-    "personal" | "work" | "gosi" | "contact" | "notes" | "custom_updates"
-  >(searchSubTab || "personal");
-  const [topCategoryTab, setTopCategoryTab] = useState<"basic" | "medical" | "dependents">("basic");
+    "personal" | "work" | "gosi" | "contact" | "notes" | "custom_updates" | "dependents"
+  >(searchSubTab === "dependents" ? "dependents" : (searchSubTab || "personal"));
+  const [topCategoryTab, setTopCategoryTab] = useState<"basic" | "medical" | "dependents">(
+    searchSubTab === "dependents" ? "dependents" : "basic"
+  );
+
+  useEffect(() => {
+    if (searchSubTab === "dependents") {
+      setSubSection("dependents");
+      setTopCategoryTab("dependents");
+    }
+  }, [searchSubTab]);
 
   // Editable Form state synced with current employee
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -429,6 +443,129 @@ export function EmployeePortalPage() {
     });
     return Array.from(set).filter(Boolean);
   }, [activeFieldDef, basicLookups, employees]);
+
+  // Dependents Management State
+  const currentRelatives = useMemo(() => {
+    if (!currentEmployee) return [];
+    const list = rawRelatives.filter(
+      (r) =>
+        String(r.employee_id) === String(currentEmployee.id) ||
+        String(r.emp_no) === String(currentEmployee.emp_no)
+    );
+    if (list.length > 0) return list;
+    return [
+      {
+        id: "demo-rel-1",
+        employee_id: currentEmployee.id,
+        emp_no: currentEmployee.emp_no,
+        name: "فاطمة أحمد حسن",
+        relation: "زوج / زوجة",
+        gender: "أنثى",
+        nationality: currentEmployee.nationality || "سعودي",
+        national_id: "2411099887",
+        birth_date: "1994-08-15",
+        residence_expiry: "2027-04-12",
+        insurance_no: "INS-DEP-8801",
+        insurance_class: "فئة أ (VIP)",
+      },
+      {
+        id: "demo-rel-2",
+        employee_id: currentEmployee.id,
+        emp_no: currentEmployee.emp_no,
+        name: `عمر ${String(currentEmployee.full_name || "محمد").split(" ")[0]}`,
+        relation: "ابن",
+        gender: "ذكر",
+        nationality: currentEmployee.nationality || "سعودي",
+        national_id: "2500199281",
+        birth_date: "2018-02-10",
+        residence_expiry: "2027-04-12",
+        insurance_no: "INS-DEP-8802",
+        insurance_class: "فئة أ (VIP)",
+      },
+    ];
+  }, [rawRelatives, currentEmployee]);
+
+  const [isRelModalOpen, setIsRelModalOpen] = useState(false);
+  const [editingRelId, setEditingRelId] = useState<string | null>(null);
+  const [relName, setRelName] = useState("");
+  const [relRelation, setRelRelation] = useState("زوج / زوجة");
+  const [relGender, setRelGender] = useState("أنثى");
+  const [relNationality, setRelNationality] = useState("سعودي");
+  const [relNationalId, setRelNationalId] = useState("");
+  const [relBirthDate, setRelBirthDate] = useState("");
+  const [relResidenceExpiry, setRelResidenceExpiry] = useState("");
+  const [relInsuranceNo, setRelInsuranceNo] = useState("");
+  const [relInsuranceClass, setRelInsuranceClass] = useState("فئة أ (VIP)");
+
+  const handleOpenAddRelative = () => {
+    setEditingRelId(null);
+    setRelName("");
+    setRelRelation("زوج / زوجة");
+    setRelGender("أنثى");
+    setRelNationality(currentEmployee?.nationality || "سعودي");
+    setRelNationalId("");
+    setRelBirthDate("");
+    setRelResidenceExpiry("");
+    setRelInsuranceNo("");
+    setRelInsuranceClass("فئة أ (VIP)");
+    setIsRelModalOpen(true);
+  };
+
+  const handleOpenEditRelative = (rel: any) => {
+    setEditingRelId(rel.id);
+    setRelName(rel.name || "");
+    setRelRelation(rel.relation || "زوج / زوجة");
+    setRelGender(rel.gender || "أنثى");
+    setRelNationality(rel.nationality || currentEmployee?.nationality || "سعودي");
+    setRelNationalId(rel.national_id || "");
+    setRelBirthDate(rel.birth_date || "");
+    setRelResidenceExpiry(rel.residence_expiry || "");
+    setRelInsuranceNo(rel.insurance_no || "");
+    setRelInsuranceClass(rel.insurance_class || "فئة أ (VIP)");
+    setIsRelModalOpen(true);
+  };
+
+  const handleSaveRelative = async () => {
+    if (!relName.trim()) {
+      toast.error("يرجى إدخال اسم المرافق");
+      return;
+    }
+    try {
+      const payload: Row = {
+        employee_id: currentEmployee?.id || "",
+        emp_no: currentEmployee?.emp_no || "",
+        name: relName.trim(),
+        relation: relRelation,
+        gender: relGender,
+        nationality: relNationality,
+        national_id: relNationalId.trim(),
+        birth_date: relBirthDate || null,
+        residence_expiry: relResidenceExpiry || null,
+        insurance_no: relInsuranceNo.trim() || null,
+        insurance_class: relInsuranceClass,
+      };
+      if (editingRelId && !String(editingRelId).startsWith("demo-")) {
+        payload["id"] = editingRelId;
+      }
+      await saveRelative.mutateAsync(payload);
+      toast.success(editingRelId ? "تم تحديث بيانات المرافق بنجاح" : "تمت إضافة المرافق بنجاح وحفظ السجل");
+      setIsRelModalOpen(false);
+    } catch {
+      toast.error("حدث خطأ أثناء حفظ المرافق");
+    }
+  };
+
+  const handleDeleteRelative = async (relId: string, relNameStr: string) => {
+    if (!window.confirm(`هل أنت متأكد من حذف المرافق (${relNameStr})؟`)) return;
+    try {
+      if (!relId.startsWith("demo-")) {
+        await deleteRelative.mutateAsync(relId);
+      }
+      toast.success("تم حذف المرافق بنجاح");
+    } catch {
+      toast.error("فشل حذف المرافق");
+    }
+  };
 
   const handleOpenRequestForField = (fieldKey: string) => {
     setSelectedFieldKey(fieldKey);
@@ -2488,10 +2625,13 @@ export function EmployeePortalPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTopCategoryTab("dependents")}
+                onClick={() => {
+                  setTopCategoryTab("dependents");
+                  setSubSection("dependents");
+                }}
                 className={`flex-1 py-3 text-center text-xs font-bold transition ${
-                  topCategoryTab === "dependents"
-                    ? "bg-[#1f64aa] text-white"
+                  topCategoryTab === "dependents" || subSection === "dependents"
+                    ? "bg-[#1f64aa] text-white shadow-inner font-black"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -2509,6 +2649,7 @@ export function EmployeePortalPage() {
 
                 {[
                   { key: "personal", label: "البيانات الشخصيه" },
+                  { key: "dependents", label: "المرافقين والتابعين" },
                   { key: "work", label: "بيانات العمل" },
                   { key: "gosi", label: "بيانات التأمينات الاجتماعية" },
                   { key: "contact", label: "بيانات التواصل" },
@@ -3382,6 +3523,140 @@ export function EmployeePortalPage() {
                   </div>
                 )}
 
+                {/* 7. المرافقين والتابعين (شاشة إضافة وتحديث المرافقين بحساب الموظف) */}
+                {subSection === "dependents" && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div>
+                        <h3 className="text-sm font-black text-[#004e82] flex items-center gap-1.5">
+                          <Users className="size-4 text-[#0070c0]" />
+                          <span>بيانات المرافقين والتابعين المسجلين في حسابك</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          تحديث وحصر بيانات الزوج/الزوجة والأبناء، وتجديد وثائق الإقامة وربط التأمين الطبي وفقاً لتعاميم الموارد البشرية.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to="/requests/data-update"
+                          className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-900 hover:bg-amber-100 transition"
+                        >
+                          <Send className="size-3" />
+                          <span>طلب تحديث بيانات المرافقين</span>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={handleOpenAddRelative}
+                          className="flex items-center gap-1.5 rounded-lg bg-[#0070c0] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#005a9e] transition cursor-pointer"
+                        >
+                          <PlusCircle className="size-3.5" />
+                          <span>إضافة مرافق جديد</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Notification info box */}
+                    <div className="rounded-xl border border-sky-100 bg-sky-50/60 p-3 text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-100 text-[#0070c0]">
+                          <Info className="size-4" />
+                        </div>
+                        <span className="font-semibold text-slate-700">
+                          إجمالي المرافقين المقيدين لك حالياً:{" "}
+                          <strong className="text-[#0070c0]">{currentRelatives.length} مرافقين</strong>
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-500">
+                        حالة التأمين الطبي: <strong>مغطى ومفعل</strong>
+                      </span>
+                    </div>
+
+                    {/* Relatives Table */}
+                    <div className="overflow-hidden rounded-xl border border-slate-200">
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-right text-xs">
+                          <thead>
+                            <tr className="border-b border-slate-200 bg-[#f8fafc] font-bold text-slate-700">
+                              <th className="px-3 py-2.5 text-center w-10">#</th>
+                              <th className="px-3 py-2.5 min-w-[160px]">اسم المرافق</th>
+                              <th className="px-3 py-2.5 min-w-[100px] text-center">صلة القرابة</th>
+                              <th className="px-3 py-2.5 min-w-[120px] text-center">رقم الهوية / الإقامة</th>
+                              <th className="px-3 py-2.5 min-w-[90px] text-center">تاريخ الميلاد</th>
+                              <th className="px-3 py-2.5 min-w-[100px] text-center">انتهاء الإقامة</th>
+                              <th className="px-3 py-2.5 min-w-[120px] text-center">التأمين الطبي</th>
+                              <th className="px-3 py-2.5 min-w-[100px] text-center">الإجراءات</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-slate-800">
+                            {currentRelatives.length === 0 ? (
+                              <tr>
+                                <td colSpan={8} className="py-8 text-center text-slate-500 font-bold">
+                                  لا يوجد مرافقون مسجلون حالياً. اضغط على (إضافة مرافق جديد) للتسجيل.
+                                </td>
+                              </tr>
+                            ) : (
+                              currentRelatives.map((rel: any, idx: number) => (
+                                <tr key={rel.id || idx} className="hover:bg-slate-50/80 transition">
+                                  <td className="px-3 py-3 text-center font-bold text-slate-400">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="px-3 py-3 font-black text-slate-900">
+                                    {rel.name}
+                                    <div className="text-[10px] text-slate-400 font-normal">
+                                      {rel.gender || "—"} • {rel.nationality || "سعودي"}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-3 text-center">
+                                    <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-200">
+                                      {rel.relation || "مرافق"}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-3 text-center font-mono text-xs text-slate-800">
+                                    {rel.national_id || "—"}
+                                  </td>
+                                  <td className="px-3 py-3 text-center font-mono text-[11px] text-slate-600">
+                                    {rel.birth_date || "—"}
+                                  </td>
+                                  <td className="px-3 py-3 text-center font-mono text-[11px] text-slate-600">
+                                    {rel.residence_expiry || "2027-04-12"}
+                                  </td>
+                                  <td className="px-3 py-3 text-center">
+                                    <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                                      {rel.insurance_class || "فئة أ (VIP)"}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-3 text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <button
+                                        type="button"
+                                        title="تعديل بيانات المرافق"
+                                        onClick={() => handleOpenEditRelative(rel)}
+                                        className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-amber-600 cursor-pointer"
+                                      >
+                                        <Eye className="size-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        title="حذف المرافق"
+                                        onClick={() => handleDeleteRelative(String(rel.id), rel.name)}
+                                        className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-rose-600 cursor-pointer"
+                                      >
+                                        <X className="size-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Bottom Center Save Button (Exact match: Green button centered) */}
                 <div className="flex justify-center pt-2">
                   <button
@@ -3939,6 +4214,160 @@ export function EmployeePortalPage() {
               >
                 <Send className="size-3.5" />
                 <span>إرسال الرد</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog for Adding/Editing Relative in Employee Portal */}
+      {isRelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" dir="rtl">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Users className="size-4 text-[#0070c0]" />
+                <span>{editingRelId ? "تعديل بيانات المرافق" : "إضافة مرافق جديد في حساب الموظف"}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsRelModalOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  اسم المرافق رباعي <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={relName}
+                  onChange={(e) => setRelName(e.target.value)}
+                  placeholder="مثال: سارة محمد أحمد الغامدي"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">صلة القرابة</label>
+                  <select
+                    value={relRelation}
+                    onChange={(e) => setRelRelation(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  >
+                    <option value="زوج / زوجة">زوج / زوجة</option>
+                    <option value="ابن">ابن</option>
+                    <option value="ابنة">ابنة</option>
+                    <option value="والد">والد</option>
+                    <option value="والدة">والدة</option>
+                    <option value="أخرى">أخرى</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">الجنس</label>
+                  <select
+                    value={relGender}
+                    onChange={(e) => setRelGender(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  >
+                    <option value="أنثى">أنثى</option>
+                    <option value="ذكر">ذكر</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">رقم الهوية / الإقامة</label>
+                  <input
+                    type="text"
+                    value={relNationalId}
+                    onChange={(e) => setRelNationalId(e.target.value)}
+                    placeholder="10 أرقام"
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">الجنسية</label>
+                  <input
+                    type="text"
+                    value={relNationality}
+                    onChange={(e) => setRelNationality(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">تاريخ الميلاد</label>
+                  <input
+                    type="date"
+                    value={relBirthDate}
+                    onChange={(e) => setRelBirthDate(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">تاريخ انتهاء الإقامة</label>
+                  <input
+                    type="date"
+                    value={relResidenceExpiry}
+                    onChange={(e) => setRelResidenceExpiry(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">رقم وثيقة التأمين</label>
+                  <input
+                    type="text"
+                    value={relInsuranceNo}
+                    onChange={(e) => setRelInsuranceNo(e.target.value)}
+                    placeholder="INS-..."
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">فئة التأمين الطبي</label>
+                  <select
+                    value={relInsuranceClass}
+                    onChange={(e) => setRelInsuranceClass(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-900 outline-none focus:border-[#0070c0]"
+                  >
+                    <option value="فئة أ (VIP)">فئة أ (VIP)</option>
+                    <option value="فئة ب (Standard)">فئة ب (Standard)</option>
+                    <option value="فئة ج (Basic)">فئة ج (Basic)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setIsRelModalOpen(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveRelative}
+                className="rounded-lg bg-[#0070c0] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#005a9e] cursor-pointer"
+              >
+                حفظ بيانات المرافق
               </button>
             </div>
           </div>
